@@ -15,8 +15,10 @@ type LayerName =
   | "Camada 7.png"
   | "Camada 8.png";
 
-type LoadedLayer = {
-  name: LayerName;
+type SpriteName = LayerName | "Camada 2_alt.png" | "Camada 8_alt.png";
+
+type LoadedSprite = {
+  name: SpriteName;
   src: string;
   image: HTMLImageElement;
 };
@@ -40,10 +42,12 @@ type LayerConfig = {
 };
 
 type SparseAngles = Partial<Record<LayerName, number>>;
+type SparseSprites = Partial<Record<LayerName, SpriteName>>;
 
 type AnimationKeyframe = {
   at: number;
   changes: SparseAngles;
+  sprites?: SparseSprites;
 };
 
 type AnimationPreset = {
@@ -55,9 +59,10 @@ type AnimationPreset = {
 type ResolvedKeyframe = {
   at: number;
   angles: Record<LayerName, number>;
+  sprites: Record<LayerName, SpriteName>;
 };
 
-const layerModules = import.meta.glob("../assets/retro/*", {
+const spriteModules = import.meta.glob("../assets/retro/*", {
   eager: true,
   import: "default",
 }) as Record<string, string>;
@@ -153,6 +158,17 @@ const DEFAULT_ANGLES: Record<LayerName, number> = {
   "Camada 8.png": -15,
 };
 
+const DEFAULT_SPRITES: Record<LayerName, SpriteName> = {
+  "Camada 1.png": "Camada 1.png",
+  "Camada 2.png": "Camada 2.png",
+  "Camada 3.png": "Camada 3.png",
+  "Camada 4.png": "Camada 4.png",
+  "Camada 5.png": "Camada 5.png",
+  "Camada 6.png": "Camada 6.png",
+  "Camada 7.png": "Camada 7.png",
+  "Camada 8.png": "Camada 8.png",
+};
+
 const ANIMATION_PRESETS: AnimationPreset[] = [
   {
     id: "idle",
@@ -166,25 +182,77 @@ const ANIMATION_PRESETS: AnimationPreset[] = [
           "Camada 2.png": -21,
           "Camada 6.png": 5,
         },
+        sprites: {
+          "Camada 2.png": "Camada 2_alt.png",
+        },
       },
       {
-        at: 1200,
+        at: 2400,
         changes: {
           "Camada 1.png": 21,
           "Camada 2.png": 30,
         },
       },
+    ],
+  },
+  {
+    id: "idle2",
+    name: "Ciclo da Cacamba 2",
+    keyframes: [
+      { at: 0, changes: {} },
       {
-        at: 2400,
+        at: 1200,
         changes: {
           "Camada 1.png": 75,
           "Camada 2.png": -24,
         },
       },
       {
-        at: 3600,
+        at: 2400,
         changes: {
           "Camada 2.png": -92,
+        },
+      },
+    ],
+  },
+  {
+    id: "arm-extended",
+    name: "Braco Estendido",
+    keyframes: [
+      { at: 0, changes: {} },
+      {
+        at: 1200,
+        changes: {
+          "Camada 6.png": 47,
+          "Camada 7.png": -78,
+          "Camada 8.png": -131,
+        },
+      },
+      {
+        at: 2000,
+        changes: {
+          "Camada 6.png": 38,
+          "Camada 7.png": -45,
+          "Camada 8.png": -95,
+        },
+        sprites: {
+          "Camada 8.png": "Camada 8_alt.png",
+        },
+      },
+      {
+        at: 3600,
+        changes: {
+          "Camada 6.png": 25,
+          "Camada 7.png": 7,
+          "Camada 8.png": -38,
+        },
+      },
+      {
+        at: 4200,
+        changes: {
+          "Camada 6.png": 25,
+          "Camada 7.png": 7,
+          "Camada 8.png": -38,
         },
       },
     ],
@@ -250,11 +318,10 @@ function applyToPoint(matrix: Matrix2D, point: Point): Point {
 }
 
 function computeWorldMatrices(
-  layers: LoadedLayer[],
+  layers: LayerName[],
   angles: Record<LayerName, number>,
   rootMatrix: Matrix2D,
 ) {
-  const layerMap = new Map(layers.map((layer) => [layer.name, layer]));
   const worldMatrices = new Map<LayerName, Matrix2D>();
 
   const resolveLayerMatrix = (layerName: LayerName): Matrix2D => {
@@ -265,12 +332,6 @@ function computeWorldMatrices(
     }
 
     const layerConfig = LAYER_CONFIG[layerName];
-
-    if (!layerMap.has(layerName)) {
-      const identity = createIdentityMatrix();
-      worldMatrices.set(layerName, identity);
-      return identity;
-    }
 
     if (layerConfig.parent === null) {
       worldMatrices.set(layerName, rootMatrix);
@@ -296,14 +357,14 @@ function computeWorldMatrices(
   };
 
   for (const layer of layers) {
-    resolveLayerMatrix(layer.name);
+    resolveLayerMatrix(layer);
   }
 
   return worldMatrices;
 }
 
 function computeBounds(
-  layers: LoadedLayer[],
+  images: Record<LayerName, HTMLImageElement>,
   worldMatrices: Map<LayerName, Matrix2D>,
 ) {
   let minX = Number.POSITIVE_INFINITY;
@@ -311,18 +372,19 @@ function computeBounds(
   let maxX = Number.NEGATIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
 
-  for (const layer of layers) {
-    const matrix = worldMatrices.get(layer.name);
+  for (const layerName of DRAW_ORDER) {
+    const matrix = worldMatrices.get(layerName);
+    const image = images[layerName];
 
-    if (!matrix) {
+    if (!matrix || !image) {
       continue;
     }
 
     const corners = [
       applyToPoint(matrix, { x: 0, y: 0 }),
-      applyToPoint(matrix, { x: layer.image.width, y: 0 }),
-      applyToPoint(matrix, { x: 0, y: layer.image.height }),
-      applyToPoint(matrix, { x: layer.image.width, y: layer.image.height }),
+      applyToPoint(matrix, { x: image.width, y: 0 }),
+      applyToPoint(matrix, { x: 0, y: image.height }),
+      applyToPoint(matrix, { x: image.width, y: image.height }),
     ];
 
     for (const corner of corners) {
@@ -343,19 +405,26 @@ function computeBounds(
 
 function resolveKeyframes(
   baseAngles: Record<LayerName, number>,
+  baseSprites: Record<LayerName, SpriteName>,
   keyframes: AnimationKeyframe[],
 ): ResolvedKeyframe[] {
   let currentAngles = { ...baseAngles };
+  let currentSprites = { ...baseSprites };
 
   return keyframes.map((keyframe) => {
     currentAngles = {
       ...currentAngles,
       ...keyframe.changes,
     };
+    currentSprites = {
+      ...currentSprites,
+      ...(keyframe.sprites ?? {}),
+    };
 
     return {
       at: keyframe.at,
       angles: currentAngles,
+      sprites: currentSprites,
     };
   });
 }
@@ -404,12 +473,38 @@ function interpolateAngles(
   return lastKeyframe.angles;
 }
 
+function resolveSpritesAtTime(
+  resolvedKeyframes: ResolvedKeyframe[],
+  currentTime: number,
+  fallback: Record<LayerName, SpriteName>,
+) {
+  if (resolvedKeyframes.length === 0) {
+    return fallback;
+  }
+
+  let currentSprites = fallback;
+
+  for (const keyframe of resolvedKeyframes) {
+    if (keyframe.at > currentTime) {
+      break;
+    }
+
+    currentSprites = keyframe.sprites;
+  }
+
+  return currentSprites;
+}
+
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTickRef = useRef<number | null>(null);
-  const [layers, setLayers] = useState<LoadedLayer[]>([]);
+  const [sprites, setSprites] = useState<Record<
+    SpriteName,
+    LoadedSprite
+  > | null>(null);
   const [angles, setAngles] = useState(DEFAULT_ANGLES);
+  const [baseSprites, setBaseSprites] = useState(DEFAULT_SPRITES);
   const [activeTab, setActiveTab] = useState<"poses" | "animations">("poses");
   const [selectedAnimationId, setSelectedAnimationId] = useState(
     ANIMATION_PRESETS[0]?.id ?? "",
@@ -418,9 +513,9 @@ export function GameCanvas() {
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
-    const entries = Object.entries(layerModules)
+    const entries = Object.entries(spriteModules)
       .map(([path, src]) => ({
-        name: (path.split("/").pop() ?? path) as LayerName,
+        name: (path.split("/").pop() ?? path) as SpriteName,
         src,
       }))
       .sort((a, b) => compareLayerNames(a.name, b.name));
@@ -431,7 +526,19 @@ export function GameCanvas() {
         image: await loadImage(entry.src),
       })),
     )
-      .then(setLayers)
+      .then((loadedSprites) => {
+        const spriteMap = loadedSprites.reduce<
+          Record<SpriteName, LoadedSprite>
+        >(
+          (accumulator, sprite) => {
+            accumulator[sprite.name] = sprite;
+            return accumulator;
+          },
+          {} as Record<SpriteName, LoadedSprite>,
+        );
+
+        setSprites(spriteMap);
+      })
       .catch((error: unknown) => {
         console.error("Falha ao carregar as camadas retro.", error);
       });
@@ -443,15 +550,18 @@ export function GameCanvas() {
       null,
     [selectedAnimationId],
   );
+
   const resolvedKeyframes = useMemo(
     () =>
       selectedAnimation
-        ? resolveKeyframes(angles, selectedAnimation.keyframes)
+        ? resolveKeyframes(angles, baseSprites, selectedAnimation.keyframes)
         : [],
-    [angles, selectedAnimation],
+    [angles, baseSprites, selectedAnimation],
   );
+
   const totalDuration =
     resolvedKeyframes[resolvedKeyframes.length - 1]?.at ?? 0;
+
   const displayAngles = useMemo(() => {
     if (!selectedAnimation) {
       return angles;
@@ -463,6 +573,45 @@ export function GameCanvas() {
 
     return interpolateAngles(resolvedKeyframes, currentTime, angles);
   }, [angles, currentTime, isPlaying, resolvedKeyframes, selectedAnimation]);
+
+  const displaySpriteSelection = useMemo(() => {
+    if (!selectedAnimation) {
+      return baseSprites;
+    }
+
+    if (!isPlaying && currentTime === 0) {
+      return baseSprites;
+    }
+
+    return resolveSpritesAtTime(resolvedKeyframes, currentTime, baseSprites);
+  }, [
+    baseSprites,
+    currentTime,
+    isPlaying,
+    resolvedKeyframes,
+    selectedAnimation,
+  ]);
+
+  const displayImages = useMemo(() => {
+    if (!sprites) {
+      return null;
+    }
+
+    const images = {} as Record<LayerName, HTMLImageElement>;
+
+    for (const layerName of DRAW_ORDER) {
+      const spriteName = displaySpriteSelection[layerName];
+      const sprite = sprites[spriteName];
+
+      if (!sprite) {
+        continue;
+      }
+
+      images[layerName] = sprite.image;
+    }
+
+    return images;
+  }, [displaySpriteSelection, sprites]);
 
   useEffect(() => {
     if (!isPlaying || !selectedAnimation || totalDuration <= 0) {
@@ -495,26 +644,26 @@ export function GameCanvas() {
   }, [isPlaying, selectedAnimation, totalDuration]);
 
   const scene = useMemo(() => {
-    if (layers.length === 0) {
+    if (!displayImages) {
       return null;
     }
 
     const preliminaryMatrices = computeWorldMatrices(
-      layers,
+      DRAW_ORDER,
       displayAngles,
       createIdentityMatrix(),
     );
-    const bounds = computeBounds(layers, preliminaryMatrices);
+    const bounds = computeBounds(displayImages, preliminaryMatrices);
     const rootMatrix = createTranslationMatrix(
       CANVAS_PADDING - bounds.minX,
       CANVAS_PADDING - bounds.minY,
     );
     const worldMatrices = computeWorldMatrices(
-      layers,
+      DRAW_ORDER,
       displayAngles,
       rootMatrix,
     );
-    const finalBounds = computeBounds(layers, worldMatrices);
+    const finalBounds = computeBounds(displayImages, worldMatrices);
 
     return {
       width: Math.ceil(
@@ -525,12 +674,12 @@ export function GameCanvas() {
       ),
       worldMatrices,
     };
-  }, [displayAngles, layers]);
+  }, [displayAngles, displayImages]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!canvas || !scene) {
+    if (!canvas || !scene || !displayImages) {
       return;
     }
 
@@ -549,15 +698,10 @@ export function GameCanvas() {
     context.imageSmoothingEnabled = false;
 
     for (const layerName of DRAW_ORDER) {
-      const layer = layers.find((entry) => entry.name === layerName);
+      const matrix = scene.worldMatrices.get(layerName);
+      const image = displayImages[layerName];
 
-      if (!layer) {
-        continue;
-      }
-
-      const matrix = scene.worldMatrices.get(layer.name);
-
-      if (!matrix) {
+      if (!matrix || !image) {
         continue;
       }
 
@@ -569,19 +713,27 @@ export function GameCanvas() {
         matrix.e,
         matrix.f,
       );
-      context.drawImage(layer.image, 0, 0);
+      context.drawImage(image, 0, 0);
     }
 
     context.setTransform(1, 0, 0, 1, 0, 0);
-  }, [layers, scene]);
+  }, [displayImages, scene]);
 
   const handleAngleChange = (layerName: LayerName, value: string) => {
     setIsPlaying(false);
     lastTickRef.current = null;
-    setAngles((current) => ({
-      ...current,
-      [layerName]: Number(value),
-    }));
+    setCurrentTime(0);
+    setAngles(() => {
+      const nextAngles = {} as Record<LayerName, number>;
+
+      for (const name of Object.keys(DEFAULT_ANGLES) as LayerName[]) {
+        nextAngles[name] = Math.round(displayAngles[name]);
+      }
+
+      nextAngles[layerName] = Number(value);
+      return nextAngles;
+    });
+    setBaseSprites(displaySpriteSelection);
   };
 
   const handleAnimationChange = (value: string) => {
@@ -607,12 +759,13 @@ export function GameCanvas() {
 
   const resetPose = () => {
     setAngles(DEFAULT_ANGLES);
+    setBaseSprites(DEFAULT_SPRITES);
     setCurrentTime(0);
     setIsPlaying(false);
     lastTickRef.current = null;
   };
 
-  if (layers.length === 0 || !scene) {
+  if (!scene) {
     return <p className="canvas-status">Carregando camadas retro...</p>;
   }
 
@@ -655,23 +808,27 @@ export function GameCanvas() {
 
             {CONTROLLABLE_LAYERS.map((layerName) => {
               const config = LAYER_CONFIG[layerName];
-              const value = angles[layerName];
+              const displayValue = displayAngles[layerName];
+              const sliderValue = Math.round(displayValue);
 
               return (
                 <label key={layerName} className="slider-control">
                   <span className="slider-title">{config.label}</span>
-                  <span className="slider-value">{value} deg</span>
+                  <span className="slider-value">{sliderValue} deg</span>
                   <input
                     type="range"
                     min={config.min}
                     max={config.max}
                     step="1"
-                    value={value}
+                    value={sliderValue}
                     onChange={(event) =>
                       handleAngleChange(layerName, event.currentTarget.value)
                     }
                   />
                   <span className="slider-layer">{layerName}</span>
+                  <span className="slider-layer">
+                    sprite: {displaySpriteSelection[layerName]}
+                  </span>
                 </label>
               );
             })}
@@ -732,7 +889,7 @@ export function GameCanvas() {
                   <div key={keyframe.at} className="keyframe-card">
                     <strong>Keyframe {index}</strong>
                     <span>{keyframe.at} ms</span>
-                    <code>{JSON.stringify(keyframe.changes)}</code>
+                    <code>{JSON.stringify(keyframe)}</code>
                   </div>
                 ))}
               </div>

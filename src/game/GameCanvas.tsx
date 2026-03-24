@@ -46,9 +46,14 @@ type AnimationKeyframe = {
   changes: SparseAngles;
 };
 
+type AnimationPreset = {
+  id: string;
+  name: string;
+  keyframes: AnimationKeyframe[];
+};
+
 type ResolvedKeyframe = {
   at: number;
-  changes: SparseAngles;
   angles: Record<LayerName, number>;
 };
 
@@ -138,8 +143,8 @@ const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
 };
 
 const DEFAULT_ANGLES: Record<LayerName, number> = {
-  "Camada 1.png": 14,
-  "Camada 2.png": -21,
+  "Camada 1.png": 20,
+  "Camada 2.png": -20,
   "Camada 3.png": 0,
   "Camada 4.png": 0,
   "Camada 5.png": 0,
@@ -148,27 +153,41 @@ const DEFAULT_ANGLES: Record<LayerName, number> = {
   "Camada 8.png": -15,
 };
 
-const ANIMATION_KEYFRAMES: AnimationKeyframe[] = [
-  { at: 0, changes: {} },
+const ANIMATION_PRESETS: AnimationPreset[] = [
   {
-    at: 1200,
-    changes: {
-      "Camada 1.png": 21,
-      "Camada 2.png": 30,
-    },
-  },
-  {
-    at: 2400,
-    changes: {
-      "Camada 1.png": 75,
-      "Camada 2.png": -24,
-    },
-  },
-  {
-    at: 3600,
-    changes: {
-      "Camada 2.png": -92,
-    },
+    id: "idle",
+    name: "Ciclo da Cacamba",
+    keyframes: [
+      { at: 0, changes: {} },
+      {
+        at: 600,
+        changes: {
+          "Camada 1.png": 14,
+          "Camada 2.png": -21,
+          "Camada 6.png": 5,
+        },
+      },
+      {
+        at: 1200,
+        changes: {
+          "Camada 1.png": 21,
+          "Camada 2.png": 30,
+        },
+      },
+      {
+        at: 2400,
+        changes: {
+          "Camada 1.png": 75,
+          "Camada 2.png": -24,
+        },
+      },
+      {
+        at: 3600,
+        changes: {
+          "Camada 2.png": -92,
+        },
+      },
+    ],
   },
 ];
 
@@ -324,10 +343,11 @@ function computeBounds(
 
 function resolveKeyframes(
   baseAngles: Record<LayerName, number>,
+  keyframes: AnimationKeyframe[],
 ): ResolvedKeyframe[] {
   let currentAngles = { ...baseAngles };
 
-  return ANIMATION_KEYFRAMES.map((keyframe) => {
+  return keyframes.map((keyframe) => {
     currentAngles = {
       ...currentAngles,
       ...keyframe.changes,
@@ -335,7 +355,6 @@ function resolveKeyframes(
 
     return {
       at: keyframe.at,
-      changes: keyframe.changes,
       angles: currentAngles,
     };
   });
@@ -344,9 +363,10 @@ function resolveKeyframes(
 function interpolateAngles(
   resolvedKeyframes: ResolvedKeyframe[],
   currentTime: number,
+  fallback: Record<LayerName, number>,
 ) {
   if (resolvedKeyframes.length === 0) {
-    return DEFAULT_ANGLES;
+    return fallback;
   }
 
   if (currentTime <= resolvedKeyframes[0].at) {
@@ -371,7 +391,7 @@ function interpolateAngles(
     const progress = (currentTime - from.at) / duration;
     const interpolatedAngles = {} as Record<LayerName, number>;
 
-    for (const layerName of Object.keys(DEFAULT_ANGLES) as LayerName[]) {
+    for (const layerName of Object.keys(fallback) as LayerName[]) {
       const fromAngle = from.angles[layerName];
       const toAngle = to.angles[layerName];
       interpolatedAngles[layerName] =
@@ -389,7 +409,12 @@ export function GameCanvas() {
   const animationFrameRef = useRef<number | null>(null);
   const lastTickRef = useRef<number | null>(null);
   const [layers, setLayers] = useState<LoadedLayer[]>([]);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [angles, setAngles] = useState(DEFAULT_ANGLES);
+  const [activeTab, setActiveTab] = useState<"poses" | "animations">("poses");
+  const [selectedAnimationId, setSelectedAnimationId] = useState(
+    ANIMATION_PRESETS[0]?.id ?? "",
+  );
+  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
@@ -412,18 +437,35 @@ export function GameCanvas() {
       });
   }, []);
 
+  const selectedAnimation = useMemo(
+    () =>
+      ANIMATION_PRESETS.find((preset) => preset.id === selectedAnimationId) ??
+      null,
+    [selectedAnimationId],
+  );
   const resolvedKeyframes = useMemo(
-    () => resolveKeyframes(DEFAULT_ANGLES),
-    [],
+    () =>
+      selectedAnimation
+        ? resolveKeyframes(angles, selectedAnimation.keyframes)
+        : [],
+    [angles, selectedAnimation],
   );
-  const totalDuration = resolvedKeyframes[resolvedKeyframes.length - 1]?.at ?? 0;
-  const animatedAngles = useMemo(
-    () => interpolateAngles(resolvedKeyframes, currentTime),
-    [currentTime, resolvedKeyframes],
-  );
+  const totalDuration =
+    resolvedKeyframes[resolvedKeyframes.length - 1]?.at ?? 0;
+  const displayAngles = useMemo(() => {
+    if (!selectedAnimation) {
+      return angles;
+    }
+
+    if (!isPlaying && currentTime === 0) {
+      return angles;
+    }
+
+    return interpolateAngles(resolvedKeyframes, currentTime, angles);
+  }, [angles, currentTime, isPlaying, resolvedKeyframes, selectedAnimation]);
 
   useEffect(() => {
-    if (!isPlaying || totalDuration <= 0) {
+    if (!isPlaying || !selectedAnimation || totalDuration <= 0) {
       lastTickRef.current = null;
       return;
     }
@@ -450,7 +492,7 @@ export function GameCanvas() {
       animationFrameRef.current = null;
       lastTickRef.current = null;
     };
-  }, [isPlaying, totalDuration]);
+  }, [isPlaying, selectedAnimation, totalDuration]);
 
   const scene = useMemo(() => {
     if (layers.length === 0) {
@@ -459,7 +501,7 @@ export function GameCanvas() {
 
     const preliminaryMatrices = computeWorldMatrices(
       layers,
-      animatedAngles,
+      displayAngles,
       createIdentityMatrix(),
     );
     const bounds = computeBounds(layers, preliminaryMatrices);
@@ -467,7 +509,11 @@ export function GameCanvas() {
       CANVAS_PADDING - bounds.minX,
       CANVAS_PADDING - bounds.minY,
     );
-    const worldMatrices = computeWorldMatrices(layers, animatedAngles, rootMatrix);
+    const worldMatrices = computeWorldMatrices(
+      layers,
+      displayAngles,
+      rootMatrix,
+    );
     const finalBounds = computeBounds(layers, worldMatrices);
 
     return {
@@ -479,7 +525,7 @@ export function GameCanvas() {
       ),
       worldMatrices,
     };
-  }, [animatedAngles, layers]);
+  }, [displayAngles, layers]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -529,19 +575,41 @@ export function GameCanvas() {
     context.setTransform(1, 0, 0, 1, 0, 0);
   }, [layers, scene]);
 
-  const handleTimelineChange = (value: string) => {
+  const handleAngleChange = (layerName: LayerName, value: string) => {
+    setIsPlaying(false);
     lastTickRef.current = null;
+    setAngles((current) => ({
+      ...current,
+      [layerName]: Number(value),
+    }));
+  };
+
+  const handleAnimationChange = (value: string) => {
+    setSelectedAnimationId(value);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    lastTickRef.current = null;
+  };
+
+  const handleTimelineChange = (value: string) => {
     setCurrentTime(Number(value));
+    setIsPlaying(false);
+    lastTickRef.current = null;
   };
 
   const togglePlayback = () => {
+    if (!selectedAnimation) {
+      return;
+    }
+
     setIsPlaying((current) => !current);
   };
 
-  const resetAnimation = () => {
-    lastTickRef.current = null;
+  const resetPose = () => {
+    setAngles(DEFAULT_ANGLES);
     setCurrentTime(0);
     setIsPlaying(false);
+    lastTickRef.current = null;
   };
 
   if (layers.length === 0 || !scene) {
@@ -551,59 +619,126 @@ export function GameCanvas() {
   return (
     <div className="assembly-layout">
       <div className="controls-panel">
-        <div className="controls-header">
-          <h2>Animacao</h2>
+        <div className="tab-bar" role="tablist" aria-label="Controles da retro">
           <button
             type="button"
-            className="reset-button"
-            onClick={togglePlayback}
+            role="tab"
+            aria-selected={activeTab === "poses"}
+            className={`tab-button${activeTab === "poses" ? " is-active" : ""}`}
+            onClick={() => setActiveTab("poses")}
           >
-            {isPlaying ? "Pausar" : "Tocar"}
+            Poses
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "animations"}
+            className={`tab-button${activeTab === "animations" ? " is-active" : ""}`}
+            onClick={() => setActiveTab("animations")}
+          >
+            Animacoes
           </button>
         </div>
 
-        <label className="slider-control">
-          <span className="slider-title">Timeline</span>
-          <span className="slider-value">
-            {Math.round(currentTime)} ms / {totalDuration} ms
-          </span>
-          <input
-            type="range"
-            min="0"
-            max={String(totalDuration)}
-            step="1"
-            value={currentTime}
-            onChange={(event) => handleTimelineChange(event.currentTarget.value)}
-          />
-        </label>
-
-        <button type="button" className="reset-button" onClick={resetAnimation}>
-          Voltar ao inicio
-        </button>
-
-        {CONTROLLABLE_LAYERS.map((layerName) => {
-          const config = LAYER_CONFIG[layerName];
-          const value = animatedAngles[layerName];
-
-          return (
-            <label key={layerName} className="slider-control">
-              <span className="slider-title">{config.label}</span>
-              <span className="slider-value">{value.toFixed(1)} deg</span>
-              <span className="slider-layer">{layerName}</span>
-            </label>
-          );
-        })}
-
-        <div className="keyframe-list">
-          <h2>Keyframes</h2>
-          {resolvedKeyframes.map((keyframe, index) => (
-            <div key={keyframe.at} className="keyframe-card">
-              <strong>Keyframe {index}</strong>
-              <span>{keyframe.at} ms</span>
-              <code>{JSON.stringify(keyframe.changes)}</code>
+        {activeTab === "poses" && (
+          <div className="controls-group">
+            <div className="controls-header">
+              <h2>Poses</h2>
+              <button
+                type="button"
+                className="reset-button"
+                onClick={resetPose}
+              >
+                Resetar
+              </button>
             </div>
-          ))}
-        </div>
+
+            {CONTROLLABLE_LAYERS.map((layerName) => {
+              const config = LAYER_CONFIG[layerName];
+              const value = angles[layerName];
+
+              return (
+                <label key={layerName} className="slider-control">
+                  <span className="slider-title">{config.label}</span>
+                  <span className="slider-value">{value} deg</span>
+                  <input
+                    type="range"
+                    min={config.min}
+                    max={config.max}
+                    step="1"
+                    value={value}
+                    onChange={(event) =>
+                      handleAngleChange(layerName, event.currentTarget.value)
+                    }
+                  />
+                  <span className="slider-layer">{layerName}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === "animations" && (
+          <div className="controls-group">
+            <div className="controls-header">
+              <h2>Animacoes</h2>
+              <button
+                type="button"
+                className="reset-button"
+                onClick={togglePlayback}
+                disabled={!selectedAnimation}
+              >
+                {isPlaying ? "Pausar" : "Tocar"}
+              </button>
+            </div>
+
+            <label className="slider-control">
+              <span className="slider-title">Preset</span>
+              <select
+                className="animation-select"
+                value={selectedAnimationId}
+                onChange={(event) =>
+                  handleAnimationChange(event.currentTarget.value)
+                }
+              >
+                {ANIMATION_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="slider-control">
+              <span className="slider-title">Timeline</span>
+              <span className="slider-value">
+                {Math.round(currentTime)} ms / {totalDuration} ms
+              </span>
+              <input
+                type="range"
+                min="0"
+                max={String(totalDuration)}
+                step="1"
+                value={currentTime}
+                onChange={(event) =>
+                  handleTimelineChange(event.currentTarget.value)
+                }
+              />
+            </label>
+
+            {selectedAnimation && (
+              <div className="keyframe-list">
+                {selectedAnimation.keyframes.map((keyframe, index) => (
+                  <div key={keyframe.at} className="keyframe-card">
+                    <strong>Keyframe {index}</strong>
+                    <span>{keyframe.at} ms</span>
+                    <code>{JSON.stringify(keyframe.changes)}</code>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="canvas-scroll">

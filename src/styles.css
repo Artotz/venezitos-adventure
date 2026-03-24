@@ -124,6 +124,35 @@ h1 {
   font-size: 0.84rem;
 }
 
+.keyframe-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.keyframe-list h2 {
+  font-size: 1rem;
+  color: #f4f1e8;
+}
+
+.keyframe-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+  color: #d6c7b1;
+}
+
+.keyframe-card code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #f4f1e8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .slider-control input[type='range'] {
   width: 100%;
   accent-color: #ddb970;

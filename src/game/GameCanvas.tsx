@@ -39,6 +39,19 @@ type LayerConfig = {
   max: number;
 };
 
+type SparseAngles = Partial<Record<LayerName, number>>;
+
+type AnimationKeyframe = {
+  at: number;
+  changes: SparseAngles;
+};
+
+type ResolvedKeyframe = {
+  at: number;
+  changes: SparseAngles;
+  angles: Record<LayerName, number>;
+};
+
 const layerModules = import.meta.glob("../assets/retro/*", {
   eager: true,
   import: "default",
@@ -125,8 +138,8 @@ const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
 };
 
 const DEFAULT_ANGLES: Record<LayerName, number> = {
-  "Camada 1.png": 20,
-  "Camada 2.png": -20,
+  "Camada 1.png": 14,
+  "Camada 2.png": -21,
   "Camada 3.png": 0,
   "Camada 4.png": 0,
   "Camada 5.png": 0,
@@ -134,6 +147,30 @@ const DEFAULT_ANGLES: Record<LayerName, number> = {
   "Camada 7.png": 10,
   "Camada 8.png": -15,
 };
+
+const ANIMATION_KEYFRAMES: AnimationKeyframe[] = [
+  { at: 0, changes: {} },
+  {
+    at: 1200,
+    changes: {
+      "Camada 1.png": 21,
+      "Camada 2.png": 30,
+    },
+  },
+  {
+    at: 2400,
+    changes: {
+      "Camada 1.png": 75,
+      "Camada 2.png": -24,
+    },
+  },
+  {
+    at: 3600,
+    changes: {
+      "Camada 2.png": -92,
+    },
+  },
+];
 
 const CONTROLLABLE_LAYERS = (Object.keys(LAYER_CONFIG) as LayerName[]).filter(
   (layerName) => layerName !== ROOT_LAYER,
@@ -285,10 +322,75 @@ function computeBounds(
   };
 }
 
+function resolveKeyframes(
+  baseAngles: Record<LayerName, number>,
+): ResolvedKeyframe[] {
+  let currentAngles = { ...baseAngles };
+
+  return ANIMATION_KEYFRAMES.map((keyframe) => {
+    currentAngles = {
+      ...currentAngles,
+      ...keyframe.changes,
+    };
+
+    return {
+      at: keyframe.at,
+      changes: keyframe.changes,
+      angles: currentAngles,
+    };
+  });
+}
+
+function interpolateAngles(
+  resolvedKeyframes: ResolvedKeyframe[],
+  currentTime: number,
+) {
+  if (resolvedKeyframes.length === 0) {
+    return DEFAULT_ANGLES;
+  }
+
+  if (currentTime <= resolvedKeyframes[0].at) {
+    return resolvedKeyframes[0].angles;
+  }
+
+  const lastKeyframe = resolvedKeyframes[resolvedKeyframes.length - 1];
+
+  if (currentTime >= lastKeyframe.at) {
+    return lastKeyframe.angles;
+  }
+
+  for (let index = 0; index < resolvedKeyframes.length - 1; index += 1) {
+    const from = resolvedKeyframes[index];
+    const to = resolvedKeyframes[index + 1];
+
+    if (currentTime < from.at || currentTime > to.at) {
+      continue;
+    }
+
+    const duration = to.at - from.at || 1;
+    const progress = (currentTime - from.at) / duration;
+    const interpolatedAngles = {} as Record<LayerName, number>;
+
+    for (const layerName of Object.keys(DEFAULT_ANGLES) as LayerName[]) {
+      const fromAngle = from.angles[layerName];
+      const toAngle = to.angles[layerName];
+      interpolatedAngles[layerName] =
+        fromAngle + (toAngle - fromAngle) * progress;
+    }
+
+    return interpolatedAngles;
+  }
+
+  return lastKeyframe.angles;
+}
+
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTickRef = useRef<number | null>(null);
   const [layers, setLayers] = useState<LoadedLayer[]>([]);
-  const [angles, setAngles] = useState(DEFAULT_ANGLES);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     const entries = Object.entries(layerModules)
@@ -310,6 +412,46 @@ export function GameCanvas() {
       });
   }, []);
 
+  const resolvedKeyframes = useMemo(
+    () => resolveKeyframes(DEFAULT_ANGLES),
+    [],
+  );
+  const totalDuration = resolvedKeyframes[resolvedKeyframes.length - 1]?.at ?? 0;
+  const animatedAngles = useMemo(
+    () => interpolateAngles(resolvedKeyframes, currentTime),
+    [currentTime, resolvedKeyframes],
+  );
+
+  useEffect(() => {
+    if (!isPlaying || totalDuration <= 0) {
+      lastTickRef.current = null;
+      return;
+    }
+
+    const tick = (timestamp: number) => {
+      const lastTick = lastTickRef.current ?? timestamp;
+      const delta = timestamp - lastTick;
+      lastTickRef.current = timestamp;
+
+      setCurrentTime((previous) => {
+        const next = previous + delta;
+        return next > totalDuration ? 0 : next;
+      });
+
+      animationFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    animationFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+      animationFrameRef.current = null;
+      lastTickRef.current = null;
+    };
+  }, [isPlaying, totalDuration]);
+
   const scene = useMemo(() => {
     if (layers.length === 0) {
       return null;
@@ -317,7 +459,7 @@ export function GameCanvas() {
 
     const preliminaryMatrices = computeWorldMatrices(
       layers,
-      angles,
+      animatedAngles,
       createIdentityMatrix(),
     );
     const bounds = computeBounds(layers, preliminaryMatrices);
@@ -325,7 +467,7 @@ export function GameCanvas() {
       CANVAS_PADDING - bounds.minX,
       CANVAS_PADDING - bounds.minY,
     );
-    const worldMatrices = computeWorldMatrices(layers, angles, rootMatrix);
+    const worldMatrices = computeWorldMatrices(layers, animatedAngles, rootMatrix);
     const finalBounds = computeBounds(layers, worldMatrices);
 
     return {
@@ -337,7 +479,7 @@ export function GameCanvas() {
       ),
       worldMatrices,
     };
-  }, [angles, layers]);
+  }, [animatedAngles, layers]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -387,15 +529,19 @@ export function GameCanvas() {
     context.setTransform(1, 0, 0, 1, 0, 0);
   }, [layers, scene]);
 
-  const handleAngleChange = (layerName: LayerName, value: string) => {
-    setAngles((current) => ({
-      ...current,
-      [layerName]: Number(value),
-    }));
+  const handleTimelineChange = (value: string) => {
+    lastTickRef.current = null;
+    setCurrentTime(Number(value));
   };
 
-  const resetAngles = () => {
-    setAngles(DEFAULT_ANGLES);
+  const togglePlayback = () => {
+    setIsPlaying((current) => !current);
+  };
+
+  const resetAnimation = () => {
+    lastTickRef.current = null;
+    setCurrentTime(0);
+    setIsPlaying(false);
   };
 
   if (layers.length === 0 || !scene) {
@@ -406,34 +552,58 @@ export function GameCanvas() {
     <div className="assembly-layout">
       <div className="controls-panel">
         <div className="controls-header">
-          <h2>Rotacoes</h2>
-          <button type="button" className="reset-button" onClick={resetAngles}>
-            Zerar
+          <h2>Animacao</h2>
+          <button
+            type="button"
+            className="reset-button"
+            onClick={togglePlayback}
+          >
+            {isPlaying ? "Pausar" : "Tocar"}
           </button>
         </div>
 
+        <label className="slider-control">
+          <span className="slider-title">Timeline</span>
+          <span className="slider-value">
+            {Math.round(currentTime)} ms / {totalDuration} ms
+          </span>
+          <input
+            type="range"
+            min="0"
+            max={String(totalDuration)}
+            step="1"
+            value={currentTime}
+            onChange={(event) => handleTimelineChange(event.currentTarget.value)}
+          />
+        </label>
+
+        <button type="button" className="reset-button" onClick={resetAnimation}>
+          Voltar ao inicio
+        </button>
+
         {CONTROLLABLE_LAYERS.map((layerName) => {
           const config = LAYER_CONFIG[layerName];
-          const value = angles[layerName];
+          const value = animatedAngles[layerName];
 
           return (
             <label key={layerName} className="slider-control">
               <span className="slider-title">{config.label}</span>
-              <span className="slider-value">{value}°</span>
-              <input
-                type="range"
-                min={config.min}
-                max={config.max}
-                step="1"
-                value={value}
-                onChange={(event) =>
-                  handleAngleChange(layerName, event.currentTarget.value)
-                }
-              />
+              <span className="slider-value">{value.toFixed(1)} deg</span>
               <span className="slider-layer">{layerName}</span>
             </label>
           );
         })}
+
+        <div className="keyframe-list">
+          <h2>Keyframes</h2>
+          {resolvedKeyframes.map((keyframe, index) => (
+            <div key={keyframe.at} className="keyframe-card">
+              <strong>Keyframe {index}</strong>
+              <span>{keyframe.at} ms</span>
+              <code>{JSON.stringify(keyframe.changes)}</code>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="canvas-scroll">

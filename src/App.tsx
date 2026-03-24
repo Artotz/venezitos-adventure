@@ -1,120 +1,86 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { GameCanvas } from './game/GameCanvas'
+import type { GameSnapshot } from './game/types'
+import './styles.css'
+
+const initialSnapshot: GameSnapshot = {
+  score: 0,
+  paused: false,
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [resetCount, setResetCount] = useState(0)
+  const [snapshot, setSnapshot] = useState<GameSnapshot>(initialSnapshot)
+
+  const handleTogglePaused = () => {
+    setPaused((current) => !current)
+  }
+
+  const handleReset = () => {
+    setPaused(false)
+    setResetCount((current) => current + 1)
+    setSnapshot(initialSnapshot)
+  }
+
+  const handleSnapshotChange = (nextSnapshot: GameSnapshot) => {
+    setSnapshot(nextSnapshot)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="app-shell">
+      <section className="game-panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">MiniGame Base</p>
+            <h1>Top-down Canvas Playground</h1>
+          </div>
+
+          <div className="hud" aria-label="HUD do jogo">
+            <div className="hud-card">
+              <span className="hud-label">Score</span>
+              <strong>{snapshot.score}</strong>
+            </div>
+            <div className="hud-card">
+              <span className="hud-label">Status</span>
+              <strong>{snapshot.paused ? 'Paused' : 'Running'}</strong>
+            </div>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+
+        <div className="game-stage">
+          <GameCanvas
+            paused={paused}
+            resetCount={resetCount}
+            onSnapshotChange={handleSnapshotChange}
+          />
+
+          {paused && (
+            <div className="pause-overlay" role="dialog" aria-modal="true">
+              <p className="overlay-label">Paused</p>
+              <h2>Loop interrompido</h2>
+              <p>
+                O React continua no controle da interface enquanto o canvas fica
+                congelado.
+              </p>
+            </div>
+          )}
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+
+        <div className="controls">
+          <button type="button" className="primary-button" onClick={handleTogglePaused}>
+            {paused ? 'Continuar' : 'Pausar'}
+          </button>
+          <button type="button" className="secondary-button" onClick={handleReset}>
+            Resetar
+          </button>
+        </div>
+
+        <p className="help-text">
+          Movimento: <kbd>WASD</kbd> ou <kbd>Setas</kbd>
+        </p>
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   )
 }
 

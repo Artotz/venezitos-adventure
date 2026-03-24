@@ -107,7 +107,7 @@ const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
   },
   "Camada 4.png": {
     parent: "Camada 3.png",
-    parentPoint: { x: 50, y: 185 },
+    parentPoint: { x: 50, y: 200 },
     childPoint: { x: 42, y: 45 },
     label: "Pneu 4",
     min: -360,
@@ -178,16 +178,23 @@ const ANIMATION_PRESETS: AnimationPreset[] = [
       {
         at: 600,
         changes: {
-          "Camada 1.png": 14,
-          "Camada 2.png": -21,
-          "Camada 6.png": 5,
+          "Camada 1.png": 8,
+          "Camada 2.png": -16,
         },
+      },
+      {
+        at: 1200,
+        changes: {},
         sprites: {
           "Camada 2.png": "Camada 2_alt.png",
         },
       },
       {
         at: 2400,
+        changes: {},
+      },
+      {
+        at: 3200,
         changes: {
           "Camada 1.png": 21,
           "Camada 2.png": 30,

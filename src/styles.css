@@ -252,7 +252,7 @@ h1 {
 
 .phase-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
 }
@@ -260,6 +260,7 @@ h1 {
 .phase-sidebar {
   display: grid;
   gap: 14px;
+  order: 2;
 }
 
 .phase-card {
@@ -329,12 +330,13 @@ h1 {
   padding: 8px;
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.18);
+  order: 1;
 }
 
 .phase-canvas {
   display: block;
-  width: 100%;
-  max-width: 100%;
+  width: auto;
+  max-width: none;
   height: auto;
   border-radius: 12px;
 }
@@ -357,10 +359,6 @@ h1 {
   }
 
   .assembly-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .phase-layout {
     grid-template-columns: 1fr;
   }
 

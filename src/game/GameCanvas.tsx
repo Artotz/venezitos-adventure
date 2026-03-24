@@ -264,6 +264,30 @@ const ANIMATION_PRESETS: AnimationPreset[] = [
       },
     ],
   },
+  {
+    id: "unload-excavator",
+    name: "Descarregar Escavadeira",
+    keyframes: [
+      { at: 0, changes: {} },
+      {
+        at: 1200,
+        changes: {
+          "Camada 6.png": 5,
+          "Camada 7.png": -5,
+          "Camada 8.png": -45,
+        },
+      },
+      {
+        at: 2400,
+        changes: {
+          "Camada 8.png": -160,
+        },
+        sprites: {
+          "Camada 8.png": "Camada 8_alt.png",
+        },
+      },
+    ],
+  },
 ];
 
 const CONTROLLABLE_LAYERS = (Object.keys(LAYER_CONFIG) as LayerName[]).filter(

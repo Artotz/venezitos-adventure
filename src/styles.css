@@ -80,6 +80,21 @@ h1 {
   border: 1px solid rgba(255, 248, 220, 0.08);
 }
 
+.view-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.view-content {
+  min-width: 0;
+}
+
 .assembly-layout {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
@@ -235,6 +250,95 @@ h1 {
   color: #d6c7b1;
 }
 
+.phase-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.phase-sidebar {
+  display: grid;
+  gap: 14px;
+}
+
+.phase-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.phase-card h2,
+.phase-card h3 {
+  margin: 0;
+}
+
+.phase-label {
+  color: #ddb970;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.phase-copy,
+.phase-hint {
+  color: #d6c7b1;
+}
+
+.phase-stats {
+  grid-template-columns: 1fr 1fr;
+}
+
+.phase-stats strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.4rem;
+  color: #f4f1e8;
+}
+
+.stat-label {
+  color: #d6c7b1;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.event-card strong {
+  color: #f0cb75;
+}
+
+.event-timer {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 220, 0.08);
+}
+
+.event-timer-fill {
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #f0cb75 0%, #d4552d 100%);
+}
+
+.phase-canvas-frame {
+  overflow: auto;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.phase-canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 16px;
@@ -254,5 +358,13 @@ h1 {
 
   .assembly-layout {
     grid-template-columns: 1fr;
+  }
+
+  .phase-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .phase-stats {
+    grid-template-columns: 1fr 1fr;
   }
 }

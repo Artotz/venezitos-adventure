@@ -45,7 +45,8 @@ type EventStatus = "hidden" | "upcoming" | "active" | "resolved" | "missed";
 type MapEvent = {
   id: number;
   type: MapEventType;
-  worldX: number;
+  visualX: number;
+  hitboxX: number;
   status: EventStatus;
 };
 type ActiveAnimation = {
@@ -64,12 +65,11 @@ const CANVAS_WIDTH = 1560;
 const CANVAS_HEIGHT = 620;
 const GROUND_Y = 485;
 const PLAYER_SCREEN_X = 980;
-const FRONT_EVENT_SCREEN_X = PLAYER_SCREEN_X - 255;
-const REAR_EVENT_SCREEN_X = PLAYER_SCREEN_X + 150;
+const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 96;
 const BASE_SPEED = 220;
 const LOW_TRACTION_SPEED = 72;
-const EVENT_TRIGGER_RANGE = 28;
-const EVENT_PASS_RANGE = 150;
+const EVENT_HITBOX_HALF_WIDTH = 70;
+const EVENT_BUTTON = "E";
 
 const DRAW_ORDER: LayerName[] = [
   "Camada 3.png",
@@ -204,25 +204,25 @@ const EVENT_CONFIG: Record<
   { key: string; title: string; description: string; hint: string }
 > = {
   pickup: {
-    key: "A",
+    key: EVENT_BUTTON,
     title: "Apanhar terra",
     description: "Punhado de terra no caminho",
     hint: "Roda o ciclo de cacamba 1 sem parar a maquina.",
   },
   dump: {
-    key: "D",
+    key: EVENT_BUTTON,
     title: "Descarregar terra",
     description: "Caminhao no background",
     hint: "Para a maquina e roda o ciclo de cacamba 2. Exige terra carregada.",
   },
   dig: {
-    key: "W",
+    key: EVENT_BUTTON,
     title: "Cavar vala",
     description: "Sinalizacao no background",
     hint: "Para a maquina e roda o braco estendido.",
   },
   traction: {
-    key: "S",
+    key: EVENT_BUTTON,
     title: "Ligar 4x4",
     description: "Lamacal no caminho",
     hint: "A maquina desacelera ate voce apertar o botao.",
@@ -230,15 +230,15 @@ const EVENT_CONFIG: Record<
 };
 
 const INITIAL_EVENTS: MapEvent[] = [
-  { id: 0, type: "pickup", worldX: 460, status: "upcoming" },
-  { id: 1, type: "traction", worldX: 980, status: "upcoming" },
-  { id: 2, type: "dig", worldX: 1540, status: "upcoming" },
-  { id: 3, type: "pickup", worldX: 2140, status: "upcoming" },
-  { id: 4, type: "dump", worldX: 2700, status: "hidden" },
-  { id: 5, type: "traction", worldX: 3320, status: "upcoming" },
-  { id: 6, type: "pickup", worldX: 3920, status: "upcoming" },
-  { id: 7, type: "dig", worldX: 4540, status: "upcoming" },
-  { id: 8, type: "dump", worldX: 5160, status: "hidden" },
+  { id: 0, type: "pickup", visualX: 760, hitboxX: 700, status: "upcoming" },
+  { id: 1, type: "traction", visualX: 1730, hitboxX: 1650, status: "upcoming" },
+  { id: 2, type: "dig", visualX: 2800, hitboxX: 2720, status: "upcoming" },
+  { id: 3, type: "pickup", visualX: 3880, hitboxX: 3820, status: "upcoming" },
+  { id: 4, type: "dump", visualX: 5060, hitboxX: 4980, status: "hidden" },
+  { id: 5, type: "traction", visualX: 6230, hitboxX: 6150, status: "upcoming" },
+  { id: 6, type: "pickup", visualX: 7410, hitboxX: 7350, status: "upcoming" },
+  { id: 7, type: "dig", visualX: 8600, hitboxX: 8520, status: "upcoming" },
+  { id: 8, type: "dump", visualX: 9830, hitboxX: 9750, status: "hidden" },
 ];
 
 function compareLayerNames(a: string, b: string) {
@@ -407,10 +407,12 @@ function getTotalDuration(presetId: AnimationPreset["id"]) {
   return preset?.keyframes[preset.keyframes.length - 1]?.at ?? 0;
 }
 
-function getEventScreenX(event: MapEvent, distance: number) {
-  const anchorX =
-    event.type === "dig" ? REAR_EVENT_SCREEN_X : FRONT_EVENT_SCREEN_X;
-  return anchorX - (event.worldX - distance);
+function getEventVisualScreenX(event: MapEvent, distance: number) {
+  return PLAYER_SCREEN_X - (event.visualX - distance);
+}
+
+function getEventHitboxScreenX(event: MapEvent, distance: number) {
+  return PLAYER_SCREEN_X - (event.hitboxX - distance);
 }
 
 function updateEventStatus(
@@ -525,7 +527,6 @@ export function Phase1Canvas() {
     setActiveEventId(null);
     activeEventIdRef.current = null;
     setHits((current) => current + 1);
-    setScore((current) => current + 180);
     setMessage(nextMessage);
   };
 
@@ -604,12 +605,20 @@ export function Phase1Canvas() {
         event.key.length === 1 ? event.key.toUpperCase() : event.key;
       const config = EVENT_CONFIG[activeEvent.type];
       if (pressedKey !== config.key) return;
+      const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+      if (Math.abs(screenX - PLAYER_HIT_LINE_X) > EVENT_HITBOX_HALF_WIDTH) {
+        setFails((current) => current + 1);
+        setScore((current) => Math.max(0, current - 50));
+        setMessage("Fora da hitbox do evento.");
+        return;
+      }
 
       if (activeEvent.type === "pickup") {
         resolveEvent(
           activeEvent.id,
           "Terra apanhada. A cacamba esta carregada.",
         );
+        setScore((current) => current + 180);
         startAnimation(
           "idle",
           "Ciclo de cacamba 1",
@@ -627,7 +636,11 @@ export function Phase1Canvas() {
           setScore((current) => Math.max(0, current - 35));
           return;
         }
-        resolveEvent(activeEvent.id, "Terra descarregada no caminhao.");
+        resolveEvent(
+          activeEvent.id,
+          "Terra descarregada no caminhao.",
+        );
+        setScore((current) => current + 180);
         startAnimation(
           "idle2",
           "Ciclo de cacamba 2",
@@ -642,6 +655,7 @@ export function Phase1Canvas() {
           activeEvent.id,
           "Vala cavada. O braco completou a abertura.",
         );
+        setScore((current) => current + 180);
         startAnimation(
           "arm-extended",
           "Braco estendido",
@@ -651,7 +665,11 @@ export function Phase1Canvas() {
         return;
       }
 
-      resolveEvent(activeEvent.id, "4x4 ligado. A tracao voltou ao normal.");
+      resolveEvent(
+        activeEvent.id,
+        "4x4 ligado. A tracao voltou ao normal.",
+      );
+      setScore((current) => current + 180);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -699,8 +717,8 @@ export function Phase1Canvas() {
         (item) => item.status === "upcoming",
       );
       if (nextUpcoming) {
-        const eventOffset = nextUpcoming.worldX - nextDistance;
-        if (eventOffset <= EVENT_TRIGGER_RANGE) {
+        const screenX = getEventHitboxScreenX(nextUpcoming, nextDistance);
+        if (Math.abs(screenX - PLAYER_HIT_LINE_X) <= EVENT_HITBOX_HALF_WIDTH) {
           const nextEvents = updateEventStatus(
             eventsRef.current,
             nextUpcoming.id,
@@ -721,10 +739,18 @@ export function Phase1Canvas() {
       );
       if (!currentActiveEvent) return;
 
-      const screenX = getEventScreenX(currentActiveEvent, nextDistance);
+      const screenX = getEventHitboxScreenX(currentActiveEvent, nextDistance);
+      if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
+        failEvent(currentActiveEvent.id, "O evento passou da hitbox sem resposta.");
+        return;
+      }
+      if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
+        failEvent(currentActiveEvent.id, "O evento passou do centro sem resposta.");
+        return;
+      }
       if (
         currentActiveEvent.type === "pickup" &&
-        screenX > PLAYER_SCREEN_X + EVENT_PASS_RANGE
+        screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH
       ) {
         failEvent(
           currentActiveEvent.id,
@@ -734,7 +760,7 @@ export function Phase1Canvas() {
 
       if (
         currentActiveEvent.type === "traction" &&
-        screenX > PLAYER_SCREEN_X + EVENT_PASS_RANGE &&
+        screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH &&
         currentSpeedRef.current <= LOW_TRACTION_SPEED + 8
       ) {
         failEvent(
@@ -879,7 +905,7 @@ export function Phase1Canvas() {
     context.fillStyle = skyGradient;
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    drawBackground(context, distance, events);
+    drawBackground(context, distance, events, activeEventId);
     drawGround(context, distance, events, activeEventId);
     context.imageSmoothingEnabled = false;
 
@@ -900,6 +926,13 @@ export function Phase1Canvas() {
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     drawForeground(context, distance);
+    drawCenterGuide(
+      context,
+      PLAYER_HIT_LINE_X,
+      machineY + 70,
+      machineY + excavatorScene.height - 20,
+      activeEventId !== null,
+    );
   }, [activeEventId, distance, events, excavatorScene, sprites]);
 
   if (!excavatorScene) {
@@ -958,7 +991,7 @@ export function Phase1Canvas() {
           </div>
           <div>
             <span className="stat-label">Controles</span>
-            <strong>A D W S</strong>
+            <strong>{EVENT_BUTTON}</strong>
           </div>
         </div>
 
@@ -991,9 +1024,9 @@ export function Phase1Canvas() {
         <div className="phase-card">
           <p className="phase-label">Proximo do mapa</p>
           {nextEvent ? (
-            <p className="phase-copy">
+              <p className="phase-copy">
               {EVENT_CONFIG[nextEvent.type].title} em aproximadamente{" "}
-              {Math.max(0, Math.round((nextEvent.worldX - distance) / 10))} m.
+              {Math.max(0, Math.round((nextEvent.hitboxX - distance) / 10))} m.
             </p>
           ) : (
             <p className="phase-copy">
@@ -1018,6 +1051,7 @@ function drawBackground(
   context: CanvasRenderingContext2D,
   distance: number,
   events: MapEvent[],
+  activeEventId: number | null,
 ) {
   const farOffset = (distance * 0.08) % 320;
   const midOffset = (distance * 0.18) % 280;
@@ -1050,18 +1084,24 @@ function drawBackground(
       continue;
     }
 
-    const screenX = getEventScreenX(event, distance);
+    const visualX = getEventVisualScreenX(event, distance);
+    const hitboxX = getEventHitboxScreenX(event, distance);
 
-    if (screenX < -180 || screenX > CANVAS_WIDTH + 180) {
+    if (
+      visualX < -220 ||
+      visualX > CANVAS_WIDTH + 220 ||
+      hitboxX < -220 ||
+      hitboxX > CANVAS_WIDTH + 220
+    ) {
       continue;
     }
 
     if (event.type === "dump") {
-      drawTruck(context, screenX);
+      drawTruck(context, visualX, hitboxX, event.id === activeEventId);
     }
 
     if (event.type === "dig") {
-      drawSignage(context, screenX);
+      drawSignage(context, visualX, hitboxX, event.id === activeEventId);
     }
   }
 }
@@ -1097,20 +1137,26 @@ function drawGround(
       continue;
     }
 
-    const screenX = getEventScreenX(event, distance);
+    const visualX = getEventVisualScreenX(event, distance);
+    const hitboxX = getEventHitboxScreenX(event, distance);
 
-    if (screenX < -180 || screenX > CANVAS_WIDTH + 180) {
+    if (
+      visualX < -220 ||
+      visualX > CANVAS_WIDTH + 220 ||
+      hitboxX < -220 ||
+      hitboxX > CANVAS_WIDTH + 220
+    ) {
       continue;
     }
 
     const isActive = event.id === activeEventId;
 
     if (event.type === "pickup") {
-      drawPickupDirt(context, screenX, isActive);
+      drawPickupDirt(context, visualX, hitboxX, isActive);
     }
 
     if (event.type === "traction") {
-      drawMudPatch(context, screenX, isActive);
+      drawMudPatch(context, visualX, hitboxX, isActive);
     }
   }
 }
@@ -1126,66 +1172,129 @@ function drawForeground(context: CanvasRenderingContext2D, distance: number) {
   }
 }
 
+function drawCenterGuide(
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  topY: number,
+  bottomY: number,
+  hasActiveEvent: boolean,
+) {
+  context.save();
+  context.strokeStyle = hasActiveEvent
+    ? "rgba(255, 230, 140, 0.95)"
+    : "rgba(255,255,255,0.42)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(centerX, topY);
+  context.lineTo(centerX, bottomY);
+  context.stroke();
+  context.restore();
+}
+
 function drawPickupDirt(
   context: CanvasRenderingContext2D,
-  x: number,
+  visualX: number,
+  hitboxX: number,
   isActive: boolean,
 ) {
   context.save();
   context.fillStyle = isActive ? "#6f4e2e" : "#8c673e";
   context.beginPath();
-  context.moveTo(x - 36, GROUND_Y + 18);
-  context.lineTo(x - 10, GROUND_Y - 8);
-  context.lineTo(x + 18, GROUND_Y + 12);
-  context.lineTo(x + 34, GROUND_Y + 18);
+  context.moveTo(visualX - 36, GROUND_Y + 18);
+  context.lineTo(visualX - 10, GROUND_Y - 8);
+  context.lineTo(visualX + 18, GROUND_Y + 12);
+  context.lineTo(visualX + 34, GROUND_Y + 18);
   context.closePath();
   context.fill();
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y - 18,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    48,
+  );
   context.restore();
 }
 
 function drawMudPatch(
   context: CanvasRenderingContext2D,
-  x: number,
+  visualX: number,
+  hitboxX: number,
   isActive: boolean,
 ) {
   context.save();
   context.fillStyle = isActive ? "#453217" : "#5b4322";
   context.beginPath();
-  context.ellipse(x, GROUND_Y + 26, 48, 18, 0, 0, Math.PI * 2);
+  context.ellipse(visualX, GROUND_Y + 26, 48, 18, 0, 0, Math.PI * 2);
   context.fill();
   context.fillStyle = "rgba(143, 112, 62, 0.75)";
   context.beginPath();
-  context.ellipse(x - 14, GROUND_Y + 22, 14, 6, 0, 0, Math.PI * 2);
+  context.ellipse(visualX - 14, GROUND_Y + 22, 14, 6, 0, 0, Math.PI * 2);
   context.fill();
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y + 2,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    50,
+  );
   context.restore();
 }
 
-function drawTruck(context: CanvasRenderingContext2D, x: number) {
+function drawTruck(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  isActive: boolean,
+) {
   context.save();
   context.fillStyle = "#35506d";
-  context.fillRect(x - 76, GROUND_Y - 118, 110, 58);
+  context.fillRect(visualX - 76, GROUND_Y - 118, 110, 58);
   context.fillStyle = "#d7e1eb";
-  context.fillRect(x + 34, GROUND_Y - 104, 44, 44);
+  context.fillRect(visualX + 34, GROUND_Y - 104, 44, 44);
   context.fillStyle = "#bb6d37";
-  context.fillRect(x - 118, GROUND_Y - 92, 44, 32);
+  context.fillRect(visualX - 118, GROUND_Y - 92, 44, 32);
   context.fillStyle = "#1c2430";
   context.beginPath();
-  context.arc(x - 58, GROUND_Y - 52, 18, 0, Math.PI * 2);
-  context.arc(x + 38, GROUND_Y - 52, 18, 0, Math.PI * 2);
+  context.arc(visualX - 58, GROUND_Y - 52, 18, 0, Math.PI * 2);
+  context.arc(visualX + 38, GROUND_Y - 52, 18, 0, Math.PI * 2);
   context.fill();
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y - 126,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    104,
+  );
   context.restore();
 }
 
-function drawSignage(context: CanvasRenderingContext2D, x: number) {
+function drawSignage(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  isActive: boolean,
+) {
   context.save();
   context.fillStyle = "#e7e3cc";
-  context.fillRect(x - 8, GROUND_Y - 120, 16, 122);
+  context.fillRect(visualX - 8, GROUND_Y - 120, 16, 122);
   context.fillStyle = "#d2492f";
-  context.fillRect(x - 54, GROUND_Y - 170, 108, 54);
+  context.fillRect(visualX - 54, GROUND_Y - 170, 108, 54);
   context.fillStyle = "#f5f0d0";
-  context.fillRect(x - 44, GROUND_Y - 160, 88, 34);
+  context.fillRect(visualX - 44, GROUND_Y - 160, 88, 34);
   context.fillStyle = "#d64a2f";
-  context.fillRect(x - 100, GROUND_Y - 16, 28, 36);
-  context.fillRect(x + 72, GROUND_Y - 16, 28, 36);
+  context.fillRect(visualX - 100, GROUND_Y - 16, 28, 36);
+  context.fillRect(visualX + 72, GROUND_Y - 16, 28, 36);
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y - 174,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    204,
+  );
   context.restore();
 }

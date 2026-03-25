@@ -12,15 +12,15 @@ import {
   measureBaseExcavator,
 } from './retro/render'
 import { useRetroSprites } from './retro/sprites'
-import { GROUND_Y } from './phase1/config'
+import { CANVAS_HEIGHT, CANVAS_WIDTH, GROUND_Y } from './phase1/config'
 import { EditorTabs } from './editor/EditorTabs'
 import { drawPhase1Backdrop, drawPhase1Environment } from './phase1/render'
 import { ModeTabs } from './ModeTabs'
 import { RetroEditorSidebar } from './editor/RetroEditorSidebar'
 import { useRetroEditor } from './editor/useRetroEditor'
 
-const EDITOR_CANVAS_WIDTH = 920
-const EDITOR_CANVAS_HEIGHT = 520
+const EDITOR_CANVAS_WIDTH = CANVAS_WIDTH
+const EDITOR_CANVAS_HEIGHT = CANVAS_HEIGHT
 const EDITOR_MACHINE_SCALE = 0.82
 
 type GameCanvasProps = {

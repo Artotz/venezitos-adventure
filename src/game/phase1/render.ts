@@ -3,8 +3,19 @@ import {
   CANVAS_WIDTH,
   EVENT_HITBOX_HALF_WIDTH,
   GROUND_Y,
+  PHASE1_START_MODAL_DESCRIPTION,
+  PHASE1_START_MODAL_HINT,
+  PHASE1_START_MODAL_TITLE,
   TRACTION_SCORE_LENIENCY_MARGIN,
 } from "./config";
+import { drawExcavator } from "../retro/render";
+import {
+  computeWorldMatrices,
+  createScaleMatrix,
+  createTranslationMatrix,
+  multiplyMatrices,
+} from "../retro/geometry";
+import type { LayerName } from "../retro/types";
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
@@ -27,6 +38,31 @@ type Phase1HudParams = {
   score: number;
   distance: number;
   differentialLockEnabled: boolean;
+};
+
+type Phase1ModalLayout = {
+  frameX: number;
+  frameY: number;
+  frameWidth: number;
+  frameHeight: number;
+  portraitX: number;
+  portraitY: number;
+  portraitWidth: number;
+  portraitHeight: number;
+  panelX: number;
+  panelY: number;
+  panelWidth: number;
+  panelHeight: number;
+  panelPadding: number;
+};
+
+type Phase1StartModalParams = {
+  context: CanvasRenderingContext2D;
+  instructorImage?: CanvasImageSource | null;
+  images: Record<LayerName, HTMLImageElement>;
+  machineAngles: Record<LayerName, number>;
+  machineContentWidth: number;
+  machineContentHeight: number;
 };
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
@@ -104,81 +140,40 @@ export function drawQuestionModal(
   modalState: QuestionModalState,
   instructorImage?: CanvasImageSource | null,
 ) {
-  const frameX = 44;
-  const frameY = 34;
-  const frameWidth = CANVAS_WIDTH - 88;
-  const frameHeight = CANVAS_HEIGHT - 68;
-  const portraitWidth = 368;
-  const panelGap = 28;
-  const panelX = frameX + portraitWidth + panelGap;
-  const panelY = frameY + 20;
-  const panelWidth = frameWidth - portraitWidth - panelGap - 20;
-  const panelHeight = frameHeight - 40;
-  const panelPadding = 34;
-  const questionBoxX = panelX + panelPadding;
-  const questionBoxY = panelY + 54;
-  const questionBoxWidth = panelWidth - panelPadding * 2;
-  const questionBoxHeight = 112;
-  const choiceWidth = 304;
-  const choiceHeight = 94;
-  const topChoiceX = panelX + panelWidth / 2 - choiceWidth / 2;
-  const leftChoiceX = panelX + panelPadding;
-  const rightChoiceX = panelX + panelWidth - panelPadding - choiceWidth;
-  const topChoiceY = questionBoxY + questionBoxHeight + 18;
-  const sideChoiceY = topChoiceY + 102;
-  const bottomChoiceY = sideChoiceY + 102;
-  const keySize = 44;
-  const keyGap = 10;
-  const middleKeyX = panelX + panelWidth / 2 - keySize / 2;
-  const keyRowY = sideChoiceY + choiceHeight / 2 - keySize / 2;
+  const layout = getPhase1ModalLayout();
+  const questionBoxX = layout.panelX + layout.panelPadding;
+  const questionBoxY = layout.panelY + 54;
+  const questionBoxWidth = layout.panelWidth - layout.panelPadding * 2;
+  const questionBoxHeight = 126;
+  const choiceWidth = 470;
+  const choiceHeight = 104;
+  const topChoiceX = layout.panelX + layout.panelWidth / 2 - choiceWidth / 2;
+  const leftChoiceX = layout.panelX + layout.panelPadding;
+  const rightChoiceX =
+    layout.panelX + layout.panelWidth - layout.panelPadding - choiceWidth;
+  const topChoiceY = questionBoxY + questionBoxHeight + 26;
+  const sideChoiceY = topChoiceY + choiceHeight + 18;
+  const bottomChoiceY = sideChoiceY + choiceHeight + 18;
 
   context.save();
-  context.fillStyle = "rgba(6, 8, 12, 0.72)";
-  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-  const frameGradient = context.createLinearGradient(
-    frameX,
-    frameY,
-    frameX + frameWidth,
-    frameY + frameHeight,
-  );
-  frameGradient.addColorStop(0, "rgba(30, 23, 16, 0.98)");
-  frameGradient.addColorStop(1, "rgba(18, 14, 10, 0.98)");
-  context.fillStyle = frameGradient;
-  context.strokeStyle = "rgba(255, 229, 178, 0.24)";
-  context.lineWidth = 3;
-  context.beginPath();
-  context.roundRect(frameX, frameY, frameWidth, frameHeight, 30);
-  context.fill();
-  context.stroke();
-
+  drawModalFrame(context, layout);
   drawInstructorStage(
     context,
     instructorImage ?? null,
-    frameX + 18,
-    frameY + 18,
-    portraitWidth - 8,
-    frameHeight - 36,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
   );
-
-  context.strokeStyle = "rgba(255, 229, 178, 0.16)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.moveTo(panelX - 14, panelY + 12);
-  context.lineTo(panelX - 14, panelY + panelHeight - 12);
-  context.stroke();
-
-  context.fillStyle = "rgba(37, 28, 20, 0.92)";
-  context.strokeStyle = "rgba(255, 229, 178, 0.18)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.roundRect(panelX, panelY, panelWidth, panelHeight, 28);
-  context.fill();
-  context.stroke();
+  drawModalPanel(context, layout);
 
   context.fillStyle = "#e1bf75";
   context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText(modalState.title.toUpperCase(), questionBoxX, panelY + 30);
+  context.fillText(
+    modalState.title.toUpperCase(),
+    questionBoxX,
+    layout.panelY + 30,
+  );
 
   context.fillStyle = "rgba(255, 245, 220, 0.07)";
   context.strokeStyle = "rgba(255, 229, 178, 0.14)";
@@ -209,31 +204,262 @@ export function drawQuestionModal(
     context,
     topChoiceX,
     topChoiceY,
+    choiceWidth,
+    "\u2191",
     modalState.question.choices.up.label,
   );
   drawQuestionChoiceCard(
     context,
     leftChoiceX,
     sideChoiceY,
+    choiceWidth,
+    "\u2190",
     modalState.question.choices.left.label,
   );
   drawQuestionChoiceCard(
     context,
     rightChoiceX,
     sideChoiceY,
+    choiceWidth,
+    "\u2192",
     modalState.question.choices.right.label,
   );
   drawQuestionChoiceCard(
     context,
     topChoiceX,
     bottomChoiceY,
+    choiceWidth,
+    "\u2193",
     modalState.question.choices.down.label,
   );
-  drawKeycap(context, middleKeyX, keyRowY - keySize - keyGap, keySize, "W");
-  drawKeycap(context, middleKeyX - keySize - keyGap, keyRowY, keySize, "A");
-  drawKeycap(context, middleKeyX, keyRowY, keySize, "S");
-  drawKeycap(context, middleKeyX + keySize + keyGap, keyRowY, keySize, "D");
   context.restore();
+}
+
+export function drawPhase1StartModal({
+  context,
+  instructorImage,
+  images,
+  machineAngles,
+  machineContentHeight,
+  machineContentWidth,
+}: Phase1StartModalParams) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const descriptionY = layout.panelY + 64;
+  const machineStageX = layout.panelX + 52;
+  const machineStageY = layout.panelY + 124;
+  const machineStageWidth = layout.panelWidth - 104;
+  const machineStageHeight = layout.panelHeight - 196;
+  const centerX = machineStageX + machineStageWidth / 2;
+  const centerY = machineStageY + machineStageHeight / 2 + 4;
+  const maxMachineWidth = machineStageWidth - 420;
+  const maxMachineHeight = machineStageHeight - 210;
+  const machineScale = Math.min(
+    0.72,
+    maxMachineWidth / machineContentWidth,
+    maxMachineHeight / machineContentHeight,
+  );
+  const scaledMachineWidth = machineContentWidth * machineScale;
+  const scaledMachineHeight = machineContentHeight * machineScale;
+  const machineWorldMatrices = computeWorldMatrices(
+    machineAngles,
+    multiplyMatrices(
+      createTranslationMatrix(
+        centerX + 120 - scaledMachineWidth / 2,
+        centerY + 20 - scaledMachineHeight / 2,
+      ),
+      createScaleMatrix(machineScale, machineScale),
+    ),
+  );
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText(
+    PHASE1_START_MODAL_TITLE.toUpperCase(),
+    titleX,
+    layout.panelY + 30,
+  );
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 22px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    PHASE1_START_MODAL_DESCRIPTION,
+    titleX,
+    descriptionY,
+    layout.panelWidth - layout.panelPadding * 2,
+    30,
+  );
+
+  context.fillStyle = "rgba(255, 245, 220, 0.05)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.16)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(
+    machineStageX,
+    machineStageY,
+    machineStageWidth,
+    machineStageHeight,
+    28,
+  );
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(255, 214, 133, 0.09)";
+  context.beginPath();
+  context.ellipse(centerX, centerY + 10, 232, 156, 0, 0, Math.PI * 2);
+  context.fill();
+
+  drawExcavator(context, images, machineWorldMatrices);
+
+  drawInstructionCard(
+    context,
+    centerX - 130,
+    machineStageY + 18,
+    260,
+    82,
+    "W",
+    "Nao faz nada",
+    "Ainda nao foi atribuido.",
+  );
+  drawInstructionCard(
+    context,
+    machineStageX + 18,
+    centerY - 44,
+    224,
+    92,
+    "A",
+    "Pickup",
+    "Eventos de pickup.",
+  );
+  drawInstructionCard(
+    context,
+    machineStageX + machineStageWidth - 242,
+    centerY - 44,
+    224,
+    92,
+    "D",
+    "Dig",
+    "Eventos de dig.",
+  );
+  drawInstructionCard(
+    context,
+    centerX - 130,
+    machineStageY + machineStageHeight - 100,
+    260,
+    82,
+    "S",
+    "Tracao",
+    "Liga o bloqueio.",
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    PHASE1_START_MODAL_HINT,
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
+  context.restore();
+}
+
+function getPhase1ModalLayout(): Phase1ModalLayout {
+  const frameX = 44;
+  const frameY = 34;
+  const frameWidth = CANVAS_WIDTH - 88;
+  const frameHeight = CANVAS_HEIGHT - 68;
+  const portraitWidth = 368;
+  const panelGap = 28;
+  const panelX = frameX + portraitWidth + panelGap;
+  const panelY = frameY + 20;
+  const panelWidth = frameWidth - portraitWidth - panelGap - 20;
+  const panelHeight = frameHeight - 40;
+
+  return {
+    frameX,
+    frameY,
+    frameWidth,
+    frameHeight,
+    portraitX: frameX + 18,
+    portraitY: frameY + 18,
+    portraitWidth: portraitWidth - 8,
+    portraitHeight: frameHeight - 36,
+    panelX,
+    panelY,
+    panelWidth,
+    panelHeight,
+    panelPadding: 34,
+  };
+}
+
+function drawModalFrame(
+  context: CanvasRenderingContext2D,
+  layout: Phase1ModalLayout,
+) {
+  context.fillStyle = "rgba(6, 8, 12, 0.72)";
+  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  const frameGradient = context.createLinearGradient(
+    layout.frameX,
+    layout.frameY,
+    layout.frameX + layout.frameWidth,
+    layout.frameY + layout.frameHeight,
+  );
+  frameGradient.addColorStop(0, "rgba(30, 23, 16, 0.98)");
+  frameGradient.addColorStop(1, "rgba(18, 14, 10, 0.98)");
+  context.fillStyle = frameGradient;
+  context.strokeStyle = "rgba(255, 229, 178, 0.24)";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.roundRect(
+    layout.frameX,
+    layout.frameY,
+    layout.frameWidth,
+    layout.frameHeight,
+    30,
+  );
+  context.fill();
+  context.stroke();
+}
+
+function drawModalPanel(
+  context: CanvasRenderingContext2D,
+  layout: Phase1ModalLayout,
+) {
+  context.strokeStyle = "rgba(255, 229, 178, 0.16)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(layout.panelX - 14, layout.panelY + 12);
+  context.lineTo(layout.panelX - 14, layout.panelY + layout.panelHeight - 12);
+  context.stroke();
+
+  context.fillStyle = "rgba(37, 28, 20, 0.92)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.18)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(
+    layout.panelX,
+    layout.panelY,
+    layout.panelWidth,
+    layout.panelHeight,
+    28,
+  );
+  context.fill();
+  context.stroke();
 }
 
 function drawInstructorStage(
@@ -318,6 +544,7 @@ function drawBackground(
 ) {
   const farOffset = (distance * 0.08) % 320;
   const midOffset = (distance * 0.18) % 280;
+  const backgroundYOffset = GROUND_Y - 485;
 
   context.fillStyle = "rgba(255, 244, 214, 0.25)";
   context.beginPath();
@@ -327,18 +554,18 @@ function drawBackground(
   context.fillStyle = "#6d8b57";
   for (let x = farOffset - 320; x < CANVAS_WIDTH + 320; x += 320) {
     context.beginPath();
-    context.moveTo(x, 480);
-    context.lineTo(x + 140, 350);
-    context.lineTo(x + 300, 480);
+    context.moveTo(x, 480 + backgroundYOffset);
+    context.lineTo(x + 140, 350 + backgroundYOffset);
+    context.lineTo(x + 300, 480 + backgroundYOffset);
     context.closePath();
     context.fill();
   }
 
   context.fillStyle = "#8f6c46";
   for (let x = midOffset - 280; x < CANVAS_WIDTH + 280; x += 280) {
-    context.fillRect(x + 40, 370, 30, 120);
+    context.fillRect(x + 40, 370 + backgroundYOffset, 30, 120);
     context.beginPath();
-    context.arc(x + 55, 355, 44, 0, Math.PI * 2);
+    context.arc(x + 55, 355 + backgroundYOffset, 44, 0, Math.PI * 2);
     context.fill();
   }
 
@@ -501,9 +728,9 @@ function drawForeground(context: CanvasRenderingContext2D, distance: number) {
 
   for (let x = markerOffset - 260; x < CANVAS_WIDTH + 260; x += 260) {
     context.fillStyle = "#f5f0d0";
-    context.fillRect(x, 444, 14, 86);
+    context.fillRect(x, GROUND_Y - 41, 14, 86);
     context.fillStyle = "#d64a2f";
-    context.fillRect(x - 12, 440, 38, 18);
+    context.fillRect(x - 12, GROUND_Y - 45, 38, 18);
   }
 }
 
@@ -594,6 +821,8 @@ function drawQuestionChoiceCard(
   context: CanvasRenderingContext2D,
   x: number,
   y: number,
+  width: number,
+  directionLabel: string,
   label: string,
 ) {
   context.save();
@@ -601,37 +830,68 @@ function drawQuestionChoiceCard(
   context.strokeStyle = "rgba(255, 229, 178, 0.18)";
   context.lineWidth = 2;
   context.beginPath();
-  context.roundRect(x, y, 304, 94, 20);
+  context.roundRect(x, y, width, 104, 20);
   context.fill();
   context.stroke();
+
+  context.fillStyle = "rgba(255, 214, 133, 0.12)";
+  context.beginPath();
+  context.roundRect(x + 18, y + 18, 44, 44, 14);
+  context.fill();
+
+  context.fillStyle = "#f0cb75";
+  context.font = '700 24px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(directionLabel, x + 40, y + 42);
 
   context.fillStyle = "#fff3d7";
   context.font = '600 18px "Segoe UI", sans-serif';
-  drawWrappedText(context, label, x + 22, y + 36, 260, 24);
+  context.textAlign = "start";
+  context.textBaseline = "alphabetic";
+  drawWrappedText(context, label, x + 78, y + 40, width - 100, 24);
   context.restore();
 }
 
-function drawKeycap(
+function drawInstructionCard(
   context: CanvasRenderingContext2D,
   x: number,
   y: number,
-  size: number,
-  label: string,
+  width: number,
+  height: number,
+  keyLabel: string,
+  title: string,
+  description: string,
 ) {
   context.save();
-  context.fillStyle = "rgba(19, 15, 11, 0.98)";
+  context.fillStyle = "rgba(26, 19, 13, 0.96)";
   context.strokeStyle = "rgba(255, 229, 178, 0.28)";
   context.lineWidth = 2;
   context.beginPath();
-  context.roundRect(x, y, size, size, 12);
+  context.roundRect(x, y, width, height, 18);
   context.fill();
   context.stroke();
 
-  context.fillStyle = "#fff3d7";
-  context.font = '700 22px "Segoe UI", sans-serif';
+  context.fillStyle = "rgba(255, 214, 133, 0.12)";
+  context.beginPath();
+  context.roundRect(x + 16, y + 16, 44, 44, 14);
+  context.fill();
+
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(label, x + size / 2, y + size / 2 + 1);
+  context.fillStyle = "#fff3d7";
+  context.font = '700 22px "Segoe UI", sans-serif';
+  context.fillText(keyLabel, x + 38, y + 38);
+
+  context.textAlign = "start";
+  context.textBaseline = "alphabetic";
+  context.fillStyle = "#f0cb75";
+  context.font = '700 16px "Segoe UI", sans-serif';
+  context.fillText(title.toUpperCase(), x + 74, y + 32);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 15px "Segoe UI", sans-serif';
+  drawWrappedText(context, description, x + 74, y + 56, width - 92, 20);
   context.restore();
 }
 

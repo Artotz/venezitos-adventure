@@ -13,19 +13,16 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
-  EVENT_BUTTON_LABEL,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
-  QUESTION_OPTION_KEYS_LABEL,
-  TRACTION_TOGGLE_KEY_LABEL,
 } from './phase1/config'
 import { Phase1PreGameScreen } from './phase1/Phase1PreGameScreen'
-import { ModeTabs } from './ModeTabs'
 import {
   drawCenterGuide,
   drawPhase1Backdrop,
   drawPhase1Environment,
   drawPhase1Hud,
+  drawPhase1StartModal,
   drawQuestionModal,
 } from './phase1/render'
 import { usePhase1InstructorImage } from './phase1/usePhase1InstructorImage'
@@ -37,16 +34,15 @@ type Phase1CanvasProps = {
 }
 
 export function Phase1Canvas({
-  activeView,
+  activeView: _activeView,
   onChangeView,
 }: Phase1CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [canvasScale, setCanvasScale] = useState(1)
-  const [phaseStep, setPhaseStep] = useState<'menu' | 'briefing' | 'playing'>(
-    'menu',
-  )
+  const [phaseStep, setPhaseStep] = useState<'menu' | 'playing'>('menu')
+  const [showStartModal, setShowStartModal] = useState(false)
   const isPlaying = phaseStep === 'playing'
-  const game = usePhase1Game(isPlaying)
+  const game = usePhase1Game(isPlaying && !showStartModal)
   const instructorImage = usePhase1InstructorImage()
 
   const pose = buildPhase1Pose({
@@ -64,10 +60,12 @@ export function Phase1Canvas({
 
   useEffect(() => {
     const updateCanvasScale = () => {
-      const widthPadding = window.innerWidth <= 900 ? 32 : 72
-      const heightPadding = window.innerWidth <= 900 ? 260 : 220
-      const availableWidth = Math.max(320, window.innerWidth - widthPadding)
-      const availableHeight = Math.max(260, window.innerHeight - heightPadding)
+      const viewportPadding = window.innerWidth <= 900 ? 16 : 24
+      const availableWidth = Math.max(320, window.innerWidth - viewportPadding)
+      const availableHeight = Math.max(
+        260,
+        window.innerHeight - viewportPadding,
+      )
       const nextScale = Math.min(
         1,
         availableWidth / CANVAS_WIDTH,
@@ -84,6 +82,27 @@ export function Phase1Canvas({
       window.removeEventListener('resize', updateCanvasScale)
     }
   }, [])
+
+  useEffect(() => {
+    if (!showStartModal) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Enter') {
+        return
+      }
+
+      event.preventDefault()
+      setShowStartModal(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showStartModal])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -134,7 +153,16 @@ export function Phase1Canvas({
       distance: game.distance,
       differentialLockEnabled: game.differentialLockEnabled,
     })
-    if (game.questionModal) {
+    if (showStartModal) {
+      drawPhase1StartModal({
+        context,
+        instructorImage,
+        images,
+        machineAngles: pose.angles,
+        machineContentHeight: game.excavatorScene.contentHeight,
+        machineContentWidth: game.excavatorScene.contentWidth,
+      })
+    } else if (game.questionModal) {
       drawQuestionModal(context, game.questionModal, instructorImage)
     }
   }, [
@@ -151,6 +179,7 @@ export function Phase1Canvas({
     images,
     instructorImage,
     pose.angles,
+    showStartModal,
   ])
 
   if (isPlaying && (!game.excavatorScene || !images)) {
@@ -162,17 +191,6 @@ export function Phase1Canvas({
 
   return (
     <div className="phase-layout">
-      <div className="stage-toolbar">
-        <ModeTabs activeView={activeView} onChange={onChangeView} />
-        {isPlaying ? (
-          <p className="phase-toolbar-hint">
-            {EVENT_BUTTON_LABEL} age, <strong>{TRACTION_TOGGLE_KEY_LABEL}</strong>{' '}
-            liga o bloqueio, <strong>{QUESTION_OPTION_KEYS_LABEL}</strong>{' '}
-            responde perguntas
-          </p>
-        ) : null}
-      </div>
-
       {isPlaying ? (
         <div
           className="phase-canvas-frame"
@@ -190,12 +208,23 @@ export function Phase1Canvas({
           />
         </div>
       ) : (
-        <Phase1PreGameScreen
-          step={phaseStep === 'menu' ? 'menu' : 'briefing'}
-          onPlay={() => setPhaseStep('briefing')}
-          onBack={() => setPhaseStep('menu')}
-          onStart={() => setPhaseStep('playing')}
-        />
+        <div
+          className="phase-canvas-frame"
+          style={
+            {
+              '--phase-canvas-width': `${scaledCanvasWidth}px`,
+              '--phase-canvas-height': `${scaledCanvasHeight}px`,
+            } as CSSProperties
+          }
+        >
+          <Phase1PreGameScreen
+            onPlay={() => {
+              setPhaseStep('playing')
+              setShowStartModal(true)
+            }}
+            onOpenEditor={() => onChangeView('editor')}
+          />
+        </div>
       )}
     </div>
   )

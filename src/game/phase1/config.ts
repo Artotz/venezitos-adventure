@@ -1,6 +1,6 @@
 export const CANVAS_WIDTH = 1560;
-export const CANVAS_HEIGHT = 620;
-export const GROUND_Y = 485;
+export const CANVAS_HEIGHT = 720;
+export const GROUND_Y = 585;
 export const PLAYER_SCREEN_X = 980;
 export const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 200;
 export const BASE_SPEED = 220;
@@ -15,6 +15,7 @@ export const TRACTION_TOGGLE_KEY = "S";
 export const TRACTION_TOGGLE_KEY_LABEL = "S";
 export const TRACTION_SCORE_LENIENCY_MARGIN = 140;
 export const QUESTION_OPTION_KEYS_LABEL = "WASD";
+export const QUESTION_OPTION_DISPLAY_LABEL = "setas";
 export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
 export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
@@ -23,6 +24,7 @@ export const INITIAL_MESSAGE =
 export const PHASE1_MENU_TITLE = "Fase 1";
 export const PHASE1_MENU_DESCRIPTION =
   "Entre na retroescavadeira e prepare a primeira etapa da obra.";
-export const PHASE1_BRIEFING_TITLE = "Placeholder de explicacao";
-export const PHASE1_BRIEFING_DESCRIPTION =
-  "Aqui vai a introducao da fase: a retro avanca sozinha, os eventos entram na hitbox central e voce precisa reagir com o comando certo para pontuar.";
+export const PHASE1_START_MODAL_TITLE = "Controles da fase";
+export const PHASE1_START_MODAL_DESCRIPTION =
+  "O jogo inteiro usa WASD. Aprenda a posicao de cada comando na maquina antes de sair.";
+export const PHASE1_START_MODAL_HINT = "Pressione Enter para iniciar";

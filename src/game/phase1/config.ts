@@ -20,3 +20,9 @@ export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
 export const INITIAL_MESSAGE =
   "A retro anda para a esquerda. Responda aos eventos quando eles chegarem.";
+export const PHASE1_MENU_TITLE = "Fase 1";
+export const PHASE1_MENU_DESCRIPTION =
+  "Entre na retroescavadeira e prepare a primeira etapa da obra.";
+export const PHASE1_BRIEFING_TITLE = "Placeholder de explicacao";
+export const PHASE1_BRIEFING_DESCRIPTION =
+  "Aqui vai a introducao da fase: a retro avanca sozinha, os eventos entram na hitbox central e voce precisa reagir com o comando certo para pontuar.";

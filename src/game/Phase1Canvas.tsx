@@ -13,9 +13,13 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
+  EVENT_BUTTON_LABEL,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
+  QUESTION_OPTION_KEYS_LABEL,
+  TRACTION_TOGGLE_KEY_LABEL,
 } from './phase1/config'
+import { Phase1PreGameScreen } from './phase1/Phase1PreGameScreen'
 import { ModeTabs } from './ModeTabs'
 import {
   drawCenterGuide,
@@ -24,6 +28,7 @@ import {
   drawPhase1Hud,
   drawQuestionModal,
 } from './phase1/render'
+import { usePhase1InstructorImage } from './phase1/usePhase1InstructorImage'
 import { usePhase1Game } from './phase1/usePhase1Game'
 
 type Phase1CanvasProps = {
@@ -37,7 +42,12 @@ export function Phase1Canvas({
 }: Phase1CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [canvasScale, setCanvasScale] = useState(1)
-  const game = usePhase1Game()
+  const [phaseStep, setPhaseStep] = useState<'menu' | 'briefing' | 'playing'>(
+    'menu',
+  )
+  const isPlaying = phaseStep === 'playing'
+  const game = usePhase1Game(isPlaying)
+  const instructorImage = usePhase1InstructorImage()
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -125,7 +135,7 @@ export function Phase1Canvas({
       differentialLockEnabled: game.differentialLockEnabled,
     })
     if (game.questionModal) {
-      drawQuestionModal(context, game.questionModal)
+      drawQuestionModal(context, game.questionModal, instructorImage)
     }
   }, [
     game.activeEventId,
@@ -139,10 +149,11 @@ export function Phase1Canvas({
     game.questionModal,
     game.score,
     images,
+    instructorImage,
     pose.angles,
   ])
 
-  if (!game.excavatorScene || !images) {
+  if (isPlaying && (!game.excavatorScene || !images)) {
     return <p className="canvas-status">Carregando fase 1...</p>
   }
 
@@ -153,27 +164,39 @@ export function Phase1Canvas({
     <div className="phase-layout">
       <div className="stage-toolbar">
         <ModeTabs activeView={activeView} onChange={onChangeView} />
-        <p className="phase-toolbar-hint">
-          Espaco age, <strong>S</strong> liga o bloqueio, <strong>WASD</strong>{' '}
-          responde perguntas
-        </p>
+        {isPlaying ? (
+          <p className="phase-toolbar-hint">
+            {EVENT_BUTTON_LABEL} age, <strong>{TRACTION_TOGGLE_KEY_LABEL}</strong>{' '}
+            liga o bloqueio, <strong>{QUESTION_OPTION_KEYS_LABEL}</strong>{' '}
+            responde perguntas
+          </p>
+        ) : null}
       </div>
 
-      <div
-        className="phase-canvas-frame"
-        style={
-          {
-            '--phase-canvas-width': `${scaledCanvasWidth}px`,
-            '--phase-canvas-height': `${scaledCanvasHeight}px`,
-          } as CSSProperties
-        }
-      >
-        <canvas
-          ref={canvasRef}
-          className="phase-canvas"
-          aria-label="Fase 1 com a retroescavadeira andando infinitamente para a esquerda"
+      {isPlaying ? (
+        <div
+          className="phase-canvas-frame"
+          style={
+            {
+              '--phase-canvas-width': `${scaledCanvasWidth}px`,
+              '--phase-canvas-height': `${scaledCanvasHeight}px`,
+            } as CSSProperties
+          }
+        >
+          <canvas
+            ref={canvasRef}
+            className="phase-canvas"
+            aria-label="Fase 1 com a retroescavadeira andando infinitamente para a esquerda"
+          />
+        </div>
+      ) : (
+        <Phase1PreGameScreen
+          step={phaseStep === 'menu' ? 'menu' : 'briefing'}
+          onPlay={() => setPhaseStep('briefing')}
+          onBack={() => setPhaseStep('menu')}
+          onStart={() => setPhaseStep('playing')}
         />
-      </div>
+      )}
     </div>
   )
 }

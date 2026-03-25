@@ -60,7 +60,7 @@ function normalizePressedKey(event: KeyboardEvent) {
   return event.key
 }
 
-export function usePhase1Game() {
+export function usePhase1Game(enabled = true) {
   const sprites = useRetroSprites()
   const [distance, setDistance] = useState(0)
   const [speed, setSpeed] = useState(BASE_SPEED)
@@ -222,6 +222,10 @@ export function usePhase1Game() {
   }, [activeEventId])
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (!enabled) {
+      return
+    }
+
     const openQuestionModal = questionModalRef.current
 
     if (openQuestionModal) {
@@ -330,7 +334,7 @@ export function usePhase1Game() {
   })
 
   useEffect(() => {
-    if (!sprites) {
+    if (!sprites || !enabled) {
       return
     }
 
@@ -338,7 +342,7 @@ export function usePhase1Game() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [sprites])
+  }, [enabled, sprites])
 
   const updateFrame = (dt: number) => {
     const activeEvent = eventsRef.current.find(
@@ -582,7 +586,7 @@ export function usePhase1Game() {
     }
   }
 
-  useGameLoop((dt) => updateFrame(dt), Boolean(sprites))
+  useGameLoop((dt) => updateFrame(dt), Boolean(sprites) && enabled)
 
   return {
     sprites,

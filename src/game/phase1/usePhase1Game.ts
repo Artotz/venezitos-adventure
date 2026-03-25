@@ -14,24 +14,51 @@ import type { ActiveAnimation, AnimationPresetId } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
 import {
   BASE_SPEED,
-  EVENT_BUTTON_LABEL,
   EVENT_HITBOX_HALF_WIDTH,
   FRONT_LOAD_SPEED,
   INITIAL_MESSAGE,
-  LOW_TRACTION_SPEED,
   PLAYER_HIT_LINE_X,
+  QUESTION_MODAL_OPEN_SPEED_THRESHOLD,
+  TRACTION_SCORE_LENIENCY_MARGIN,
+  TRACTION_TOGGLE_KEY,
 } from './config'
-import { getEventDefinition } from './eventCatalog'
+import {
+  getEventActivationMessage,
+  getEventDefinition,
+  getTractionEventDefinition,
+  isManualEventDefinition,
+  isQuestionEventDefinition,
+  isTractionEventDefinition,
+} from './eventCatalog'
 import {
   assignSpawnedEventTypes,
   createInitialPhase1Events,
   describeMapEvent,
   getEventHitboxScreenX,
+  isWithinTractionScoreLeniencyZone,
   updateEventStatus,
 } from './eventPositioner'
-import type { MapEvent } from './types'
+import { getQuestionFromCatalog } from './questionCatalog'
+import {
+  createQuestionModalState,
+  getQuestionDirectionFromKey,
+  isCorrectQuestionAnswer,
+} from './questionModal'
+import type { MapEvent, QuestionModalState } from './types'
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events()
+
+function normalizePressedKey(event: KeyboardEvent) {
+  if (event.code === 'Space') {
+    return 'Space'
+  }
+
+  if (event.key.length === 1) {
+    return event.key.toUpperCase()
+  }
+
+  return event.key
+}
 
 export function usePhase1Game() {
   const sprites = useRetroSprites()
@@ -45,6 +72,10 @@ export function usePhase1Game() {
   const [message, setMessage] = useState(INITIAL_MESSAGE)
   const [events, setEvents] = useState<MapEvent[]>(INITIAL_PHASE1_EVENTS)
   const [activeEventId, setActiveEventId] = useState<number | null>(null)
+  const [differentialLockEnabled, setDifferentialLockEnabled] = useState(false)
+  const [questionModal, setQuestionModal] = useState<QuestionModalState | null>(
+    null,
+  )
   const [animationTick, setAnimationTick] = useState(0)
   const [activeAnimationLabel, setActiveAnimationLabel] = useState(
     'Rodagem continua',
@@ -58,6 +89,10 @@ export function usePhase1Game() {
   const rearAnimationRef = useRef<ActiveAnimation | null>(null)
   const currentSpeedRef = useRef(BASE_SPEED)
   const distanceRef = useRef(0)
+  const differentialLockEnabledRef = useRef(false)
+  const questionModalRef = useRef<QuestionModalState | null>(null)
+  const questionCursorRef = useRef(0)
+  const tractionBoostFrameCountRef = useRef(0)
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -73,26 +108,60 @@ export function usePhase1Game() {
     setActiveAnimationLabel(labels.join(' + ') || 'Rodagem continua')
   }
 
-  const resolveEvent = (eventId: number, nextMessage: string) => {
+  const setQuestionModalState = (nextModal: QuestionModalState | null) => {
+    questionModalRef.current = nextModal
+    setQuestionModal(nextModal)
+  }
+
+  const setDifferentialLockState = (enabled: boolean) => {
+    differentialLockEnabledRef.current = enabled
+    setDifferentialLockEnabled(enabled)
+  }
+
+  const clearActiveEvent = () => {
+    setActiveEventId(null)
+    activeEventIdRef.current = null
+    tractionBoostFrameCountRef.current = 0
+    setQuestionModalState(null)
+  }
+
+  const resolveEvent = (
+    eventId: number,
+    nextMessage: string,
+    options?: {
+      scoreDelta?: number
+    },
+  ) => {
     const nextEvents = updateEventStatus(eventsRef.current, eventId, 'resolved')
 
     eventsRef.current = nextEvents
     setEvents(nextEvents)
-    setActiveEventId(null)
-    activeEventIdRef.current = null
+    clearActiveEvent()
     setHits((current) => current + 1)
+    const scoreDelta = options?.scoreDelta ?? 0
+    if (scoreDelta !== 0) {
+      setScore((current) => current + scoreDelta)
+    }
     setMessage(nextMessage)
   }
 
-  const failEvent = (eventId: number, nextMessage: string) => {
+  const failEvent = (
+    eventId: number,
+    nextMessage: string,
+    options?: {
+      scorePenalty?: number
+    },
+  ) => {
     const nextEvents = updateEventStatus(eventsRef.current, eventId, 'missed')
 
     eventsRef.current = nextEvents
     setEvents(nextEvents)
-    setActiveEventId(null)
-    activeEventIdRef.current = null
+    clearActiveEvent()
     setFails((current) => current + 1)
-    setScore((current) => Math.max(0, current - 90))
+    const scorePenalty = options?.scorePenalty ?? 90
+    if (scorePenalty > 0) {
+      setScore((current) => Math.max(0, current - scorePenalty))
+    }
     setMessage(nextMessage)
   }
 
@@ -153,6 +222,58 @@ export function usePhase1Game() {
   }, [activeEventId])
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    const openQuestionModal = questionModalRef.current
+
+    if (openQuestionModal) {
+      if (event.repeat) {
+        return
+      }
+
+      const selectedDirection = getQuestionDirectionFromKey(event)
+
+      if (!selectedDirection) {
+        return
+      }
+
+      event.preventDefault()
+
+      if (
+        isCorrectQuestionAnswer(openQuestionModal.question, selectedDirection)
+      ) {
+        resolveEvent(
+          openQuestionModal.eventId,
+          openQuestionModal.question.successMessage,
+          {
+            scoreDelta: openQuestionModal.question.reward,
+          },
+        )
+        return
+      }
+
+      failEvent(
+        openQuestionModal.eventId,
+        openQuestionModal.question.failureMessage,
+        {
+          scorePenalty: openQuestionModal.question.penalty,
+        },
+      )
+      return
+    }
+
+    const pressedKey = normalizePressedKey(event)
+
+    if (pressedKey === TRACTION_TOGGLE_KEY && !event.repeat) {
+      event.preventDefault()
+      const nextEnabled = !differentialLockEnabledRef.current
+      setDifferentialLockState(nextEnabled)
+      setMessage(
+        nextEnabled
+          ? 'Bloqueio de diferencial ligado.'
+          : 'Bloqueio de diferencial desligado.',
+      )
+      return
+    }
+
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
     )
@@ -161,22 +282,21 @@ export function usePhase1Game() {
       return
     }
 
-    const pressedKey =
-      event.code === 'Space'
-        ? 'Space'
-        : event.key.length === 1
-          ? event.key.toUpperCase()
-          : event.key
-
     if (!activeEvent.type) {
       return
     }
 
     const eventDefinition = getEventDefinition(activeEvent.type)
 
+    if (!isManualEventDefinition(eventDefinition)) {
+      return
+    }
+
     if (pressedKey !== eventDefinition.key) {
       return
     }
+
+    event.preventDefault()
 
     const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current)
 
@@ -187,8 +307,9 @@ export function usePhase1Game() {
       return
     }
 
-    resolveEvent(activeEvent.id, eventDefinition.successMessage)
-    setScore((current) => current + eventDefinition.reward)
+    resolveEvent(activeEvent.id, eventDefinition.successMessage, {
+      scoreDelta: eventDefinition.reward,
+    })
 
     if (!eventDefinition.animation) {
       return
@@ -223,6 +344,27 @@ export function usePhase1Game() {
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
     )
+    const activeEventDefinition = activeEvent?.type
+      ? getEventDefinition(activeEvent.type)
+      : null
+    const nextUpcomingEvent = eventsRef.current.find(
+      (item) => item.status === 'upcoming',
+    )
+    const nextUpcomingEventDefinition = nextUpcomingEvent
+      ? describeMapEvent(
+          nextUpcomingEvent,
+          loadedDirtRef.current,
+          rearLoadedRef.current,
+        )
+      : null
+    const nextUpcomingScreenX = nextUpcomingEvent
+      ? getEventHitboxScreenX(nextUpcomingEvent, distanceRef.current)
+      : null
+    const withinTractionScoreLeniencyZone = isWithinTractionScoreLeniencyZone(
+      eventsRef.current,
+      distanceRef.current,
+      TRACTION_SCORE_LENIENCY_MARGIN,
+    )
 
     const updateAnimation = (
       animation: ActiveAnimation | null,
@@ -255,12 +397,50 @@ export function usePhase1Game() {
 
     let targetSpeed = BASE_SPEED
 
-    if (activeEvent?.type === 'traction') {
-      targetSpeed = LOW_TRACTION_SPEED
+    if (
+      activeEventDefinition &&
+      isTractionEventDefinition(activeEventDefinition) &&
+      !differentialLockEnabledRef.current
+    ) {
+      targetSpeed = activeEventDefinition.activeSpeed
     }
 
     if (frontAnimationRef.current?.presetId === 'idle') {
       targetSpeed = Math.min(targetSpeed, FRONT_LOAD_SPEED)
+    }
+
+    if (
+      !activeEventDefinition &&
+      nextUpcomingEventDefinition &&
+      isQuestionEventDefinition(nextUpcomingEventDefinition) &&
+      typeof nextUpcomingScreenX === 'number'
+    ) {
+      const distanceToQuestionHitbox = PLAYER_HIT_LINE_X - nextUpcomingScreenX
+
+      if (
+        distanceToQuestionHitbox > 0 &&
+        distanceToQuestionHitbox <=
+          nextUpcomingEventDefinition.approachSlowdownDistance
+      ) {
+        const slowdownProgress =
+          1 -
+          distanceToQuestionHitbox /
+            nextUpcomingEventDefinition.approachSlowdownDistance
+        const approachSpeed =
+          BASE_SPEED +
+          (nextUpcomingEventDefinition.approachTargetSpeed - BASE_SPEED) *
+            slowdownProgress
+
+        targetSpeed = Math.min(targetSpeed, approachSpeed)
+      }
+    }
+
+    if (
+      activeEventDefinition &&
+      isQuestionEventDefinition(activeEventDefinition) &&
+      !questionModalRef.current
+    ) {
+      targetSpeed = 0
     }
 
     if (
@@ -270,12 +450,31 @@ export function usePhase1Game() {
       targetSpeed = 0
     }
 
+    if (questionModalRef.current) {
+      targetSpeed = 0
+    }
+
     const nextSpeed =
       currentSpeedRef.current +
       (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * 4)
 
     currentSpeedRef.current = nextSpeed
     setSpeed(nextSpeed)
+
+    if (differentialLockEnabledRef.current) {
+      if (
+        activeEventDefinition &&
+        isTractionEventDefinition(activeEventDefinition)
+      ) {
+        tractionBoostFrameCountRef.current += 1
+        setScore((current) => current + activeEventDefinition.rewardPerFrame)
+      } else if (!withinTractionScoreLeniencyZone) {
+        const tractionDefinition = getTractionEventDefinition()
+        setScore((current) =>
+          Math.max(0, current - tractionDefinition.drainPerFrame),
+        )
+      }
+    }
 
     const nextDistance = distanceRef.current + nextSpeed * dt
     distanceRef.current = nextDistance
@@ -317,8 +516,29 @@ export function usePhase1Game() {
           loadedDirtRef.current,
           rearLoadedRef.current,
         )
-        setMessage(`${eventInfo.title}: pressione ${EVENT_BUTTON_LABEL}.`)
+        setMessage(getEventActivationMessage(eventInfo))
+
+        if (isQuestionEventDefinition(eventInfo)) {
+          setMessage('Parando para a pergunta do instrutor...')
+        }
       }
+    }
+
+    if (
+      activeEventDefinition &&
+      isQuestionEventDefinition(activeEventDefinition) &&
+      !questionModalRef.current &&
+      nextSpeed <= QUESTION_MODAL_OPEN_SPEED_THRESHOLD
+    ) {
+      const question = getQuestionFromCatalog(questionCursorRef.current)
+      questionCursorRef.current += 1
+      currentSpeedRef.current = 0
+      setSpeed(0)
+      setQuestionModalState(
+        createQuestionModalState(activeEvent!.id, activeEventDefinition, question),
+      )
+      setMessage(getEventActivationMessage(activeEventDefinition))
+      return
     }
 
     const currentActiveEvent = eventsRef.current.find(
@@ -332,6 +552,32 @@ export function usePhase1Game() {
     const screenX = getEventHitboxScreenX(currentActiveEvent, nextDistance)
 
     if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
+      if (currentActiveEvent.type) {
+        const currentEventDefinition = getEventDefinition(currentActiveEvent.type)
+
+        if (isTractionEventDefinition(currentEventDefinition)) {
+          if (tractionBoostFrameCountRef.current > 0) {
+            resolveEvent(
+              currentActiveEvent.id,
+              currentEventDefinition.successMessage,
+            )
+          } else {
+            failEvent(
+              currentActiveEvent.id,
+              currentEventDefinition.failureMessage,
+              {
+                scorePenalty: 0,
+              },
+            )
+          }
+          return
+        }
+
+        if (isQuestionEventDefinition(currentEventDefinition)) {
+          return
+        }
+      }
+
       failEvent(currentActiveEvent.id, 'O evento passou da hitbox sem resposta.')
     }
   }
@@ -346,11 +592,13 @@ export function usePhase1Game() {
     score,
     hits,
     fails,
+    differentialLockEnabled,
     loadedDirt,
     rearLoaded,
     message,
     events,
     activeEventId,
+    questionModal,
     animationTick,
     activeAnimationLabel,
     frontAnimationRef,

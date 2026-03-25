@@ -10,7 +10,7 @@ import {
   isEventScreenXVisible,
   resolveMapEventType,
 } from './eventPositioner'
-import type { MapEvent } from './types'
+import type { MapEvent, QuestionChoiceDirection, QuestionModalState } from './types'
 
 type Phase1SceneParams = {
   context: CanvasRenderingContext2D
@@ -25,6 +25,7 @@ type Phase1HudParams = {
   context: CanvasRenderingContext2D
   score: number
   distance: number
+  differentialLockEnabled: boolean
 }
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
@@ -86,13 +87,118 @@ export function drawPhase1Hud({
   context,
   score,
   distance,
+  differentialLockEnabled,
 }: Phase1HudParams) {
   const hudY = 26
   const leftX = 28
+  const centerX = CANVAS_WIDTH / 2 - 140
   const rightX = CANVAS_WIDTH - 292
 
   drawHudCard(context, leftX, hudY, 'Pontuacao', String(score))
+  drawDifferentialLockCard(context, centerX, hudY, differentialLockEnabled)
   drawHudCard(context, rightX, hudY, 'Distancia', `${Math.floor(distance / 10)} m`)
+}
+
+export function drawQuestionModal(
+  context: CanvasRenderingContext2D,
+  modalState: QuestionModalState,
+) {
+  const modalX = 220
+  const modalY = 88
+  const modalWidth = CANVAS_WIDTH - 440
+  const modalHeight = CANVAS_HEIGHT - 176
+  const questionBoxX = modalX + 72
+  const questionBoxY = modalY + 34
+  const questionBoxWidth = modalWidth - 144
+  const questionBoxHeight = 118
+  const choiceWidth = 340
+  const choiceHeight = 92
+  const topChoiceX = CANVAS_WIDTH / 2 - choiceWidth / 2
+  const leftChoiceX = modalX + 78
+  const rightChoiceX = modalX + modalWidth - choiceWidth - 78
+  const topChoiceY = questionBoxY + questionBoxHeight + 24
+  const sideChoiceY = topChoiceY + 106
+  const bottomChoiceY = sideChoiceY + 108
+
+  context.save()
+  context.fillStyle = 'rgba(6, 8, 12, 0.6)'
+  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
+  context.fillStyle = 'rgba(24, 20, 16, 0.96)'
+  context.strokeStyle = 'rgba(255, 229, 178, 0.3)'
+  context.lineWidth = 3
+  context.beginPath()
+  context.roundRect(modalX, modalY, modalWidth, modalHeight, 28)
+  context.fill()
+  context.stroke()
+
+  context.fillStyle = '#e1bf75'
+  context.font = '700 18px "Segoe UI", sans-serif'
+  context.fillText(modalState.title.toUpperCase(), questionBoxX, modalY + 26)
+
+  context.fillStyle = 'rgba(255, 245, 220, 0.06)'
+  context.beginPath()
+  context.roundRect(
+    questionBoxX,
+    questionBoxY,
+    questionBoxWidth,
+    questionBoxHeight,
+    20,
+  )
+  context.fill()
+
+  context.fillStyle = '#fff3d7'
+  context.font = '700 28px "Segoe UI", sans-serif'
+  drawWrappedText(
+    context,
+    modalState.question.prompt,
+    questionBoxX + 24,
+    questionBoxY + 40,
+    questionBoxWidth - 48,
+    36,
+  )
+
+  context.fillStyle = '#d5b178'
+  context.font = '600 16px "Segoe UI", sans-serif'
+  context.fillText(
+    modalState.selectionHint,
+    CANVAS_WIDTH / 2 - context.measureText(modalState.selectionHint).width / 2,
+    bottomChoiceY + choiceHeight + 34,
+  )
+
+  drawQuestionChoiceCard(
+    context,
+    topChoiceX,
+    topChoiceY,
+    'W',
+    'up',
+    modalState.question.choices.up.label,
+  )
+  drawQuestionChoiceCard(
+    context,
+    leftChoiceX,
+    sideChoiceY,
+    'A',
+    'left',
+    modalState.question.choices.left.label,
+  )
+  drawQuestionChoiceCard(
+    context,
+    rightChoiceX,
+    sideChoiceY,
+    'D',
+    'right',
+    modalState.question.choices.right.label,
+  )
+  drawQuestionChoiceCard(
+    context,
+    topChoiceX,
+    bottomChoiceY,
+    'S',
+    'down',
+    modalState.question.choices.down.label,
+  )
+  context.restore()
 }
 
 function drawBackground(
@@ -149,6 +255,10 @@ function drawBackground(
 
     if (eventType === 'dig-load') {
       drawSignage(context, visualX, hitboxX, event.id === activeEventId)
+    }
+
+    if (eventType === 'question') {
+      drawQuestionMarker(context, visualX, hitboxX, event.id === activeEventId)
     }
   }
 }
@@ -248,6 +358,35 @@ function drawHudCard(
   context.restore()
 }
 
+function drawDifferentialLockCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  enabled: boolean,
+) {
+  context.save()
+  context.fillStyle = enabled ? 'rgba(50, 58, 24, 0.92)' : 'rgba(18, 14, 10, 0.72)'
+  context.strokeStyle = enabled
+    ? 'rgba(255, 232, 186, 0.42)'
+    : 'rgba(255, 232, 186, 0.2)'
+  context.lineWidth = 2
+  context.beginPath()
+  context.roundRect(x, y, 280, 84, 18)
+  context.fill()
+  context.stroke()
+
+  context.fillStyle = '#e1bf75'
+  context.font = '700 14px "Segoe UI", sans-serif'
+  context.fillText('BLOQ. DIF.', x + 22, y + 24)
+
+  context.fillStyle = enabled ? '#fff0a8' : '#fff3d7'
+  context.font = '700 28px "Segoe UI", sans-serif'
+  context.fillText(enabled ? 'S LIGADO' : 'S DESLIG.', x + 22, y + 60)
+
+  drawDifferentialLockIcon(context, x + 212, y + 20, enabled)
+  context.restore()
+}
+
 function drawForeground(context: CanvasRenderingContext2D, distance: number) {
   const markerOffset = (distance * 1.2) % 260
 
@@ -283,6 +422,124 @@ function drawPickupDirt(
     48,
   )
   context.restore()
+}
+
+function drawQuestionMarker(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  isActive: boolean,
+) {
+  context.save()
+  context.fillStyle = '#e8ddba'
+  context.fillRect(visualX - 10, GROUND_Y - 144, 20, 146)
+  context.fillStyle = isActive ? '#d68b1f' : '#ae3a26'
+  context.beginPath()
+  context.roundRect(visualX - 54, GROUND_Y - 210, 108, 66, 18)
+  context.fill()
+  context.fillStyle = '#fff3d7'
+  context.font = '700 44px "Segoe UI", sans-serif'
+  context.fillText('?', visualX - 14, GROUND_Y - 160)
+  context.strokeStyle = isActive ? '#fff2a8' : 'rgba(255,255,255,0.35)'
+  context.lineWidth = 2
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y - 214,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    220,
+  )
+  context.restore()
+}
+
+function drawDifferentialLockIcon(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  enabled: boolean,
+) {
+  context.save()
+  context.strokeStyle = enabled ? '#fff2a8' : 'rgba(255, 243, 215, 0.24)'
+  context.lineWidth = 4
+  context.beginPath()
+  context.moveTo(x + 6, y + 22)
+  context.lineTo(x + 26, y + 22)
+  context.moveTo(x + 34, y + 22)
+  context.lineTo(x + 54, y + 22)
+  context.stroke()
+
+  context.fillStyle = enabled ? '#fff0a8' : 'rgba(255, 243, 215, 0.18)'
+  context.beginPath()
+  context.arc(x + 6, y + 22, 6, 0, Math.PI * 2)
+  context.arc(x + 54, y + 22, 6, 0, Math.PI * 2)
+  context.fill()
+
+  context.strokeStyle = enabled ? '#fff0a8' : 'rgba(255, 243, 215, 0.28)'
+  context.lineWidth = 3
+  context.beginPath()
+  context.roundRect(x + 20, y + 8, 20, 28, 8)
+  context.stroke()
+  context.restore()
+}
+
+function drawQuestionChoiceCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  keyLabel: string,
+  direction: QuestionChoiceDirection,
+  label: string,
+) {
+  context.save()
+  context.fillStyle = 'rgba(255, 245, 220, 0.05)'
+  context.strokeStyle = 'rgba(255, 229, 178, 0.2)'
+  context.lineWidth = 2
+  context.beginPath()
+  context.roundRect(x, y, 340, 92, 18)
+  context.fill()
+  context.stroke()
+
+  context.fillStyle = '#e1bf75'
+  context.font = '700 18px "Segoe UI", sans-serif'
+  context.fillText(keyLabel, x + 20, y + 28)
+
+  context.fillStyle = '#d2b07a'
+  context.font = '600 13px "Segoe UI", sans-serif'
+  context.fillText(direction.toUpperCase(), x + 52, y + 28)
+
+  context.fillStyle = '#fff3d7'
+  context.font = '600 20px "Segoe UI", sans-serif'
+  drawWrappedText(context, label, x + 20, y + 56, 300, 26)
+  context.restore()
+}
+
+function drawWrappedText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+) {
+  const words = text.split(' ')
+  let currentLine = ''
+  let currentY = y
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word
+
+    if (context.measureText(nextLine).width <= maxWidth) {
+      currentLine = nextLine
+      continue
+    }
+
+    context.fillText(currentLine, x, currentY)
+    currentLine = word
+    currentY += lineHeight
+  }
+
+  if (currentLine) {
+    context.fillText(currentLine, x, currentY)
+  }
 }
 
 function drawMudPatch(

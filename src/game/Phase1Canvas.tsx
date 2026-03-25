@@ -12,7 +12,6 @@ import { createLayerImageMap, drawExcavator } from './retro/render'
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
-  EVENT_BUTTON_LABEL,
   GROUND_Y,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
@@ -23,6 +22,7 @@ import {
   drawPhase1Backdrop,
   drawPhase1Environment,
   drawPhase1Hud,
+  drawQuestionModal,
 } from './phase1/render'
 import { usePhase1Game } from './phase1/usePhase1Game'
 
@@ -122,15 +122,21 @@ export function Phase1Canvas({
       context,
       score: game.score,
       distance: game.distance,
+      differentialLockEnabled: game.differentialLockEnabled,
     })
+    if (game.questionModal) {
+      drawQuestionModal(context, game.questionModal)
+    }
   }, [
     game.activeEventId,
     game.distance,
+    game.differentialLockEnabled,
     game.events,
     game.excavatorScene,
     game.loadedDirt,
     game.rearLoaded,
     game.animationTick,
+    game.questionModal,
     game.score,
     images,
     pose.angles,
@@ -148,7 +154,8 @@ export function Phase1Canvas({
       <div className="stage-toolbar">
         <ModeTabs activeView={activeView} onChange={onChangeView} />
         <p className="phase-toolbar-hint">
-          Aperte <strong>{EVENT_BUTTON_LABEL}</strong> para agir
+          Espaco age, <strong>S</strong> liga o bloqueio, <strong>WASD</strong>{' '}
+          responde perguntas
         </p>
       </div>
 

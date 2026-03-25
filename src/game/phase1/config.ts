@@ -11,5 +11,12 @@ export const EVENT_SPAWN_MARGIN = 420;
 export const EVENT_DESPAWN_MARGIN = 420;
 export const EVENT_BUTTON = "Space";
 export const EVENT_BUTTON_LABEL = "Espaco";
+export const TRACTION_TOGGLE_KEY = "S";
+export const TRACTION_TOGGLE_KEY_LABEL = "S";
+export const TRACTION_SCORE_LENIENCY_MARGIN = 140;
+export const QUESTION_OPTION_KEYS_LABEL = "WASD";
+export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
+export const QUESTION_APPROACH_TARGET_SPEED = 42;
+export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
 export const INITIAL_MESSAGE =
   "A retro anda para a esquerda. Responda aos eventos quando eles chegarem.";

@@ -1,7 +1,9 @@
 import {
   CANVAS_WIDTH,
+  EVENT_HITBOX_HALF_WIDTH,
   EVENT_DESPAWN_MARGIN,
   EVENT_SPAWN_MARGIN,
+  PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
 } from './config'
 import { getEventDefinition } from './eventCatalog'
@@ -17,12 +19,12 @@ const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
   { group: 'pickup', hitboxX: 700 },
   { group: 'traction', hitboxX: 1650 },
   { group: 'dig', hitboxX: 2720 },
-  { group: 'pickup', hitboxX: 3820 },
-  { group: 'dig', hitboxX: 4980 },
+  { group: 'question', hitboxX: 3820 },
+  { group: 'pickup', hitboxX: 4980 },
   { group: 'traction', hitboxX: 6150 },
-  { group: 'pickup', hitboxX: 7350 },
-  { group: 'dig', hitboxX: 8520 },
-  { group: 'pickup', hitboxX: 9750 },
+  { group: 'dig', hitboxX: 7350 },
+  { group: 'pickup', hitboxX: 8520 },
+  { group: 'dig', hitboxX: 9750 },
 ]
 
 export const INITIAL_EVENTS: MapEvent[] = EVENT_SPAWN_PLAN.map((slot, id) => ({
@@ -71,7 +73,11 @@ export function resolveSpawnedEventType(
     return rearLoaded ? 'dig-unload' : 'dig-load'
   }
 
-  return 'traction'
+  if (group === 'traction') {
+    return 'traction'
+  }
+
+  return 'question'
 }
 
 export function resolveMapEventType(
@@ -140,6 +146,24 @@ export function assignSpawnedEventTypes(
 
 export function createInitialPhase1Events() {
   return assignSpawnedEventTypes(cloneEvents(INITIAL_EVENTS), 0, false, false)
+}
+
+export function isWithinEventHitZone(screenX: number, extraMargin = 0) {
+  return Math.abs(screenX - PLAYER_HIT_LINE_X) <= EVENT_HITBOX_HALF_WIDTH + extraMargin
+}
+
+export function isWithinTractionScoreLeniencyZone(
+  events: MapEvent[],
+  distance: number,
+  extraMargin: number,
+) {
+  return events.some((event) => {
+    if (event.group !== 'traction') {
+      return false
+    }
+
+    return isWithinEventHitZone(getEventHitboxScreenX(event, distance), extraMargin)
+  })
 }
 
 export function describeMapEvent(

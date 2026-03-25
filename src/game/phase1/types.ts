@@ -1,13 +1,25 @@
 import type { AnimationPresetId } from '../retro/types'
 
-export type MapEventType =
+export type ManualEventType =
   | 'pickup-load'
   | 'pickup-unload'
   | 'dig-load'
   | 'dig-unload'
-  | 'traction'
 
-export type MapEventGroup = 'pickup' | 'dig' | 'traction'
+export type EnvironmentalEventType = 'traction'
+export type ModalEventType = 'question'
+export type MapEventType =
+  | ManualEventType
+  | EnvironmentalEventType
+  | ModalEventType
+
+export type ManualEventGroup = 'pickup' | 'dig'
+export type EnvironmentalEventGroup = 'traction'
+export type ModalEventGroup = 'question'
+export type MapEventGroup =
+  | ManualEventGroup
+  | EnvironmentalEventGroup
+  | ModalEventGroup
 export type EventStatus = 'upcoming' | 'active' | 'resolved' | 'missed'
 
 export type MapEvent = {
@@ -29,15 +41,81 @@ export type EventAnimationConfig = {
   }
 }
 
-export type EventDefinition = {
-  type: MapEventType
-  group: MapEventGroup
+type BaseEventDefinition<
+  TType extends MapEventType,
+  TGroup extends MapEventGroup,
+  TInteraction extends string,
+> = {
+  type: TType
+  group: TGroup
+  interaction: TInteraction
   visualOffset: number
-  key: string
   title: string
   description: string
   hint: string
   successMessage: string
+}
+
+export type ManualEventDefinition = BaseEventDefinition<
+  ManualEventType,
+  ManualEventGroup,
+  'manual'
+> & {
+  key: string
   reward: number
   animation?: EventAnimationConfig
+}
+
+export type TractionEventDefinition = BaseEventDefinition<
+  'traction',
+  'traction',
+  'traction-zone'
+> & {
+  toggleKey: string
+  activeSpeed: number
+  drainPerFrame: number
+  rewardPerFrame: number
+  failureMessage: string
+}
+
+export type QuestionEventDefinition = BaseEventDefinition<
+  'question',
+  'question',
+  'question-modal'
+> & {
+  modalTitle: string
+  selectionHint: string
+  approachSlowdownDistance: number
+  approachTargetSpeed: number
+}
+
+export type EventDefinition =
+  | ManualEventDefinition
+  | TractionEventDefinition
+  | QuestionEventDefinition
+
+export type QuestionChoiceDirection = 'up' | 'left' | 'right' | 'down'
+
+export type DirectionalChoiceMap<T> = Record<QuestionChoiceDirection, T>
+
+export type Phase1QuestionChoice = {
+  label: string
+}
+
+export type Phase1Question = {
+  id: string
+  prompt: string
+  choices: DirectionalChoiceMap<Phase1QuestionChoice>
+  correctDirection: QuestionChoiceDirection
+  successMessage: string
+  failureMessage: string
+  reward: number
+  penalty: number
+}
+
+export type QuestionModalState = {
+  eventId: number
+  title: string
+  selectionHint: string
+  question: Phase1Question
 }

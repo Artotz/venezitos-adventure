@@ -4,7 +4,11 @@ import {
   EVENT_HITBOX_HALF_WIDTH,
   GROUND_Y,
 } from './config'
-import { getEventHitboxScreenX, getEventVisualScreenX } from './events'
+import {
+  getEventHitboxScreenX,
+  getEventVisualScreenX,
+  resolveMapEventVariant,
+} from './events'
 import type { MapEvent } from './types'
 
 type Phase1SceneParams = {
@@ -108,6 +112,7 @@ function drawBackground(
   for (const event of events) {
     const visualX = getEventVisualScreenX(event, distance)
     const hitboxX = getEventHitboxScreenX(event, distance)
+    const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
 
     if (
       visualX < -220 ||
@@ -118,11 +123,11 @@ function drawBackground(
       continue
     }
 
-    if (event.type === 'pickup' && loadedDirt) {
+    if (variant === 'pickup-unload') {
       drawTruck(context, visualX, hitboxX, event.id === activeEventId)
     }
 
-    if (event.type === 'dig' && !rearLoaded) {
+    if (variant === 'dig-load') {
       drawSignage(context, visualX, hitboxX, event.id === activeEventId)
     }
   }
@@ -159,6 +164,7 @@ function drawGround(
   for (const event of events) {
     const visualX = getEventVisualScreenX(event, distance)
     const hitboxX = getEventHitboxScreenX(event, distance)
+    const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
 
     if (
       visualX < -220 ||
@@ -171,15 +177,15 @@ function drawGround(
 
     const isActive = event.id === activeEventId
 
-    if (event.type === 'pickup' && !loadedDirt) {
+    if (variant === 'pickup-load') {
       drawPickupDirt(context, visualX, hitboxX, isActive)
     }
 
-    if (event.type === 'dig' && rearLoaded) {
+    if (variant === 'dig-unload') {
       drawRearDitch(context, visualX, hitboxX, isActive)
     }
 
-    if (event.type === 'traction') {
+    if (variant === 'traction') {
       drawMudPatch(context, visualX, hitboxX, isActive)
     }
   }

@@ -40,10 +40,6 @@ export function PoseControls({
                 onAngleChange(layerName, event.currentTarget.value)
               }
             />
-            <span className="slider-layer">{layerName}</span>
-            <span className="slider-layer">
-              sprite: {displayPose.sprites[layerName]}
-            </span>
           </label>
         )
       })}

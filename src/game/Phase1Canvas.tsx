@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 
 import { buildPhase1Pose } from './retro/animations'
 import { computeWorldMatrices, createTranslationMatrix } from './retro/geometry'
@@ -10,7 +16,7 @@ import {
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
 } from './phase1/config'
-import { describeMapEvent } from './phase1/events'
+import { ModeTabs } from './ModeTabs'
 import { Phase1Sidebar } from './phase1/Phase1Sidebar'
 import {
   drawCenterGuide,
@@ -19,38 +25,18 @@ import {
 } from './phase1/render'
 import { usePhase1Game } from './phase1/usePhase1Game'
 
-export function Phase1Canvas() {
+type Phase1CanvasProps = {
+  activeView: 'phase1' | 'editor'
+  onChangeView: (view: 'phase1' | 'editor') => void
+}
+
+export function Phase1Canvas({
+  activeView,
+  onChangeView,
+}: Phase1CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [canvasScale, setCanvasScale] = useState(1)
   const game = usePhase1Game()
-
-  const activeEvent = useMemo(
-    () =>
-      game.activeEventId !== null
-        ? game.events.find((event) => event.id === game.activeEventId) ?? null
-        : null,
-    [game.activeEventId, game.events],
-  )
-
-  const nextEvent = useMemo(
-    () => game.events.find((event) => event.status === 'upcoming') ?? null,
-    [game.events],
-  )
-
-  const activeEventInfo = useMemo(
-    () =>
-      activeEvent
-        ? describeMapEvent(activeEvent, game.loadedDirt, game.rearLoaded)
-        : null,
-    [activeEvent, game.loadedDirt, game.rearLoaded],
-  )
-
-  const nextEventInfo = useMemo(
-    () =>
-      nextEvent
-        ? describeMapEvent(nextEvent, game.loadedDirt, game.rearLoaded)
-        : null,
-    [game.loadedDirt, game.rearLoaded, nextEvent],
-  )
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -64,6 +50,29 @@ export function Phase1Canvas() {
     () => (game.sprites ? createLayerImageMap(game.sprites, pose.sprites) : null),
     [game.sprites, pose.sprites],
   )
+
+  useEffect(() => {
+    const updateCanvasScale = () => {
+      const widthPadding = window.innerWidth <= 900 ? 32 : 72
+      const heightPadding = window.innerWidth <= 900 ? 260 : 220
+      const availableWidth = Math.max(320, window.innerWidth - widthPadding)
+      const availableHeight = Math.max(260, window.innerHeight - heightPadding)
+      const nextScale = Math.min(
+        1,
+        availableWidth / CANVAS_WIDTH,
+        availableHeight / CANVAS_HEIGHT,
+      )
+
+      setCanvasScale(nextScale > 0 ? nextScale : 1)
+    }
+
+    updateCanvasScale()
+    window.addEventListener('resize', updateCanvasScale)
+
+    return () => {
+      window.removeEventListener('resize', updateCanvasScale)
+    }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -124,24 +133,25 @@ export function Phase1Canvas() {
     return <p className="canvas-status">Carregando fase 1...</p>
   }
 
+  const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale)
+  const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale)
+
   return (
     <div className="phase-layout">
-      <Phase1Sidebar
-        score={game.score}
-        distance={game.distance}
-        speed={game.speed}
-        loadedDirt={game.loadedDirt}
-        hits={game.hits}
-        fails={game.fails}
-        activeAnimationLabel={game.activeAnimationLabel}
-        message={game.message}
-        activeEvent={activeEvent}
-        nextEvent={nextEvent}
-        activeEventInfo={activeEventInfo}
-        nextEventInfo={nextEventInfo}
-      />
+      <div className="stage-toolbar">
+        <ModeTabs activeView={activeView} onChange={onChangeView} />
+        <Phase1Sidebar score={game.score} distance={game.distance} />
+      </div>
 
-      <div className="phase-canvas-frame">
+      <div
+        className="phase-canvas-frame"
+        style={
+          {
+            '--phase-canvas-width': `${scaledCanvasWidth}px`,
+            '--phase-canvas-height': `${scaledCanvasHeight}px`,
+          } as CSSProperties
+        }
+      >
         <canvas
           ref={canvasRef}
           className="phase-canvas"

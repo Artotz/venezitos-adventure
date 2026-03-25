@@ -42,19 +42,25 @@ export function useRetroEditor() {
     (dt) => {
       setCurrentTime((previous) => {
         const next = previous + dt * 1000
-        return next > totalDuration ? 0 : next
+
+        if (next >= totalDuration) {
+          setIsPlaying(false)
+          return totalDuration
+        }
+
+        return next
       })
     },
     isPlaying && totalDuration > 0,
   )
 
   const displayPose = useMemo(() => {
-    if (!selectedAnimation || (!isPlaying && currentTime === 0)) {
+    if (!selectedAnimation) {
       return basePose
     }
 
     return applyAnimationToPose(basePose, selectedAnimation.id, currentTime)
-  }, [basePose, currentTime, isPlaying, selectedAnimation])
+  }, [basePose, currentTime, selectedAnimation])
 
   const handleAngleChange = (layerName: LayerName, value: string) => {
     const nextAngle = Number(value)
@@ -71,6 +77,10 @@ export function useRetroEditor() {
   }
 
   const handleAnimationChange = (value: string) => {
+    setBasePose({
+      angles: { ...displayPose.angles },
+      sprites: { ...displayPose.sprites },
+    })
     setSelectedAnimationId(value as AnimationPresetId)
     setCurrentTime(0)
     setIsPlaying(false)

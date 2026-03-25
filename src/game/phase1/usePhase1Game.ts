@@ -17,18 +17,28 @@ import {
   EVENT_BUTTON,
   EVENT_CONFIG,
   EVENT_HITBOX_HALF_WIDTH,
+  FRONT_LOAD_SPEED,
   INITIAL_EVENTS,
   INITIAL_MESSAGE,
   LOW_TRACTION_SPEED,
   PLAYER_HIT_LINE_X,
 } from './config'
 import {
+  assignSpawnedEventVariants,
   cloneEvents,
   describeMapEvent,
   getEventHitboxScreenX,
+  resolveMapEventVariant,
   updateEventStatus,
 } from './events'
 import type { MapEvent } from './types'
+
+const INITIAL_PHASE1_EVENTS = assignSpawnedEventVariants(
+  cloneEvents(INITIAL_EVENTS),
+  0,
+  false,
+  false,
+)
 
 export function usePhase1Game() {
   const sprites = useRetroSprites()
@@ -40,14 +50,14 @@ export function usePhase1Game() {
   const [loadedDirt, setLoadedDirt] = useState(false)
   const [rearLoaded, setRearLoaded] = useState(false)
   const [message, setMessage] = useState(INITIAL_MESSAGE)
-  const [events, setEvents] = useState<MapEvent[]>(() => cloneEvents(INITIAL_EVENTS))
+  const [events, setEvents] = useState<MapEvent[]>(INITIAL_PHASE1_EVENTS)
   const [activeEventId, setActiveEventId] = useState<number | null>(null)
   const [animationTick, setAnimationTick] = useState(0)
   const [activeAnimationLabel, setActiveAnimationLabel] = useState(
     'Rodagem continua',
   )
 
-  const eventsRef = useRef<MapEvent[]>(cloneEvents(INITIAL_EVENTS))
+  const eventsRef = useRef<MapEvent[]>(INITIAL_PHASE1_EVENTS)
   const activeEventIdRef = useRef<number | null>(null)
   const loadedDirtRef = useRef(false)
   const rearLoadedRef = useRef(false)
@@ -156,16 +166,22 @@ export function usePhase1Game() {
       return
     }
 
-    if (activeEvent.type === 'pickup') {
+    const variant = resolveMapEventVariant(
+      activeEvent,
+      loadedDirtRef.current,
+      rearLoadedRef.current,
+    )
+
+    if (variant === 'pickup-load' || variant === 'pickup-unload') {
       resolveEvent(
         activeEvent.id,
-        loadedDirtRef.current
+        variant === 'pickup-unload'
           ? 'Terra descarregada no caminhao.'
           : 'Terra apanhada. A cacamba esta carregada.',
       )
       setScore((current) => current + 180)
 
-      if (loadedDirtRef.current) {
+      if (variant === 'pickup-unload') {
         startAnimation(
           frontAnimationRef,
           'idle2',
@@ -192,16 +208,16 @@ export function usePhase1Game() {
       return
     }
 
-    if (activeEvent.type === 'dig') {
+    if (variant === 'dig-load' || variant === 'dig-unload') {
       resolveEvent(
         activeEvent.id,
-        rearLoadedRef.current
+        variant === 'dig-unload'
           ? 'Retroescavadeira descarregada na vala.'
           : 'Retroescavadeira carregada atras.',
       )
       setScore((current) => current + 180)
 
-      if (rearLoadedRef.current) {
+      if (variant === 'dig-unload') {
         startAnimation(
           rearAnimationRef,
           'arm-unload',
@@ -283,6 +299,10 @@ export function usePhase1Game() {
       targetSpeed = LOW_TRACTION_SPEED
     }
 
+    if (frontAnimationRef.current?.presetId === 'idle') {
+      targetSpeed = Math.min(targetSpeed, FRONT_LOAD_SPEED)
+    }
+
     if (
       frontAnimationRef.current?.lockMovement ||
       rearAnimationRef.current?.lockMovement
@@ -301,6 +321,18 @@ export function usePhase1Game() {
     distanceRef.current = nextDistance
     setDistance(nextDistance)
     setScore((current) => current + Math.round(nextSpeed * dt * 0.08))
+
+    const spawnedEvents = assignSpawnedEventVariants(
+      eventsRef.current,
+      nextDistance,
+      loadedDirtRef.current,
+      rearLoadedRef.current,
+    )
+
+    if (spawnedEvents !== eventsRef.current) {
+      eventsRef.current = spawnedEvents
+      setEvents(spawnedEvents)
+    }
 
     const nextUpcoming = eventsRef.current.find(
       (item) => item.status === 'upcoming',

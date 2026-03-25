@@ -14,7 +14,7 @@ import type { ActiveAnimation, AnimationPresetId } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
 import {
   BASE_SPEED,
-  EVENT_BUTTON,
+  EVENT_BUTTON_LABEL,
   EVENT_CONFIG,
   EVENT_HITBOX_HALF_WIDTH,
   FRONT_LOAD_SPEED,
@@ -150,7 +150,11 @@ export function usePhase1Game() {
     }
 
     const pressedKey =
-      event.key.length === 1 ? event.key.toUpperCase() : event.key
+      event.code === 'Space'
+        ? 'Space'
+        : event.key.length === 1
+          ? event.key.toUpperCase()
+          : event.key
     const config = EVENT_CONFIG[activeEvent.type]
 
     if (pressedKey !== config.key) {
@@ -357,7 +361,7 @@ export function usePhase1Game() {
           loadedDirtRef.current,
           rearLoadedRef.current,
         )
-        setMessage(`${eventInfo.title}: pressione ${EVENT_BUTTON}.`)
+        setMessage(`${eventInfo.title}: pressione ${EVENT_BUTTON_LABEL}.`)
       }
     }
 

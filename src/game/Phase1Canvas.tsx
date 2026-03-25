@@ -12,6 +12,7 @@ import { createLayerImageMap, drawExcavator } from './retro/render'
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  EVENT_BUTTON_LABEL,
   GROUND_Y,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
@@ -140,6 +141,9 @@ export function Phase1Canvas({
     <div className="phase-layout">
       <div className="stage-toolbar">
         <ModeTabs activeView={activeView} onChange={onChangeView} />
+        <p className="phase-toolbar-hint">
+          Aperte <strong>{EVENT_BUTTON_LABEL}</strong> para agir
+        </p>
         <Phase1Sidebar score={game.score} distance={game.distance} />
       </div>
 

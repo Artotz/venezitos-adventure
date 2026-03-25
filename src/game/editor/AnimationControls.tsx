@@ -23,7 +23,7 @@ export function AnimationControls({
   onTogglePlayback,
 }: AnimationControlsProps) {
   return (
-    <div className="controls-group">
+    <div className="controls-group animation-controls">
       <div className="controls-header">
         <h2>Animacoes</h2>
         <button

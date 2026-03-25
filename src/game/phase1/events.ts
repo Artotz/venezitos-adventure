@@ -1,4 +1,10 @@
-import { CANVAS_WIDTH, EVENT_CONFIG, PLAYER_SCREEN_X } from './config'
+import {
+  CANVAS_WIDTH,
+  EVENT_CONFIG,
+  EVENT_DESPAWN_MARGIN,
+  EVENT_SPAWN_MARGIN,
+  PLAYER_SCREEN_X,
+} from './config'
 import type {
   EventInfo,
   EventStatus,
@@ -12,6 +18,13 @@ export function getEventVisualScreenX(event: MapEvent, distance: number) {
 
 export function getEventHitboxScreenX(event: MapEvent, distance: number) {
   return PLAYER_SCREEN_X - (event.hitboxX - distance)
+}
+
+export function isEventScreenXVisible(screenX: number) {
+  return (
+    screenX >= -EVENT_SPAWN_MARGIN &&
+    screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
+  )
 }
 
 export function updateEventStatus(
@@ -52,12 +65,7 @@ export function isEventVisibleOnMap(event: MapEvent, distance: number) {
   const visualX = getEventVisualScreenX(event, distance)
   const hitboxX = getEventHitboxScreenX(event, distance)
 
-  return !(
-    visualX < -220 ||
-    visualX > CANVAS_WIDTH + 220 ||
-    hitboxX < -220 ||
-    hitboxX > CANVAS_WIDTH + 220
-  )
+  return isEventScreenXVisible(visualX) || isEventScreenXVisible(hitboxX)
 }
 
 export function assignSpawnedEventVariants(

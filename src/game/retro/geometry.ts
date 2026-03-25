@@ -9,6 +9,10 @@ export function createTranslationMatrix(x: number, y: number): Matrix2D {
   return { a: 1, b: 0, c: 0, d: 1, e: x, f: y }
 }
 
+export function createScaleMatrix(scaleX: number, scaleY: number): Matrix2D {
+  return { a: scaleX, b: 0, c: 0, d: scaleY, e: 0, f: 0 }
+}
+
 export function createRotationMatrix(angleInRadians: number): Matrix2D {
   const cosine = Math.cos(angleInRadians)
   const sine = Math.sin(angleInRadians)

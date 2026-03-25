@@ -93,6 +93,18 @@ h1 {
   margin-bottom: 0;
 }
 
+.phase-toolbar-hint {
+  align-self: center;
+  margin: 0;
+  color: #d6c7b1;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.phase-toolbar-hint strong {
+  color: #f0cb75;
+}
+
 .view-switcher {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -155,6 +167,11 @@ h1 {
   border: 1px solid rgba(255, 248, 220, 0.08);
 }
 
+.animation-controls {
+  max-height: 520px;
+  overflow: hidden;
+}
+
 .controls-header {
   display: flex;
   align-items: center;
@@ -173,7 +190,7 @@ h1 {
 
 .slider-title {
   color: #f4f1e8;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
 }
 
 .slider-value,
@@ -186,6 +203,9 @@ h1 {
   display: grid;
   gap: 10px;
   margin-top: 8px;
+  max-height: 250px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .keyframe-list h2 {
@@ -241,7 +261,7 @@ h1 {
 }
 
 .canvas-scroll {
-  overflow: auto;
+  overflow: hidden;
   max-width: 100%;
   padding: 8px;
   border-radius: 14px;
@@ -250,8 +270,8 @@ h1 {
 
 .game-canvas {
   display: block;
-  width: auto;
-  max-width: none;
+  width: 100%;
+  max-width: 920px;
   height: auto;
   image-rendering: pixelated;
   cursor: crosshair;
@@ -371,6 +391,10 @@ h1 {
   .stage-toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .phase-toolbar-hint {
+    white-space: normal;
   }
 
   .panel-copy {

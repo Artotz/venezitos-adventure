@@ -7,6 +7,7 @@ import {
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
+  isEventScreenXVisible,
   resolveMapEventVariant,
 } from './events'
 import type { MapEvent } from './types'
@@ -114,12 +115,7 @@ function drawBackground(
     const hitboxX = getEventHitboxScreenX(event, distance)
     const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
 
-    if (
-      visualX < -220 ||
-      visualX > CANVAS_WIDTH + 220 ||
-      hitboxX < -220 ||
-      hitboxX > CANVAS_WIDTH + 220
-    ) {
+    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue
     }
 
@@ -166,12 +162,7 @@ function drawGround(
     const hitboxX = getEventHitboxScreenX(event, distance)
     const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
 
-    if (
-      visualX < -220 ||
-      visualX > CANVAS_WIDTH + 220 ||
-      hitboxX < -220 ||
-      hitboxX > CANVAS_WIDTH + 220
-    ) {
+    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue
     }
 

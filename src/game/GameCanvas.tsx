@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useRef } from 'react'
 
-import { createTranslationMatrix, computeWorldMatrices } from './retro/geometry'
+import {
+  computeWorldMatrices,
+  createScaleMatrix,
+  createTranslationMatrix,
+  multiplyMatrices,
+} from './retro/geometry'
 import {
   createLayerImageMap,
   drawExcavator,
   measureBaseExcavator,
 } from './retro/render'
 import { useRetroSprites } from './retro/sprites'
-import { CANVAS_HEIGHT, CANVAS_WIDTH, GROUND_Y } from './phase1/config'
+import { GROUND_Y } from './phase1/config'
 import { EditorTabs } from './editor/EditorTabs'
 import { drawPhase1Backdrop, drawPhase1Environment } from './phase1/render'
 import { ModeTabs } from './ModeTabs'
 import { RetroEditorSidebar } from './editor/RetroEditorSidebar'
 import { useRetroEditor } from './editor/useRetroEditor'
 
-const EDITOR_CANVAS_WIDTH = Math.max(CANVAS_WIDTH - 260, 1120)
-const EDITOR_CANVAS_HEIGHT = CANVAS_HEIGHT
+const EDITOR_CANVAS_WIDTH = 920
+const EDITOR_CANVAS_HEIGHT = 520
+const EDITOR_MACHINE_SCALE = 0.82
 
 type GameCanvasProps = {
   activeView: 'phase1' | 'editor'
@@ -54,12 +60,18 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       return
     }
 
-    const machineY = GROUND_Y - excavatorScene.contentHeight + 60
+    const scaledMachineWidth = excavatorScene.contentWidth * EDITOR_MACHINE_SCALE
+    const scaledMachineHeight =
+      excavatorScene.contentHeight * EDITOR_MACHINE_SCALE
+    const machineY = GROUND_Y - scaledMachineHeight + 44
     const worldMatrices = computeWorldMatrices(
       editor.displayPose.angles,
-      createTranslationMatrix(
-        EDITOR_CANVAS_WIDTH / 2 - excavatorScene.contentWidth / 2,
-        machineY,
+      multiplyMatrices(
+        createTranslationMatrix(
+          EDITOR_CANVAS_WIDTH / 2 - scaledMachineWidth / 2,
+          machineY,
+        ),
+        createScaleMatrix(EDITOR_MACHINE_SCALE, EDITOR_MACHINE_SCALE),
       ),
     )
 

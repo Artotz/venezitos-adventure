@@ -32,7 +32,7 @@ type AnimationKeyframe = {
   sprites?: SparseSprites;
 };
 type AnimationPreset = {
-  id: "idle" | "idle2" | "arm-extended";
+  id: "idle" | "idle2" | "arm-extended" | "arm-unload";
   keyframes: AnimationKeyframe[];
 };
 type ResolvedKeyframe = {
@@ -40,8 +40,8 @@ type ResolvedKeyframe = {
   angles: Record<LayerName, number>;
   sprites: Record<LayerName, SpriteName>;
 };
-type MapEventType = "pickup" | "dump" | "dig" | "traction";
-type EventStatus = "hidden" | "upcoming" | "active" | "resolved" | "missed";
+type MapEventType = "pickup" | "dig" | "traction";
+type EventStatus = "upcoming" | "active" | "resolved" | "missed";
 type MapEvent = {
   id: number;
   type: MapEventType;
@@ -51,6 +51,7 @@ type MapEvent = {
 };
 type ActiveAnimation = {
   presetId: AnimationPreset["id"];
+  label: string;
   elapsed: number;
   lockMovement: boolean;
   onComplete?: () => void;
@@ -65,7 +66,7 @@ const CANVAS_WIDTH = 1560;
 const CANVAS_HEIGHT = 620;
 const GROUND_Y = 485;
 const PLAYER_SCREEN_X = 980;
-const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 96;
+const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 200;
 const BASE_SPEED = 220;
 const LOW_TRACTION_SPEED = 72;
 const EVENT_HITBOX_HALF_WIDTH = 70;
@@ -163,7 +164,18 @@ const ANIMATION_PRESETS: AnimationPreset[] = [
     keyframes: [
       { at: 0, changes: {} },
       { at: 1200, changes: { "Camada 1.png": 75, "Camada 2.png": -24 } },
-      { at: 2400, changes: { "Camada 2.png": -92 } },
+      {
+        at: 2400,
+        changes: { "Camada 2.png": -92 },
+        sprites: { "Camada 2.png": "Camada 2.png" },
+      },
+      {
+        at: 3600,
+        changes: {
+          "Camada 1.png": BASE_ANGLES["Camada 1.png"],
+          "Camada 2.png": BASE_ANGLES["Camada 2.png"],
+        },
+      },
     ],
   },
   {
@@ -197,6 +209,35 @@ const ANIMATION_PRESETS: AnimationPreset[] = [
       },
     ],
   },
+  {
+    id: "arm-unload",
+    keyframes: [
+      { at: 0, changes: {} },
+      {
+        at: 1200,
+        changes: {
+          "Camada 6.png": 5,
+          "Camada 7.png": -5,
+          "Camada 8.png": -45,
+        },
+      },
+      {
+        at: 2400,
+        changes: {
+          "Camada 8.png": -160,
+        },
+        sprites: { "Camada 8.png": "Camada 8.png" },
+      },
+      {
+        at: 3200,
+        changes: {
+          "Camada 6.png": BASE_ANGLES["Camada 6.png"],
+          "Camada 7.png": BASE_ANGLES["Camada 7.png"],
+          "Camada 8.png": BASE_ANGLES["Camada 8.png"],
+        },
+      },
+    ],
+  },
 ];
 
 const EVENT_CONFIG: Record<
@@ -205,21 +246,15 @@ const EVENT_CONFIG: Record<
 > = {
   pickup: {
     key: EVENT_BUTTON,
-    title: "Apanhar terra",
-    description: "Punhado de terra no caminho",
-    hint: "Roda o ciclo de cacamba 1 sem parar a maquina.",
-  },
-  dump: {
-    key: EVENT_BUTTON,
-    title: "Descarregar terra",
-    description: "Caminhao no background",
-    hint: "Para a maquina e roda o ciclo de cacamba 2. Exige terra carregada.",
+    title: "Evento da carregadeira",
+    description: "Punhado de terra ou caminhao",
+    hint: "O mesmo evento alterna entre carregar e descarregar a frente.",
   },
   dig: {
     key: EVENT_BUTTON,
-    title: "Cavar vala",
-    description: "Sinalizacao no background",
-    hint: "Para a maquina e roda o braco estendido.",
+    title: "Evento da retroescavadeira",
+    description: "Escavar ou descarregar na vala",
+    hint: "O mesmo evento alterna entre carregar e descarregar a traseira.",
   },
   traction: {
     key: EVENT_BUTTON,
@@ -234,11 +269,11 @@ const INITIAL_EVENTS: MapEvent[] = [
   { id: 1, type: "traction", visualX: 1730, hitboxX: 1650, status: "upcoming" },
   { id: 2, type: "dig", visualX: 2800, hitboxX: 2720, status: "upcoming" },
   { id: 3, type: "pickup", visualX: 3880, hitboxX: 3820, status: "upcoming" },
-  { id: 4, type: "dump", visualX: 5060, hitboxX: 4980, status: "hidden" },
+  { id: 4, type: "dig", visualX: 5060, hitboxX: 4980, status: "upcoming" },
   { id: 5, type: "traction", visualX: 6230, hitboxX: 6150, status: "upcoming" },
   { id: 6, type: "pickup", visualX: 7410, hitboxX: 7350, status: "upcoming" },
   { id: 7, type: "dig", visualX: 8600, hitboxX: 8520, status: "upcoming" },
-  { id: 8, type: "dump", visualX: 9830, hitboxX: 9750, status: "hidden" },
+  { id: 8, type: "pickup", visualX: 9830, hitboxX: 9750, status: "upcoming" },
 ];
 
 function compareLayerNames(a: string, b: string) {
@@ -425,14 +460,6 @@ function updateEventStatus(
   );
 }
 
-function revealNextDumpEvent(events: MapEvent[]) {
-  const nextDump = events.find(
-    (event) => event.type === "dump" && event.status === "hidden",
-  );
-  if (!nextDump) return events;
-  return updateEventStatus(events, nextDump.id, "upcoming");
-}
-
 function cloneEvents(events: MapEvent[]) {
   return events.map((event) => ({ ...event }));
 }
@@ -463,7 +490,8 @@ export function Phase1Canvas() {
   const activeEventIdRef = useRef<number | null>(null);
   const loadedDirtRef = useRef(false);
   const rearLoadedRef = useRef(false);
-  const activeAnimationRef = useRef<ActiveAnimation | null>(null);
+  const frontAnimationRef = useRef<ActiveAnimation | null>(null);
+  const rearAnimationRef = useRef<ActiveAnimation | null>(null);
   const currentSpeedRef = useRef(BASE_SPEED);
   const distanceRef = useRef(0);
 
@@ -533,9 +561,6 @@ export function Phase1Canvas() {
   const onPickupAnimationComplete = () => {
     setLoadedDirt(true);
     loadedDirtRef.current = true;
-    const nextEvents = revealNextDumpEvent(eventsRef.current);
-    eventsRef.current = nextEvents;
-    setEvents(nextEvents);
   };
 
   const onDumpAnimationComplete = () => {
@@ -546,6 +571,11 @@ export function Phase1Canvas() {
   const onRearAnimationComplete = () => {
     setRearLoaded(true);
     rearLoadedRef.current = true;
+  };
+
+  const onRearUnloadAnimationComplete = () => {
+    setRearLoaded(false);
+    rearLoadedRef.current = false;
   };
 
   const failEvent = (eventId: number, nextMessage: string) => {
@@ -559,19 +589,44 @@ export function Phase1Canvas() {
     setMessage(nextMessage);
   };
 
-  const startAnimation = (
+  const syncAnimationLabel = () => {
+    const labels = [
+      frontAnimationRef.current?.label,
+      rearAnimationRef.current?.label,
+    ].filter(Boolean);
+    setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
+  };
+
+  const startFrontAnimation = (
     presetId: AnimationPreset["id"],
     label: string,
     lockMovement: boolean,
     onComplete?: () => void,
   ) => {
-    activeAnimationRef.current = {
+    frontAnimationRef.current = {
       presetId,
+      label,
       elapsed: 0,
       lockMovement,
       onComplete,
     };
-    setActiveAnimationLabel(label);
+    syncAnimationLabel();
+  };
+
+  const startRearAnimation = (
+    presetId: AnimationPreset["id"],
+    label: string,
+    lockMovement: boolean,
+    onComplete?: () => void,
+  ) => {
+    rearAnimationRef.current = {
+      presetId,
+      label,
+      elapsed: 0,
+      lockMovement,
+      onComplete,
+    };
+    syncAnimationLabel();
   };
 
   useEffect(() => {
@@ -593,6 +648,42 @@ export function Phase1Canvas() {
   useEffect(() => {
     activeEventIdRef.current = activeEventId;
   }, [activeEventId]);
+
+  const describeEvent = (event: MapEvent) => {
+    if (event.type === "pickup") {
+      return loadedDirtRef.current
+        ? {
+            title: "Descarregar carregadeira",
+            description: "Caminhao esperando a frente",
+            hint: "Para a maquina e descarrega a areia da frente.",
+          }
+        : {
+            title: "Carregar carregadeira",
+            description: "Punhado de terra no caminho",
+            hint: "A carregadeira enche a frente sem desfazer a traseira.",
+          };
+    }
+
+    if (event.type === "dig") {
+      return rearLoadedRef.current
+        ? {
+            title: "Descarregar retroescavadeira",
+            description: "Vala para descarregar atras",
+            hint: "A retro abre e descarrega atras sem mexer a frente.",
+          }
+        : {
+            title: "Carregar retroescavadeira",
+            description: "Ponto de escavacao atras",
+            hint: "A retroescavadeira carrega a traseira e persiste no final.",
+          };
+    }
+
+    return {
+      title: EVENT_CONFIG[event.type].title,
+      description: EVENT_CONFIG[event.type].description,
+      hint: EVENT_CONFIG[event.type].hint,
+    };
+  };
 
   useEffect(() => {
     if (!sprites) return;
@@ -616,59 +707,56 @@ export function Phase1Canvas() {
       if (activeEvent.type === "pickup") {
         resolveEvent(
           activeEvent.id,
-          "Terra apanhada. A cacamba esta carregada.",
+          loadedDirtRef.current
+            ? "Terra descarregada no caminhao."
+            : "Terra apanhada. A cacamba esta carregada.",
         );
         setScore((current) => current + 180);
-        startAnimation(
-          "idle",
-          "Ciclo de cacamba 1",
-          false,
-          onPickupAnimationComplete,
-        );
-        return;
-      }
-
-      if (activeEvent.type === "dump") {
-        if (!loadedDirtRef.current) {
-          setMessage(
-            "Nao ha terra na cacamba. Apanhe terra antes de descarregar.",
+        if (loadedDirtRef.current) {
+          startFrontAnimation(
+            "idle2",
+            "Ciclo de cacamba 2",
+            true,
+            onDumpAnimationComplete,
           );
-          setScore((current) => Math.max(0, current - 35));
-          return;
+        } else {
+          startFrontAnimation(
+            "idle",
+            "Ciclo de cacamba 1",
+            false,
+            onPickupAnimationComplete,
+          );
         }
-        resolveEvent(
-          activeEvent.id,
-          "Terra descarregada no caminhao.",
-        );
-        setScore((current) => current + 180);
-        startAnimation(
-          "idle2",
-          "Ciclo de cacamba 2",
-          true,
-          onDumpAnimationComplete,
-        );
         return;
       }
 
       if (activeEvent.type === "dig") {
         resolveEvent(
           activeEvent.id,
-          "Vala cavada. O braco completou a abertura.",
+          rearLoadedRef.current
+            ? "Retroescavadeira descarregada na vala."
+            : "Retroescavadeira carregada atras.",
         );
         setScore((current) => current + 180);
-        startAnimation(
-          "arm-extended",
-          "Braco estendido",
-          true,
-          onRearAnimationComplete,
-        );
+        if (rearLoadedRef.current) {
+          startRearAnimation(
+            "arm-unload",
+            "Descarregando traseira",
+            true,
+            onRearUnloadAnimationComplete,
+          );
+        } else {
+          startRearAnimation(
+            "arm-extended",
+            "Braco estendido",
+            true,
+            onRearAnimationComplete,
+          );
+        }
         return;
       }
 
-      resolveEvent(
-        activeEvent.id,
-        "4x4 ligado. A tracao voltou ao normal.",
-      );
+      resolveEvent(activeEvent.id, "4x4 ligado. A tracao voltou ao normal.");
       setScore((current) => current + 180);
     };
 
@@ -682,25 +770,40 @@ export function Phase1Canvas() {
     if (!sprites) return;
 
     const update = (dt: number) => {
-      const activeAnimation = activeAnimationRef.current;
       const activeEvent = eventsRef.current.find(
         (item) => item.id === activeEventIdRef.current,
       );
 
-      if (activeAnimation) {
-        activeAnimation.elapsed += dt * 1000;
-        const totalDuration = getTotalDuration(activeAnimation.presetId);
-        if (activeAnimation.elapsed >= totalDuration) {
-          const onComplete = activeAnimation.onComplete;
-          activeAnimationRef.current = null;
-          setActiveAnimationLabel("Rodagem continua");
+      const updateAnimation = (
+        animation: ActiveAnimation | null,
+        clear: () => void,
+      ) => {
+        if (!animation) return;
+        animation.elapsed += dt * 1000;
+        const totalDuration = getTotalDuration(animation.presetId);
+        if (animation.elapsed >= totalDuration) {
+          const onComplete = animation.onComplete;
+          clear();
           onComplete?.();
+          syncAnimationLabel();
         }
-      }
+      };
+
+      updateAnimation(frontAnimationRef.current, () => {
+        frontAnimationRef.current = null;
+      });
+      updateAnimation(rearAnimationRef.current, () => {
+        rearAnimationRef.current = null;
+      });
 
       let targetSpeed = BASE_SPEED;
       if (activeEvent?.type === "traction") targetSpeed = LOW_TRACTION_SPEED;
-      if (activeAnimationRef.current?.lockMovement) targetSpeed = 0;
+      if (
+        frontAnimationRef.current?.lockMovement ||
+        rearAnimationRef.current?.lockMovement
+      ) {
+        targetSpeed = 0;
+      }
 
       const nextSpeed =
         currentSpeedRef.current +
@@ -728,9 +831,8 @@ export function Phase1Canvas() {
           setEvents(nextEvents);
           setActiveEventId(nextUpcoming.id);
           activeEventIdRef.current = nextUpcoming.id;
-          setMessage(
-            `${EVENT_CONFIG[nextUpcoming.type].title}: pressione ${EVENT_CONFIG[nextUpcoming.type].key}.`,
-          );
+          const eventInfo = describeEvent(nextUpcoming);
+          setMessage(`${eventInfo.title}: pressione ${EVENT_BUTTON}.`);
         }
       }
 
@@ -741,21 +843,11 @@ export function Phase1Canvas() {
 
       const screenX = getEventHitboxScreenX(currentActiveEvent, nextDistance);
       if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
-        failEvent(currentActiveEvent.id, "O evento passou da hitbox sem resposta.");
-        return;
-      }
-      if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
-        failEvent(currentActiveEvent.id, "O evento passou do centro sem resposta.");
-        return;
-      }
-      if (
-        currentActiveEvent.type === "pickup" &&
-        screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH
-      ) {
         failEvent(
           currentActiveEvent.id,
-          "O punhado de terra passou sem ser apanhado.",
+          "O evento passou da hitbox sem resposta.",
         );
+        return;
       }
 
       if (
@@ -797,7 +889,8 @@ export function Phase1Canvas() {
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const activeAnimation = activeAnimationRef.current;
+    const activeFrontAnimation = frontAnimationRef.current;
+    const activeRearAnimation = rearAnimationRef.current;
     const wheelSpin = (-distance * 0.92) % 360;
 
     let displayAngles: Record<LayerName, number> = {
@@ -814,7 +907,7 @@ export function Phase1Canvas() {
 
     let displaySprites = BASE_SPRITES;
 
-    if (loadedDirt && !activeAnimation) {
+    if (loadedDirt) {
       const pickupPreset =
         ANIMATION_PRESETS.find((item) => item.id === "idle") ?? null;
       if (pickupPreset) {
@@ -837,7 +930,7 @@ export function Phase1Canvas() {
       }
     }
 
-    if (rearLoaded && !activeAnimation) {
+    if (rearLoaded) {
       const rearPreset =
         ANIMATION_PRESETS.find((item) => item.id === "arm-extended") ?? null;
       if (rearPreset) {
@@ -860,10 +953,10 @@ export function Phase1Canvas() {
       }
     }
 
-    if (activeAnimation) {
+    if (activeFrontAnimation) {
       const preset =
         ANIMATION_PRESETS.find(
-          (item) => item.id === activeAnimation.presetId,
+          (item) => item.id === activeFrontAnimation.presetId,
         ) ?? null;
       if (preset) {
         const resolvedKeyframes = resolveKeyframes(
@@ -873,12 +966,36 @@ export function Phase1Canvas() {
         );
         displayAngles = interpolateAngles(
           resolvedKeyframes,
-          activeAnimation.elapsed,
+          activeFrontAnimation.elapsed,
           displayAngles,
         );
         displaySprites = resolveSpritesAtTime(
           resolvedKeyframes,
-          activeAnimation.elapsed,
+          activeFrontAnimation.elapsed,
+          displaySprites,
+        );
+      }
+    }
+
+    if (activeRearAnimation) {
+      const preset =
+        ANIMATION_PRESETS.find(
+          (item) => item.id === activeRearAnimation.presetId,
+        ) ?? null;
+      if (preset) {
+        const resolvedKeyframes = resolveKeyframes(
+          displayAngles,
+          displaySprites,
+          preset.keyframes,
+        );
+        displayAngles = interpolateAngles(
+          resolvedKeyframes,
+          activeRearAnimation.elapsed,
+          displayAngles,
+        );
+        displaySprites = resolveSpritesAtTime(
+          resolvedKeyframes,
+          activeRearAnimation.elapsed,
           displaySprites,
         );
       }
@@ -905,8 +1022,22 @@ export function Phase1Canvas() {
     context.fillStyle = skyGradient;
     context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    drawBackground(context, distance, events, activeEventId);
-    drawGround(context, distance, events, activeEventId);
+    drawBackground(
+      context,
+      distance,
+      events,
+      activeEventId,
+      loadedDirt,
+      rearLoaded,
+    );
+    drawGround(
+      context,
+      distance,
+      events,
+      activeEventId,
+      loadedDirt,
+      rearLoaded,
+    );
     context.imageSmoothingEnabled = false;
 
     for (const layerName of DRAW_ORDER) {
@@ -944,6 +1075,8 @@ export function Phase1Canvas() {
       ? (events.find((event) => event.id === activeEventId) ?? null)
       : null;
   const nextEvent = events.find((event) => event.status === "upcoming") ?? null;
+  const activeEventInfo = activeEvent ? describeEvent(activeEvent) : null;
+  const nextEventInfo = nextEvent ? describeEvent(nextEvent) : null;
 
   return (
     <div className="phase-layout">
@@ -1004,15 +1137,12 @@ export function Phase1Canvas() {
           <p className="phase-label">Evento Atual</p>
           {activeEvent ? (
             <>
-              <h3>{EVENT_CONFIG[activeEvent.type].title}</h3>
-              <p>{EVENT_CONFIG[activeEvent.type].description}</p>
+              <h3>{activeEventInfo?.title}</h3>
+              <p>{activeEventInfo?.description}</p>
               <p>
-                Pressione <strong>{EVENT_CONFIG[activeEvent.type].key}</strong>{" "}
-                para responder.
+                Pressione <strong>{EVENT_BUTTON}</strong> para responder.
               </p>
-              <p className="phase-copy">
-                {EVENT_CONFIG[activeEvent.type].hint}
-              </p>
+              <p className="phase-copy">{activeEventInfo?.hint}</p>
             </>
           ) : (
             <p className="phase-copy">
@@ -1024,8 +1154,8 @@ export function Phase1Canvas() {
         <div className="phase-card">
           <p className="phase-label">Proximo do mapa</p>
           {nextEvent ? (
-              <p className="phase-copy">
-              {EVENT_CONFIG[nextEvent.type].title} em aproximadamente{" "}
+            <p className="phase-copy">
+              {nextEventInfo?.title} em aproximadamente{" "}
               {Math.max(0, Math.round((nextEvent.hitboxX - distance) / 10))} m.
             </p>
           ) : (
@@ -1052,6 +1182,8 @@ function drawBackground(
   distance: number,
   events: MapEvent[],
   activeEventId: number | null,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
 ) {
   const farOffset = (distance * 0.08) % 320;
   const midOffset = (distance * 0.18) % 280;
@@ -1080,10 +1212,6 @@ function drawBackground(
   }
 
   for (const event of events) {
-    if (event.status === "hidden") {
-      continue;
-    }
-
     const visualX = getEventVisualScreenX(event, distance);
     const hitboxX = getEventHitboxScreenX(event, distance);
 
@@ -1096,11 +1224,11 @@ function drawBackground(
       continue;
     }
 
-    if (event.type === "dump") {
+    if (event.type === "pickup" && loadedDirt) {
       drawTruck(context, visualX, hitboxX, event.id === activeEventId);
     }
 
-    if (event.type === "dig") {
+    if (event.type === "dig" && !rearLoaded) {
       drawSignage(context, visualX, hitboxX, event.id === activeEventId);
     }
   }
@@ -1111,6 +1239,8 @@ function drawGround(
   distance: number,
   events: MapEvent[],
   activeEventId: number | null,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
 ) {
   context.fillStyle = "#a77943";
   context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
@@ -1133,10 +1263,6 @@ function drawGround(
   }
 
   for (const event of events) {
-    if (event.status === "hidden") {
-      continue;
-    }
-
     const visualX = getEventVisualScreenX(event, distance);
     const hitboxX = getEventHitboxScreenX(event, distance);
 
@@ -1151,8 +1277,12 @@ function drawGround(
 
     const isActive = event.id === activeEventId;
 
-    if (event.type === "pickup") {
+    if (event.type === "pickup" && !loadedDirt) {
       drawPickupDirt(context, visualX, hitboxX, isActive);
+    }
+
+    if (event.type === "dig" && rearLoaded) {
+      drawRearDitch(context, visualX, hitboxX, isActive);
     }
 
     if (event.type === "traction") {
@@ -1231,6 +1361,32 @@ function drawMudPatch(
   context.fillStyle = "rgba(143, 112, 62, 0.75)";
   context.beginPath();
   context.ellipse(visualX - 14, GROUND_Y + 22, 14, 6, 0, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  context.strokeRect(
+    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+    GROUND_Y + 2,
+    EVENT_HITBOX_HALF_WIDTH * 2,
+    50,
+  );
+  context.restore();
+}
+
+function drawRearDitch(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  isActive: boolean,
+) {
+  context.save();
+  context.fillStyle = "#4f361b";
+  context.beginPath();
+  context.ellipse(visualX, GROUND_Y + 24, 60, 22, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = "#2a1b0d";
+  context.beginPath();
+  context.ellipse(visualX + 8, GROUND_Y + 26, 34, 10, 0, 0, Math.PI * 2);
   context.fill();
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;

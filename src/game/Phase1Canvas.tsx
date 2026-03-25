@@ -18,11 +18,11 @@ import {
   PLAYER_SCREEN_X,
 } from './phase1/config'
 import { ModeTabs } from './ModeTabs'
-import { Phase1Sidebar } from './phase1/Phase1Sidebar'
 import {
   drawCenterGuide,
   drawPhase1Backdrop,
   drawPhase1Environment,
+  drawPhase1Hud,
 } from './phase1/render'
 import { usePhase1Game } from './phase1/usePhase1Game'
 
@@ -118,6 +118,11 @@ export function Phase1Canvas({
       machineY + game.excavatorScene.contentHeight - 20,
       game.activeEventId !== null,
     )
+    drawPhase1Hud({
+      context,
+      score: game.score,
+      distance: game.distance,
+    })
   }, [
     game.activeEventId,
     game.distance,
@@ -126,6 +131,7 @@ export function Phase1Canvas({
     game.loadedDirt,
     game.rearLoaded,
     game.animationTick,
+    game.score,
     images,
     pose.angles,
   ])
@@ -144,7 +150,6 @@ export function Phase1Canvas({
         <p className="phase-toolbar-hint">
           Aperte <strong>{EVENT_BUTTON_LABEL}</strong> para agir
         </p>
-        <Phase1Sidebar score={game.score} distance={game.distance} />
       </div>
 
       <div

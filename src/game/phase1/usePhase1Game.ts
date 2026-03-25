@@ -15,30 +15,23 @@ import { useGameLoop } from '../useGameLoop'
 import {
   BASE_SPEED,
   EVENT_BUTTON_LABEL,
-  EVENT_CONFIG,
   EVENT_HITBOX_HALF_WIDTH,
   FRONT_LOAD_SPEED,
-  INITIAL_EVENTS,
   INITIAL_MESSAGE,
   LOW_TRACTION_SPEED,
   PLAYER_HIT_LINE_X,
 } from './config'
+import { getEventDefinition } from './eventCatalog'
 import {
-  assignSpawnedEventVariants,
-  cloneEvents,
+  assignSpawnedEventTypes,
+  createInitialPhase1Events,
   describeMapEvent,
   getEventHitboxScreenX,
-  resolveMapEventVariant,
   updateEventStatus,
-} from './events'
+} from './eventPositioner'
 import type { MapEvent } from './types'
 
-const INITIAL_PHASE1_EVENTS = assignSpawnedEventVariants(
-  cloneEvents(INITIAL_EVENTS),
-  0,
-  false,
-  false,
-)
+const INITIAL_PHASE1_EVENTS = createInitialPhase1Events()
 
 export function usePhase1Game() {
   const sprites = useRetroSprites()
@@ -120,6 +113,25 @@ export function usePhase1Game() {
     syncAnimationLabel()
   }
 
+  const applyLoadStatePatch = (patch?: {
+    loadedDirt?: boolean
+    rearLoaded?: boolean
+  }) => {
+    if (!patch) {
+      return
+    }
+
+    if (typeof patch.loadedDirt === 'boolean') {
+      setLoadedDirt(patch.loadedDirt)
+      loadedDirtRef.current = patch.loadedDirt
+    }
+
+    if (typeof patch.rearLoaded === 'boolean') {
+      setRearLoaded(patch.rearLoaded)
+      rearLoadedRef.current = patch.rearLoaded
+    }
+  }
+
   useEffect(() => {
     loadedDirtRef.current = loadedDirt
   }, [loadedDirt])
@@ -155,9 +167,14 @@ export function usePhase1Game() {
         : event.key.length === 1
           ? event.key.toUpperCase()
           : event.key
-    const config = EVENT_CONFIG[activeEvent.type]
 
-    if (pressedKey !== config.key) {
+    if (!activeEvent.type) {
+      return
+    }
+
+    const eventDefinition = getEventDefinition(activeEvent.type)
+
+    if (pressedKey !== eventDefinition.key) {
       return
     }
 
@@ -170,86 +187,25 @@ export function usePhase1Game() {
       return
     }
 
-    const variant = resolveMapEventVariant(
-      activeEvent,
-      loadedDirtRef.current,
-      rearLoadedRef.current,
+    resolveEvent(activeEvent.id, eventDefinition.successMessage)
+    setScore((current) => current + eventDefinition.reward)
+
+    if (!eventDefinition.animation) {
+      return
+    }
+
+    const animationTarget =
+      eventDefinition.animation.target === 'front'
+        ? frontAnimationRef
+        : rearAnimationRef
+
+    startAnimation(
+      animationTarget,
+      eventDefinition.animation.presetId,
+      eventDefinition.animation.label,
+      eventDefinition.animation.lockMovement,
+      () => applyLoadStatePatch(eventDefinition.animation?.loadStateOnComplete),
     )
-
-    if (variant === 'pickup-load' || variant === 'pickup-unload') {
-      resolveEvent(
-        activeEvent.id,
-        variant === 'pickup-unload'
-          ? 'Terra descarregada no caminhao.'
-          : 'Terra apanhada. A cacamba esta carregada.',
-      )
-      setScore((current) => current + 180)
-
-      if (variant === 'pickup-unload') {
-        startAnimation(
-          frontAnimationRef,
-          'idle2',
-          'Ciclo de cacamba 2',
-          true,
-          () => {
-            setLoadedDirt(false)
-            loadedDirtRef.current = false
-          },
-        )
-      } else {
-        startAnimation(
-          frontAnimationRef,
-          'idle',
-          'Ciclo de cacamba 1',
-          false,
-          () => {
-            setLoadedDirt(true)
-            loadedDirtRef.current = true
-          },
-        )
-      }
-
-      return
-    }
-
-    if (variant === 'dig-load' || variant === 'dig-unload') {
-      resolveEvent(
-        activeEvent.id,
-        variant === 'dig-unload'
-          ? 'Retroescavadeira descarregada na vala.'
-          : 'Retroescavadeira carregada atras.',
-      )
-      setScore((current) => current + 180)
-
-      if (variant === 'dig-unload') {
-        startAnimation(
-          rearAnimationRef,
-          'arm-unload',
-          'Descarregando traseira',
-          true,
-          () => {
-            setRearLoaded(false)
-            rearLoadedRef.current = false
-          },
-        )
-      } else {
-        startAnimation(
-          rearAnimationRef,
-          'arm-extended',
-          'Braco estendido',
-          true,
-          () => {
-            setRearLoaded(true)
-            rearLoadedRef.current = true
-          },
-        )
-      }
-
-      return
-    }
-
-    resolveEvent(activeEvent.id, '4x4 ligado. A tracao voltou ao normal.')
-    setScore((current) => current + 180)
   })
 
   useEffect(() => {
@@ -326,7 +282,7 @@ export function usePhase1Game() {
     setDistance(nextDistance)
     setScore((current) => current + Math.round(nextSpeed * dt * 0.08))
 
-    const spawnedEvents = assignSpawnedEventVariants(
+    const spawnedEvents = assignSpawnedEventTypes(
       eventsRef.current,
       nextDistance,
       loadedDirtRef.current,

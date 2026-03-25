@@ -1,23 +1,43 @@
-export type MapEventType = 'pickup' | 'dig' | 'traction'
-export type EventStatus = 'upcoming' | 'active' | 'resolved' | 'missed'
-export type MapEventVariant =
+import type { AnimationPresetId } from '../retro/types'
+
+export type MapEventType =
   | 'pickup-load'
   | 'pickup-unload'
   | 'dig-load'
   | 'dig-unload'
   | 'traction'
 
+export type MapEventGroup = 'pickup' | 'dig' | 'traction'
+export type EventStatus = 'upcoming' | 'active' | 'resolved' | 'missed'
+
 export type MapEvent = {
   id: number
-  type: MapEventType
-  visualX: number
+  group: MapEventGroup
   hitboxX: number
   status: EventStatus
-  variant: MapEventVariant | null
+  type: MapEventType | null
 }
 
-export type EventInfo = {
+export type EventAnimationConfig = {
+  target: 'front' | 'rear'
+  presetId: AnimationPresetId
+  label: string
+  lockMovement: boolean
+  loadStateOnComplete?: {
+    loadedDirt?: boolean
+    rearLoaded?: boolean
+  }
+}
+
+export type EventDefinition = {
+  type: MapEventType
+  group: MapEventGroup
+  visualOffset: number
+  key: string
   title: string
   description: string
   hint: string
+  successMessage: string
+  reward: number
+  animation?: EventAnimationConfig
 }

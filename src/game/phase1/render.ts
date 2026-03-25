@@ -8,8 +8,8 @@ import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
   isEventScreenXVisible,
-  resolveMapEventVariant,
-} from './events'
+  resolveMapEventType,
+} from './eventPositioner'
 import type { MapEvent } from './types'
 
 type Phase1SceneParams = {
@@ -19,6 +19,12 @@ type Phase1SceneParams = {
   activeEventId: number | null
   loadedDirt: boolean
   rearLoaded: boolean
+}
+
+type Phase1HudParams = {
+  context: CanvasRenderingContext2D
+  score: number
+  distance: number
 }
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
@@ -76,6 +82,19 @@ export function drawCenterGuide(
   context.restore()
 }
 
+export function drawPhase1Hud({
+  context,
+  score,
+  distance,
+}: Phase1HudParams) {
+  const hudY = 26
+  const leftX = 28
+  const rightX = CANVAS_WIDTH - 292
+
+  drawHudCard(context, leftX, hudY, 'Pontuacao', String(score))
+  drawHudCard(context, rightX, hudY, 'Distancia', `${Math.floor(distance / 10)} m`)
+}
+
 function drawBackground(
   context: CanvasRenderingContext2D,
   distance: number,
@@ -111,19 +130,24 @@ function drawBackground(
   }
 
   for (const event of events) {
-    const visualX = getEventVisualScreenX(event, distance)
+    const visualX = getEventVisualScreenX(
+      event,
+      distance,
+      loadedDirt,
+      rearLoaded,
+    )
     const hitboxX = getEventHitboxScreenX(event, distance)
-    const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
+    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded)
 
     if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue
     }
 
-    if (variant === 'pickup-unload') {
+    if (eventType === 'pickup-unload') {
       drawTruck(context, visualX, hitboxX, event.id === activeEventId)
     }
 
-    if (variant === 'dig-load') {
+    if (eventType === 'dig-load') {
       drawSignage(context, visualX, hitboxX, event.id === activeEventId)
     }
   }
@@ -158,9 +182,14 @@ function drawGround(
   }
 
   for (const event of events) {
-    const visualX = getEventVisualScreenX(event, distance)
+    const visualX = getEventVisualScreenX(
+      event,
+      distance,
+      loadedDirt,
+      rearLoaded,
+    )
     const hitboxX = getEventHitboxScreenX(event, distance)
-    const variant = resolveMapEventVariant(event, loadedDirt, rearLoaded)
+    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded)
 
     if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue
@@ -168,18 +197,55 @@ function drawGround(
 
     const isActive = event.id === activeEventId
 
-    if (variant === 'pickup-load') {
+    if (eventType === 'pickup-load') {
       drawPickupDirt(context, visualX, hitboxX, isActive)
     }
 
-    if (variant === 'dig-unload') {
+    if (eventType === 'dig-unload') {
       drawRearDitch(context, visualX, hitboxX, isActive)
     }
 
-    if (variant === 'traction') {
+    if (eventType === 'traction') {
       drawMudPatch(context, visualX, hitboxX, isActive)
     }
   }
+}
+
+function drawHudCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  label: string,
+  value: string,
+) {
+  context.save()
+  context.fillStyle = 'rgba(18, 14, 10, 0.72)'
+  context.strokeStyle = 'rgba(255, 232, 186, 0.28)'
+  context.lineWidth = 2
+  context.beginPath()
+  context.roundRect(x, y, 264, 84, 18)
+  context.fill()
+  context.stroke()
+
+  context.fillStyle = '#e1bf75'
+  context.font = '700 14px "Segoe UI", sans-serif'
+  context.fillText(label.toUpperCase(), x + 20, y + 24)
+
+  context.fillStyle = '#fff3d7'
+  context.font = '700 32px "Segoe UI", sans-serif'
+  context.fillText(value, x + 20, y + 60)
+
+  context.fillStyle = 'rgba(255, 233, 190, 0.12)'
+  context.beginPath()
+  context.roundRect(x + 188, y + 16, 56, 52, 14)
+  context.fill()
+
+  context.fillStyle = 'rgba(255, 243, 215, 0.14)'
+  context.beginPath()
+  context.arc(x + 216, y + 42, 12, 0, Math.PI * 2)
+  context.fill()
+
+  context.restore()
 }
 
 function drawForeground(context: CanvasRenderingContext2D, distance: number) {

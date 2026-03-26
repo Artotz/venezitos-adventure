@@ -20,8 +20,9 @@ type EventSpawnSlot = {
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: "pickup", hitboxX: 700 },
-  { group: "pickup", hitboxX: 3050 },
+  { group: "question", hitboxX: 700 },
+  { group: "pickup", hitboxX: 2050 },
+  { group: "dig", hitboxX: 2720 },
   { group: "pickup", hitboxX: 4980 },
   { group: "traction", hitboxX: 6150 },
   { group: "dig", hitboxX: 7350 },
@@ -232,7 +233,7 @@ export function syncInfiniteEventStream(
     distance,
     loadedDirt,
     rearLoaded,
-  );
+  )
 }
 
 export function getEventHitboxHalfWidth(
@@ -262,17 +263,15 @@ export function isWithinTractionScoreLeniencyZone(
 ) {
   return events.some((event) => {
     if (event.group !== "traction") {
-      return false;
+      return false
     }
-
-    const hitboxHalfWidth = getEventDefinition("traction").hitboxHalfWidth
 
     return isWithinEventHitZone(
       getEventHitboxScreenX(event, distance),
-      hitboxHalfWidth,
+      getEventDefinition("traction").hitboxHalfWidth,
       extraMargin,
     )
-  });
+  })
 }
 
 export function describeMapEvent(

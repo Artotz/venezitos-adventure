@@ -19,6 +19,9 @@ import {
   drawPhase1Environment,
   drawPhase1Foreground,
 } from './phase1/render'
+import { usePhase1CarnaubaImage } from './phase1/usePhase1CarnaubaImage'
+import { usePhase1ForegroundImage } from './phase1/usePhase1ForegroundImage'
+import { usePhase1GroundImage } from './phase1/usePhase1GroundImage'
 import { ModeTabs } from './ModeTabs'
 import { RetroEditorSidebar } from './editor/RetroEditorSidebar'
 import { useRetroEditor } from './editor/useRetroEditor'
@@ -36,6 +39,9 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const sprites = useRetroSprites()
   const editor = useRetroEditor()
+  const carnaubaImage = usePhase1CarnaubaImage()
+  const foregroundImage = usePhase1ForegroundImage()
+  const groundImage = usePhase1GroundImage()
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -88,10 +94,12 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       activeEventId: null,
       loadedDirt: false,
       rearLoaded: false,
+      carnaubaImage,
+      groundImage,
     })
     drawExcavator(context, images, worldMatrices)
-    drawPhase1Foreground(context, 0)
-  }, [editor.displayPose, excavatorScene, images])
+    drawPhase1Foreground(context, 0, foregroundImage)
+  }, [carnaubaImage, editor.displayPose, excavatorScene, foregroundImage, groundImage, images])
 
   if (!excavatorScene || !images) {
     return <p className="canvas-status">Carregando camadas retro...</p>

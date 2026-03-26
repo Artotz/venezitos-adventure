@@ -35,6 +35,8 @@ type Phase1SceneParams = {
   activeEventId: number | null;
   loadedDirt: boolean;
   rearLoaded: boolean;
+  groundImage?: HTMLImageElement | null;
+  carnaubaImage?: HTMLImageElement | null;
 };
 
 type Phase1HudParams = {
@@ -69,6 +71,16 @@ type Phase1StartModalParams = {
   machineContentHeight: number;
 };
 
+const GROUND_SPRITE_SURFACE_Y = 356;
+const CARNAUBA_LAYER_SPEED = 0.18;
+const CARNAUBA_SPACING = 280;
+const CARNAUBA_BASE_Y = GROUND_Y + 6;
+const CARNAUBA_BASE_SOURCE_Y = 658;
+const CARNAUBA_DRAW_HEIGHT = 666;
+const FOREGROUND_LAYER_SPEED = 1.2;
+const FOREGROUND_SPRITE_TOP_Y = 520;
+const FOREGROUND_DRAW_TOP_Y = GROUND_Y - 44;
+
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
   const skyGradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
   skyGradient.addColorStop(0, "#3d78b2");
@@ -85,6 +97,8 @@ export function drawPhase1Environment({
   activeEventId,
   loadedDirt,
   rearLoaded,
+  groundImage,
+  carnaubaImage,
 }: Phase1SceneParams) {
   drawBackground(
     context,
@@ -93,15 +107,25 @@ export function drawPhase1Environment({
     activeEventId,
     loadedDirt,
     rearLoaded,
+    carnaubaImage,
   );
-  drawGround(context, distance, events, activeEventId, loadedDirt, rearLoaded);
+  drawGround(
+    context,
+    distance,
+    events,
+    activeEventId,
+    loadedDirt,
+    rearLoaded,
+    groundImage,
+  );
 }
 
 export function drawPhase1Foreground(
   context: CanvasRenderingContext2D,
   distance: number,
+  foregroundImage?: HTMLImageElement | null,
 ) {
-  drawForeground(context, distance);
+  drawForeground(context, distance, foregroundImage);
 }
 
 export function drawCenterGuide(
@@ -635,9 +659,9 @@ function drawBackground(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
+  carnaubaImage?: HTMLImageElement | null,
 ) {
   const farOffset = (distance * 0.08) % 320;
-  const midOffset = (distance * 0.18) % 280;
   const backgroundYOffset = GROUND_Y - 485;
 
   context.fillStyle = "rgba(255, 244, 214, 0.25)";
@@ -655,12 +679,22 @@ function drawBackground(
     context.fill();
   }
 
-  context.fillStyle = "#8f6c46";
-  for (let x = midOffset - 280; x < CANVAS_WIDTH + 280; x += 280) {
-    context.fillRect(x + 40, 370 + backgroundYOffset, 30, 120);
-    context.beginPath();
-    context.arc(x + 55, 355 + backgroundYOffset, 44, 0, Math.PI * 2);
-    context.fill();
+  if (carnaubaImage) {
+    drawBackgroundCarnaubas(context, distance, carnaubaImage);
+  } else {
+    context.fillStyle = "#8f6c46";
+    const midOffset = (distance * CARNAUBA_LAYER_SPEED) % CARNAUBA_SPACING;
+
+    for (
+      let x = midOffset - CARNAUBA_SPACING;
+      x < CANVAS_WIDTH + CARNAUBA_SPACING;
+      x += CARNAUBA_SPACING
+    ) {
+      context.fillRect(x + 40, 370 + backgroundYOffset, 30, 120);
+      context.beginPath();
+      context.arc(x + 55, 355 + backgroundYOffset, 44, 0, Math.PI * 2);
+      context.fill();
+    }
   }
 
   for (const event of events) {
@@ -691,6 +725,43 @@ function drawBackground(
   }
 }
 
+function drawBackgroundCarnaubas(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  carnaubaImage: HTMLImageElement,
+) {
+  const sourceWidth = carnaubaImage.naturalWidth || carnaubaImage.width;
+  const sourceHeight = carnaubaImage.naturalHeight || carnaubaImage.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    return;
+  }
+
+  const worldOffset = distance * CARNAUBA_LAYER_SPEED;
+  const scrollOffset = worldOffset % CARNAUBA_SPACING;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  for (
+    let x = scrollOffset - CARNAUBA_SPACING;
+    x < CANVAS_WIDTH + CARNAUBA_SPACING;
+    x += CARNAUBA_SPACING
+  ) {
+    const drawHeight = CARNAUBA_DRAW_HEIGHT;
+    const drawWidth = (sourceWidth / sourceHeight) * drawHeight;
+    const trunkBaseOffset =
+      (CARNAUBA_BASE_SOURCE_Y / sourceHeight) * drawHeight;
+    const drawY = CARNAUBA_BASE_Y - trunkBaseOffset;
+    const drawX = x + 55 - drawWidth / 2;
+
+    context.drawImage(carnaubaImage, drawX, drawY, drawWidth, drawHeight);
+  }
+
+  context.restore();
+}
+
 function drawGround(
   context: CanvasRenderingContext2D,
   distance: number,
@@ -698,25 +769,12 @@ function drawGround(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
+  groundImage?: HTMLImageElement | null,
 ) {
-  context.fillStyle = "#a77943";
-  context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
-
-  context.fillStyle = "#6e4b2a";
-  context.fillRect(0, GROUND_Y + 46, CANVAS_WIDTH, 90);
-
-  context.fillStyle = "#d8b16c";
-  const laneOffset = distance % 120;
-  for (let x = laneOffset - 120; x < CANVAS_WIDTH + 120; x += 120) {
-    context.fillRect(x, GROUND_Y + 12, 70, 8);
-  }
-
-  context.fillStyle = "rgba(40, 23, 10, 0.28)";
-  const dirtOffset = (distance * 1.4) % 90;
-  for (let x = dirtOffset - 90; x < CANVAS_WIDTH + 90; x += 90) {
-    context.beginPath();
-    context.ellipse(x + 20, GROUND_Y + 58, 24, 8, 0, 0, Math.PI * 2);
-    context.fill();
+  if (groundImage) {
+    drawGroundSprite(context, distance, groundImage);
+  } else {
+    drawProceduralGround(context, distance);
   }
 
   for (const event of events) {
@@ -746,6 +804,61 @@ function drawGround(
     if (eventType === "traction") {
       drawMudPatch(context, visualX, hitboxX, isActive);
     }
+  }
+}
+
+function drawGroundSprite(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  groundImage: HTMLImageElement,
+) {
+  const sourceWidth = groundImage.naturalWidth || groundImage.width;
+  const sourceHeight = groundImage.naturalHeight || groundImage.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    drawProceduralGround(context, distance);
+    return;
+  }
+
+  const drawWidth = CANVAS_WIDTH + 40;
+  const scale = drawWidth / sourceWidth;
+  const drawHeight = sourceHeight * scale;
+  const groundSurfaceY = GROUND_SPRITE_SURFACE_Y * scale;
+  const drawY = GROUND_Y - groundSurfaceY - 50;
+  const scrollOffset = distance % drawWidth;
+  const startX = scrollOffset - drawWidth - 20;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  for (let x = startX; x < CANVAS_WIDTH + drawWidth; x += drawWidth) {
+    context.drawImage(groundImage, x, drawY, drawWidth, drawHeight);
+  }
+  context.restore();
+}
+
+function drawProceduralGround(
+  context: CanvasRenderingContext2D,
+  distance: number,
+) {
+  context.fillStyle = "#a77943";
+  context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
+
+  context.fillStyle = "#6e4b2a";
+  context.fillRect(0, GROUND_Y + 46, CANVAS_WIDTH, 90);
+
+  context.fillStyle = "#d8b16c";
+  const laneOffset = distance % 120;
+  for (let x = laneOffset - 120; x < CANVAS_WIDTH + 120; x += 120) {
+    context.fillRect(x, GROUND_Y + 12, 70, 8);
+  }
+
+  context.fillStyle = "rgba(40, 23, 10, 0.28)";
+  const dirtOffset = (distance * 1.4) % 90;
+  for (let x = dirtOffset - 90; x < CANVAS_WIDTH + 90; x += 90) {
+    context.beginPath();
+    context.ellipse(x + 20, GROUND_Y + 58, 24, 8, 0, 0, Math.PI * 2);
+    context.fill();
   }
 }
 
@@ -817,7 +930,16 @@ function drawDifferentialLockCard(
   context.restore();
 }
 
-function drawForeground(context: CanvasRenderingContext2D, distance: number) {
+function drawForeground(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  foregroundImage?: HTMLImageElement | null,
+) {
+  if (foregroundImage) {
+    drawForegroundSprite(context, distance, foregroundImage);
+    return;
+  }
+
   const markerOffset = (distance * 1.2) % 260;
 
   for (let x = markerOffset - 260; x < CANVAS_WIDTH + 260; x += 260) {
@@ -826,6 +948,36 @@ function drawForeground(context: CanvasRenderingContext2D, distance: number) {
     context.fillStyle = "#d64a2f";
     context.fillRect(x - 12, GROUND_Y - 45, 38, 18);
   }
+}
+
+function drawForegroundSprite(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  foregroundImage: HTMLImageElement,
+) {
+  const sourceWidth = foregroundImage.naturalWidth || foregroundImage.width;
+  const sourceHeight = foregroundImage.naturalHeight || foregroundImage.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    return;
+  }
+
+  const drawWidth = CANVAS_WIDTH + 40;
+  const scale = drawWidth / sourceWidth;
+  const drawHeight = sourceHeight * scale;
+  const drawY = FOREGROUND_DRAW_TOP_Y - FOREGROUND_SPRITE_TOP_Y * scale;
+  const scrollOffset = (distance * FOREGROUND_LAYER_SPEED) % drawWidth;
+  const startX = scrollOffset - drawWidth - 20;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  for (let x = startX; x < CANVAS_WIDTH + drawWidth; x += drawWidth) {
+    context.drawImage(foregroundImage, x, drawY, drawWidth, drawHeight);
+  }
+
+  context.restore();
 }
 
 function drawPickupDirt(
@@ -1067,12 +1219,10 @@ function drawWrappedParagraphText(
 
     const beforeParagraph = currentY;
     drawWrappedText(context, paragraph, x, currentY, maxWidth, lineHeight);
-    currentY = measureWrappedTextHeight(
-      context,
-      paragraph,
-      maxWidth,
-      lineHeight,
-    ) + beforeParagraph + 14;
+    currentY =
+      measureWrappedTextHeight(context, paragraph, maxWidth, lineHeight) +
+      beforeParagraph +
+      14;
   }
 }
 

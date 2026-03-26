@@ -32,6 +32,9 @@ import {
   drawPhase1SpeechModal,
   drawQuestionModal,
 } from "./phase1/render";
+import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
+import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
+import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
 import { usePhase1Game } from "./phase1/usePhase1Game";
 
@@ -54,7 +57,10 @@ export function Phase1Canvas({
   );
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(isPlaying && overlayStep === null);
+  const carnaubaImage = usePhase1CarnaubaImage();
+  const foregroundImage = usePhase1ForegroundImage();
   const instructorImage = usePhase1InstructorImage();
+  const groundImage = usePhase1GroundImage();
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -152,9 +158,11 @@ export function Phase1Canvas({
       activeEventId: game.activeEventId,
       loadedDirt: game.loadedDirt,
       rearLoaded: game.rearLoaded,
+      groundImage,
+      carnaubaImage,
     });
     drawExcavator(context, images, worldMatrices);
-    drawPhase1Foreground(context, game.distance);
+    drawPhase1Foreground(context, game.distance, foregroundImage);
     drawCenterGuide(
       context,
       PLAYER_HIT_LINE_X,
@@ -190,8 +198,11 @@ export function Phase1Canvas({
     game.differentialLockEnabled,
     game.events,
     game.excavatorScene,
+    foregroundImage,
     game.loadedDirt,
     game.rearLoaded,
+    carnaubaImage,
+    groundImage,
     game.animationTick,
     game.questionModal,
     game.score,

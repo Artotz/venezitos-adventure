@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { loadImage } from '../loadImage'
 import type { LoadedSpriteMap, SpriteName } from './types'
 
 const spriteModules = import.meta.glob('../../assets/retro/*', {
@@ -9,16 +10,6 @@ const spriteModules = import.meta.glob('../../assets/retro/*', {
 
 function compareLayerNames(a: string, b: string) {
   return a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' })
-}
-
-function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image()
-
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Falha ao carregar ${src}`))
-    image.src = src
-  })
 }
 
 export function useRetroSprites() {

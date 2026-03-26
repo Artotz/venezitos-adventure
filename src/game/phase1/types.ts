@@ -50,6 +50,7 @@ type BaseEventDefinition<
   group: TGroup
   interaction: TInteraction
   visualOffset: number
+  hitboxHalfWidth: number
   title: string
   description: string
   hint: string

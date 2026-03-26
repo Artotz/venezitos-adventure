@@ -1,13 +1,13 @@
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
-  EVENT_HITBOX_HALF_WIDTH,
   GROUND_Y,
   PHASE1_START_MODAL_DESCRIPTION,
   PHASE1_START_MODAL_HINT,
   PHASE1_START_MODAL_TITLE,
   TRACTION_SCORE_LENIENCY_MARGIN,
 } from "./config";
+import { getEventDefinition } from "./eventCatalog";
 import { drawExcavator } from "../retro/render";
 import {
   computeWorldMatrices,
@@ -37,6 +37,17 @@ type Phase1SceneParams = {
   rearLoaded: boolean;
   groundImage?: HTMLImageElement | null;
   carnaubaImage?: HTMLImageElement | null;
+};
+
+type Phase1ForegroundParams = {
+  context: CanvasRenderingContext2D;
+  distance: number;
+  events: MapEvent[];
+  activeEventId: number | null;
+  loadedDirt: boolean;
+  rearLoaded: boolean;
+  foregroundImage?: HTMLImageElement | null;
+  pickupUnloadTruckImage?: HTMLImageElement | null;
 };
 
 type Phase1HudParams = {
@@ -79,7 +90,11 @@ const CARNAUBA_BASE_SOURCE_Y = 658;
 const CARNAUBA_DRAW_HEIGHT = 666;
 const FOREGROUND_LAYER_SPEED = 1.2;
 const FOREGROUND_SPRITE_TOP_Y = 520;
-const FOREGROUND_DRAW_TOP_Y = GROUND_Y - 44;
+const FOREGROUND_DRAW_TOP_Y = GROUND_Y + 30;
+const PICKUP_UNLOAD_TRUCK_DRAW_WIDTH = 1200;
+const PICKUP_UNLOAD_TRUCK_BASE_Y = CANVAS_HEIGHT - 50;
+const PICKUP_UNLOAD_TRUCK_BASE_SOURCE_Y = 714;
+const PICKUP_UNLOAD_TRUCK_CENTER_OFFSET_X = -20;
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
   const skyGradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -120,11 +135,25 @@ export function drawPhase1Environment({
   );
 }
 
-export function drawPhase1Foreground(
-  context: CanvasRenderingContext2D,
-  distance: number,
-  foregroundImage?: HTMLImageElement | null,
-) {
+export function drawPhase1Foreground({
+  context,
+  distance,
+  events,
+  activeEventId,
+  loadedDirt,
+  rearLoaded,
+  foregroundImage,
+  pickupUnloadTruckImage,
+}: Phase1ForegroundParams) {
+  drawForegroundPickupUnloadEvents(
+    context,
+    distance,
+    events,
+    activeEventId,
+    loadedDirt,
+    rearLoaded,
+    pickupUnloadTruckImage,
+  );
   drawForeground(context, distance, foregroundImage);
 }
 
@@ -706,21 +735,30 @@ function drawBackground(
     );
     const hitboxX = getEventHitboxScreenX(event, distance);
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+    const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
     if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue;
     }
 
-    if (eventType === "pickup-unload") {
-      drawTruck(context, visualX, hitboxX, event.id === activeEventId);
-    }
-
     if (eventType === "dig-load") {
-      drawSignage(context, visualX, hitboxX, event.id === activeEventId);
+      drawSignage(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        event.id === activeEventId,
+      );
     }
 
     if (eventType === "question") {
-      drawQuestionMarker(context, visualX, hitboxX, event.id === activeEventId);
+      drawQuestionMarker(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        event.id === activeEventId,
+      );
     }
   }
 }
@@ -786,6 +824,7 @@ function drawGround(
     );
     const hitboxX = getEventHitboxScreenX(event, distance);
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+    const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
     if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
       continue;
@@ -794,15 +833,15 @@ function drawGround(
     const isActive = event.id === activeEventId;
 
     if (eventType === "pickup-load") {
-      drawPickupDirt(context, visualX, hitboxX, isActive);
+      drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
     }
 
     if (eventType === "dig-unload") {
-      drawRearDitch(context, visualX, hitboxX, isActive);
+      drawRearDitch(context, visualX, hitboxX, hitboxHalfWidth, isActive);
     }
 
     if (eventType === "traction") {
-      drawMudPatch(context, visualX, hitboxX, isActive);
+      drawMudPatch(context, visualX, hitboxX, hitboxHalfWidth, isActive);
     }
   }
 }
@@ -930,6 +969,44 @@ function drawDifferentialLockCard(
   context.restore();
 }
 
+function drawForegroundPickupUnloadEvents(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  events: MapEvent[],
+  activeEventId: number | null,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
+  pickupUnloadTruckImage?: HTMLImageElement | null,
+) {
+  for (const event of events) {
+    const visualX = getEventVisualScreenX(
+      event,
+      distance,
+      loadedDirt,
+      rearLoaded,
+    );
+    const hitboxX = getEventHitboxScreenX(event, distance);
+    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+    const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
+
+    if (
+      eventType !== "pickup-unload" ||
+      (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX))
+    ) {
+      continue;
+    }
+
+    drawTruck(
+      context,
+      visualX,
+      hitboxX,
+      hitboxHalfWidth,
+      event.id === activeEventId,
+      pickupUnloadTruckImage,
+    );
+  }
+}
+
 function drawForeground(
   context: CanvasRenderingContext2D,
   distance: number,
@@ -984,6 +1061,7 @@ function drawPickupDirt(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
 ) {
   context.save();
@@ -997,12 +1075,7 @@ function drawPickupDirt(
   context.fill();
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
-    GROUND_Y - 18,
-    EVENT_HITBOX_HALF_WIDTH * 2,
-    48,
-  );
+  drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 18, 48);
   context.restore();
 }
 
@@ -1010,6 +1083,7 @@ function drawQuestionMarker(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
 ) {
   context.save();
@@ -1024,10 +1098,11 @@ function drawQuestionMarker(
   context.fillText("?", visualX - 14, GROUND_Y - 160);
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth,
     GROUND_Y - 214,
-    EVENT_HITBOX_HALF_WIDTH * 2,
     220,
   );
   context.restore();
@@ -1255,6 +1330,7 @@ function drawMudPatch(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
 ) {
   context.save();
@@ -1271,21 +1347,17 @@ function drawMudPatch(
     : "rgba(255,255,255,0.18)";
   context.lineWidth = 2;
   context.setLineDash([10, 8]);
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH - TRACTION_SCORE_LENIENCY_MARGIN,
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth + TRACTION_SCORE_LENIENCY_MARGIN,
     GROUND_Y - 8,
-    (EVENT_HITBOX_HALF_WIDTH + TRACTION_SCORE_LENIENCY_MARGIN) * 2,
     70,
   );
   context.setLineDash([]);
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
-    GROUND_Y + 2,
-    EVENT_HITBOX_HALF_WIDTH * 2,
-    50,
-  );
+  drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y + 2, 50);
   context.restore();
 }
 
@@ -1293,6 +1365,7 @@ function drawRearDitch(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
 ) {
   context.save();
@@ -1306,12 +1379,7 @@ function drawRearDitch(
   context.fill();
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
-    GROUND_Y + 2,
-    EVENT_HITBOX_HALF_WIDTH * 2,
-    50,
-  );
+  drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y + 2, 50);
   context.restore();
 }
 
@@ -1319,8 +1387,22 @@ function drawTruck(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
+  truckImage?: HTMLImageElement | null,
 ) {
+  if (truckImage) {
+    drawPickupUnloadTruckSprite(
+      context,
+      visualX,
+      hitboxX,
+      hitboxHalfWidth,
+      isActive,
+      truckImage,
+    );
+    return;
+  }
+
   context.save();
   context.fillStyle = "#35506d";
   context.fillRect(visualX - 76, GROUND_Y - 118, 110, 58);
@@ -1335,10 +1417,50 @@ function drawTruck(
   context.fill();
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth,
     GROUND_Y - 126,
-    EVENT_HITBOX_HALF_WIDTH * 2,
+    104,
+  );
+  context.restore();
+}
+
+function drawPickupUnloadTruckSprite(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  hitboxHalfWidth: number,
+  isActive: boolean,
+  truckImage: HTMLImageElement,
+) {
+  const sourceWidth = truckImage.naturalWidth || truckImage.width;
+  const sourceHeight = truckImage.naturalHeight || truckImage.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    drawTruck(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+    return;
+  }
+
+  const drawWidth = PICKUP_UNLOAD_TRUCK_DRAW_WIDTH;
+  const drawHeight = (sourceHeight / sourceWidth) * drawWidth;
+  const baseOffsetY =
+    (PICKUP_UNLOAD_TRUCK_BASE_SOURCE_Y / sourceHeight) * drawHeight;
+  const drawX = visualX + PICKUP_UNLOAD_TRUCK_CENTER_OFFSET_X - drawWidth / 2;
+  const drawY = PICKUP_UNLOAD_TRUCK_BASE_Y - baseOffsetY;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(truckImage, drawX, drawY, drawWidth, drawHeight);
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth,
+    GROUND_Y - 126,
     104,
   );
   context.restore();
@@ -1348,6 +1470,7 @@ function drawSignage(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
+  hitboxHalfWidth: number,
   isActive: boolean,
 ) {
   context.save();
@@ -1362,11 +1485,27 @@ function drawSignage(
   context.fillRect(visualX + 72, GROUND_Y - 16, 28, 36);
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
-  context.strokeRect(
-    hitboxX - EVENT_HITBOX_HALF_WIDTH,
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth,
     GROUND_Y - 174,
-    EVENT_HITBOX_HALF_WIDTH * 2,
     204,
   );
   context.restore();
+}
+
+function drawEventHitboxOutline(
+  context: CanvasRenderingContext2D,
+  hitboxX: number,
+  hitboxHalfWidth: number,
+  topY: number,
+  height: number,
+) {
+  context.strokeRect(
+    hitboxX - hitboxHalfWidth,
+    topY,
+    hitboxHalfWidth * 2,
+    height,
+  );
 }

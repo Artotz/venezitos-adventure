@@ -1,103 +1,107 @@
 import {
   CANVAS_WIDTH,
-  EVENT_HITBOX_HALF_WIDTH,
   EVENT_DESPAWN_MARGIN,
   EVENT_SPAWN_MARGIN,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
-} from './config'
-import { getEventDefinition } from './eventCatalog'
-import type { EventStatus, MapEvent, MapEventGroup, MapEventType } from './types'
+} from "./config";
+import { getEventDefinition } from "./eventCatalog";
+import type {
+  EventStatus,
+  MapEvent,
+  MapEventGroup,
+  MapEventType,
+} from "./types";
 
 type EventSpawnSlot = {
-  group: MapEventGroup
-  hitboxX: number
-}
+  group: MapEventGroup;
+  hitboxX: number;
+};
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: 'pickup', hitboxX: 700 },
-  { group: 'traction', hitboxX: 1650 },
-  { group: 'dig', hitboxX: 2720 },
-  { group: 'question', hitboxX: 3820 },
-  { group: 'pickup', hitboxX: 4980 },
-  { group: 'traction', hitboxX: 6150 },
-  { group: 'dig', hitboxX: 7350 },
-  { group: 'pickup', hitboxX: 8520 },
-  { group: 'dig', hitboxX: 9750 },
-]
+  { group: "pickup", hitboxX: 700 },
+  { group: "pickup", hitboxX: 3050 },
+  { group: "pickup", hitboxX: 4980 },
+  { group: "traction", hitboxX: 6150 },
+  { group: "dig", hitboxX: 7350 },
+  { group: "pickup", hitboxX: 8520 },
+  { group: "dig", hitboxX: 9750 },
+];
 
-const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length
-const MIN_UPCOMING_EVENT_BUFFER = EVENT_SEQUENCE_LENGTH
-const FIRST_EVENT_HITBOX_X = EVENT_SPAWN_PLAN[0]?.hitboxX ?? 0
+const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length;
+const MIN_UPCOMING_EVENT_BUFFER = EVENT_SEQUENCE_LENGTH;
+const FIRST_EVENT_HITBOX_X = EVENT_SPAWN_PLAN[0]?.hitboxX ?? 0;
 const FIRST_EVENT_GAP =
   (EVENT_SPAWN_PLAN[1]?.hitboxX ?? 0) - FIRST_EVENT_HITBOX_X ||
-  FIRST_EVENT_HITBOX_X + CANVAS_WIDTH + EVENT_SPAWN_MARGIN
+  FIRST_EVENT_HITBOX_X + CANVAS_WIDTH + EVENT_SPAWN_MARGIN;
 const EVENT_SPAWN_CYCLE_LENGTH =
-  (EVENT_SPAWN_PLAN.at(-1)?.hitboxX ?? 0) + FIRST_EVENT_GAP - FIRST_EVENT_HITBOX_X
+  (EVENT_SPAWN_PLAN.at(-1)?.hitboxX ?? 0) +
+  FIRST_EVENT_GAP -
+  FIRST_EVENT_HITBOX_X;
 
 function createSpawnedEvent(id: number): MapEvent {
-  const slot = EVENT_SPAWN_PLAN[id % EVENT_SPAWN_PLAN.length]
-  const cycleIndex = Math.floor(id / EVENT_SPAWN_PLAN.length)
+  const slot = EVENT_SPAWN_PLAN[id % EVENT_SPAWN_PLAN.length];
+  const cycleIndex = Math.floor(id / EVENT_SPAWN_PLAN.length);
 
   return {
     id,
     group: slot.group,
     hitboxX: slot.hitboxX + cycleIndex * EVENT_SPAWN_CYCLE_LENGTH,
-    status: 'upcoming',
+    status: "upcoming",
     type: null,
-  }
+  };
 }
 
 function trimExpiredEvents(events: MapEvent[], distance: number) {
-  let hasChanges = false
+  let hasChanges = false;
 
   const nextEvents = events.filter((event) => {
-    if (event.status === 'upcoming' || event.status === 'active') {
-      return true
+    if (event.status === "upcoming" || event.status === "active") {
+      return true;
     }
 
-    const screenX = getEventHitboxScreenX(event, distance)
-    const keepEvent = screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
-    hasChanges ||= !keepEvent
+    const screenX = getEventHitboxScreenX(event, distance);
+    const keepEvent = screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN;
+    hasChanges ||= !keepEvent;
 
-    return keepEvent
-  })
+    return keepEvent;
+  });
 
-  return hasChanges ? nextEvents : events
+  return hasChanges ? nextEvents : events;
 }
 
 function ensureUpcomingEventBuffer(events: MapEvent[]) {
   let upcomingCount = events.reduce(
-    (total, event) => total + (event.status === 'upcoming' ? 1 : 0),
+    (total, event) => total + (event.status === "upcoming" ? 1 : 0),
     0,
-  )
+  );
 
   if (upcomingCount >= MIN_UPCOMING_EVENT_BUFFER) {
-    return events
+    return events;
   }
 
-  const nextEvents = [...events]
-  let nextEventId = nextEvents.at(-1)?.id ?? -1
+  const nextEvents = [...events];
+  let nextEventId = nextEvents.at(-1)?.id ?? -1;
 
   while (upcomingCount < MIN_UPCOMING_EVENT_BUFFER) {
-    nextEventId += 1
-    nextEvents.push(createSpawnedEvent(nextEventId))
-    upcomingCount += 1
+    nextEventId += 1;
+    nextEvents.push(createSpawnedEvent(nextEventId));
+    upcomingCount += 1;
   }
 
-  return nextEvents
+  return nextEvents;
 }
 
 export function getEventHitboxScreenX(event: MapEvent, distance: number) {
-  return PLAYER_SCREEN_X - (event.hitboxX - distance)
+  return PLAYER_SCREEN_X - (event.hitboxX - distance);
 }
 
 export function isEventScreenXVisible(screenX: number) {
   return (
     screenX >= -EVENT_SPAWN_MARGIN &&
     screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
-  )
+  );
 }
 
 export function updateEventStatus(
@@ -107,11 +111,11 @@ export function updateEventStatus(
 ) {
   return events.map((event) =>
     event.id === eventId ? { ...event, status } : event,
-  )
+  );
 }
 
 export function cloneEvents(events: MapEvent[]) {
-  return events.map((event) => ({ ...event }))
+  return events.map((event) => ({ ...event }));
 }
 
 export function resolveSpawnedEventType(
@@ -119,19 +123,19 @@ export function resolveSpawnedEventType(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ): MapEventType {
-  if (group === 'pickup') {
-    return loadedDirt ? 'pickup-unload' : 'pickup-load'
+  if (group === "pickup") {
+    return loadedDirt ? "pickup-unload" : "pickup-load";
   }
 
-  if (group === 'dig') {
-    return rearLoaded ? 'dig-unload' : 'dig-load'
+  if (group === "dig") {
+    return rearLoaded ? "dig-unload" : "dig-load";
   }
 
-  if (group === 'traction') {
-    return 'traction'
+  if (group === "traction") {
+    return "traction";
   }
 
-  return 'question'
+  return "question";
 }
 
 export function resolveMapEventType(
@@ -139,7 +143,9 @@ export function resolveMapEventType(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  return event.type ?? resolveSpawnedEventType(event.group, loadedDirt, rearLoaded)
+  return (
+    event.type ?? resolveSpawnedEventType(event.group, loadedDirt, rearLoaded)
+  );
 }
 
 export function getEventVisualX(
@@ -147,10 +153,10 @@ export function getEventVisualX(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  const eventType = resolveMapEventType(event, loadedDirt, rearLoaded)
-  const { visualOffset } = getEventDefinition(eventType)
+  const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+  const { visualOffset } = getEventDefinition(eventType);
 
-  return event.hitboxX + visualOffset
+  return event.hitboxX + visualOffset;
 }
 
 export function getEventVisualScreenX(
@@ -159,7 +165,10 @@ export function getEventVisualScreenX(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  return PLAYER_SCREEN_X - (getEventVisualX(event, loadedDirt, rearLoaded) - distance)
+  return (
+    PLAYER_SCREEN_X -
+    (getEventVisualX(event, loadedDirt, rearLoaded) - distance)
+  );
 }
 
 export function assignSpawnedEventTypes(
@@ -168,34 +177,34 @@ export function assignSpawnedEventTypes(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  let hasChanges = false
+  let hasChanges = false;
 
   const nextEvents = events.map((event) => {
-    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded)
+    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const visualX = getEventVisualScreenX(
       { ...event, type: eventType },
       distance,
       loadedDirt,
       rearLoaded,
-    )
-    const hitboxX = getEventHitboxScreenX(event, distance)
+    );
+    const hitboxX = getEventHitboxScreenX(event, distance);
 
     if (
       event.type ||
       (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX))
     ) {
-      return event
+      return event;
     }
 
-    hasChanges = true
+    hasChanges = true;
 
     return {
       ...event,
       type: eventType,
-    }
-  })
+    };
+  });
 
-  return hasChanges ? nextEvents : events
+  return hasChanges ? nextEvents : events;
 }
 
 export function createInitialPhase1Events() {
@@ -206,7 +215,7 @@ export function createInitialPhase1Events() {
     0,
     false,
     false,
-  )
+  );
 }
 
 export function syncInfiniteEventStream(
@@ -215,19 +224,35 @@ export function syncInfiniteEventStream(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  const trimmedEvents = trimExpiredEvents(events, distance)
-  const bufferedEvents = ensureUpcomingEventBuffer(trimmedEvents)
+  const trimmedEvents = trimExpiredEvents(events, distance);
+  const bufferedEvents = ensureUpcomingEventBuffer(trimmedEvents);
 
   return assignSpawnedEventTypes(
     bufferedEvents,
     distance,
     loadedDirt,
     rearLoaded,
-  )
+  );
 }
 
-export function isWithinEventHitZone(screenX: number, extraMargin = 0) {
-  return Math.abs(screenX - PLAYER_HIT_LINE_X) <= EVENT_HITBOX_HALF_WIDTH + extraMargin
+export function getEventHitboxHalfWidth(
+  event: MapEvent,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
+) {
+  return getEventDefinition(
+    resolveMapEventType(event, loadedDirt, rearLoaded),
+  ).hitboxHalfWidth
+}
+
+export function isWithinEventHitZone(
+  screenX: number,
+  hitboxHalfWidth: number,
+  extraMargin = 0,
+) {
+  return (
+    Math.abs(screenX - PLAYER_HIT_LINE_X) <= hitboxHalfWidth + extraMargin
+  )
 }
 
 export function isWithinTractionScoreLeniencyZone(
@@ -236,12 +261,18 @@ export function isWithinTractionScoreLeniencyZone(
   extraMargin: number,
 ) {
   return events.some((event) => {
-    if (event.group !== 'traction') {
-      return false
+    if (event.group !== "traction") {
+      return false;
     }
 
-    return isWithinEventHitZone(getEventHitboxScreenX(event, distance), extraMargin)
-  })
+    const hitboxHalfWidth = getEventDefinition("traction").hitboxHalfWidth
+
+    return isWithinEventHitZone(
+      getEventHitboxScreenX(event, distance),
+      hitboxHalfWidth,
+      extraMargin,
+    )
+  });
 }
 
 export function describeMapEvent(
@@ -249,5 +280,5 @@ export function describeMapEvent(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  return getEventDefinition(resolveMapEventType(event, loadedDirt, rearLoaded))
+  return getEventDefinition(resolveMapEventType(event, loadedDirt, rearLoaded));
 }

@@ -1,14 +1,13 @@
 export const CANVAS_WIDTH = 1560;
 export const CANVAS_HEIGHT = 720;
-export const GROUND_Y = 585;
+export const GROUND_Y = 500;
 export const PLAYER_SCREEN_X = 980;
 export const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 200;
 export const BASE_SPEED = 220;
 export const LOW_TRACTION_SPEED = 72;
 export const FRONT_LOAD_SPEED = 118;
-export const EVENT_HITBOX_HALF_WIDTH = 70;
-export const EVENT_SPAWN_MARGIN = 420;
-export const EVENT_DESPAWN_MARGIN = 420;
+export const EVENT_SPAWN_MARGIN = 500;
+export const EVENT_DESPAWN_MARGIN = 1200;
 export const PICKUP_EVENT_KEYS_LABEL = "A / ←";
 export const DIG_EVENT_KEYS_LABEL = "D / →";
 export const TRACTION_TOGGLE_KEY_LABEL = "S / ↓";

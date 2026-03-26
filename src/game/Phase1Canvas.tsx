@@ -36,6 +36,7 @@ import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
 import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
+import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
 import { usePhase1Game } from "./phase1/usePhase1Game";
 
 const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
@@ -52,15 +53,16 @@ export function Phase1Canvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
-  const [overlayStep, setOverlayStep] = useState<"manifesto" | "controls" | null>(
-    null,
-  );
+  const [overlayStep, setOverlayStep] = useState<
+    "manifesto" | "controls" | null
+  >(null);
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(isPlaying && overlayStep === null);
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
   const instructorImage = usePhase1InstructorImage();
   const groundImage = usePhase1GroundImage();
+  const pickupUnloadTruckImage = usePhase1PickupUnloadTruckImage();
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -140,7 +142,7 @@ export function Phase1Canvas({
       return;
     }
 
-    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 60;
+    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 120;
     const worldMatrices = computeWorldMatrices(
       pose.angles,
       createTranslationMatrix(
@@ -162,7 +164,16 @@ export function Phase1Canvas({
       carnaubaImage,
     });
     drawExcavator(context, images, worldMatrices);
-    drawPhase1Foreground(context, game.distance, foregroundImage);
+    drawPhase1Foreground({
+      context,
+      distance: game.distance,
+      events: game.events,
+      activeEventId: game.activeEventId,
+      loadedDirt: game.loadedDirt,
+      rearLoaded: game.rearLoaded,
+      foregroundImage,
+      pickupUnloadTruckImage,
+    });
     drawCenterGuide(
       context,
       PLAYER_HIT_LINE_X,
@@ -203,6 +214,7 @@ export function Phase1Canvas({
     game.rearLoaded,
     carnaubaImage,
     groundImage,
+    pickupUnloadTruckImage,
     game.animationTick,
     game.questionModal,
     game.score,

@@ -24,7 +24,6 @@ import {
 } from './sounds'
 import {
   BASE_SPEED,
-  EVENT_HITBOX_HALF_WIDTH,
   FRONT_LOAD_SPEED,
   INITIAL_MESSAGE,
   PLAYER_HIT_LINE_X,
@@ -417,7 +416,9 @@ export function usePhase1Game(enabled = true) {
 
     const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current)
 
-    if (Math.abs(screenX - PLAYER_HIT_LINE_X) > EVENT_HITBOX_HALF_WIDTH) {
+    if (
+      Math.abs(screenX - PLAYER_HIT_LINE_X) > eventDefinition.hitboxHalfWidth
+    ) {
       setFails((current) => current + 1)
       setScore((current) => Math.max(0, current - 50))
       setMessage('Fora da hitbox do evento.')
@@ -633,8 +634,15 @@ export function usePhase1Game(enabled = true) {
 
     if (nextUpcoming) {
       const screenX = getEventHitboxScreenX(nextUpcoming, nextDistance)
+      const eventInfo = describeMapEvent(
+        nextUpcoming,
+        loadedDirtRef.current,
+        rearLoadedRef.current,
+      )
 
-      if (Math.abs(screenX - PLAYER_HIT_LINE_X) <= EVENT_HITBOX_HALF_WIDTH) {
+      if (
+        Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventInfo.hitboxHalfWidth
+      ) {
         const nextEvents = updateEventStatus(
           eventsRef.current,
           nextUpcoming.id,
@@ -645,11 +653,6 @@ export function usePhase1Game(enabled = true) {
         setEvents(nextEvents)
         setActiveEventId(nextUpcoming.id)
         activeEventIdRef.current = nextUpcoming.id
-        const eventInfo = describeMapEvent(
-          nextUpcoming,
-          loadedDirtRef.current,
-          rearLoadedRef.current,
-        )
         setMessage(getEventActivationMessage(eventInfo))
 
         if (isTractionEventDefinition(eventInfo)) {
@@ -689,10 +692,14 @@ export function usePhase1Game(enabled = true) {
 
     const screenX = getEventHitboxScreenX(currentActiveEvent, nextDistance)
 
-    if (screenX > PLAYER_HIT_LINE_X + EVENT_HITBOX_HALF_WIDTH) {
-      if (currentActiveEvent.type) {
-        const currentEventDefinition = getEventDefinition(currentActiveEvent.type)
+    if (!currentActiveEvent.type) {
+      return
+    }
 
+    const currentEventDefinition = getEventDefinition(currentActiveEvent.type)
+
+    if (screenX > PLAYER_HIT_LINE_X + currentEventDefinition.hitboxHalfWidth) {
+      if (currentActiveEvent.type) {
         if (isTractionEventDefinition(currentEventDefinition)) {
           if (tractionBoostFrameCountRef.current > 0) {
             resolveEvent(

@@ -121,3 +121,10 @@ export type QuestionModalState = {
   selectionHint: string
   question: Phase1Question
 }
+
+export type Phase1SpeechModalState = {
+  title: string
+  speech: string
+  body: string
+  continueHint: string
+}

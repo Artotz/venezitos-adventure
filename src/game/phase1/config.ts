@@ -15,6 +15,16 @@ export const TRACTION_TOGGLE_KEY_LABEL = "S / ↓";
 export const TRACTION_SCORE_LENIENCY_MARGIN = 140;
 export const QUESTION_OPTION_KEYS_LABEL = "WASD";
 export const QUESTION_OPTION_DISPLAY_LABEL = "setas";
+export const PHASE1_CONTINUE_CODES = [
+  "KeyW",
+  "KeyA",
+  "KeyS",
+  "KeyD",
+  "ArrowUp",
+  "ArrowLeft",
+  "ArrowDown",
+  "ArrowRight",
+] as const;
 export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
 export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;

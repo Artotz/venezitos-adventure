@@ -13,12 +13,14 @@ import {
 } from "./retro/geometry";
 import { createLayerImageMap, drawExcavator } from "./retro/render";
 import {
+  PHASE1_CONTINUE_CODES,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
 } from "./phase1/config";
+import { PHASE1_MANIFESTO_MODAL } from "./phase1/dialogue";
 import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
   drawCenterGuide,
@@ -26,21 +28,13 @@ import {
   drawPhase1Environment,
   drawPhase1Hud,
   drawPhase1StartModal,
+  drawPhase1SpeechModal,
   drawQuestionModal,
 } from "./phase1/render";
 import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
 import { usePhase1Game } from "./phase1/usePhase1Game";
 
-const START_MODAL_CONTINUE_KEYS = new Set([
-  "KeyW",
-  "KeyA",
-  "KeyS",
-  "KeyD",
-  "ArrowUp",
-  "ArrowLeft",
-  "ArrowDown",
-  "ArrowRight",
-]);
+const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
 
 type Phase1CanvasProps = {
   activeView: "phase1" | "editor";
@@ -54,9 +48,11 @@ export function Phase1Canvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
-  const [showStartModal, setShowStartModal] = useState(false);
+  const [overlayStep, setOverlayStep] = useState<"manifesto" | "controls" | null>(
+    null,
+  );
   const isPlaying = phaseStep === "playing";
-  const game = usePhase1Game(isPlaying && !showStartModal);
+  const game = usePhase1Game(isPlaying && overlayStep === null);
   const instructorImage = usePhase1InstructorImage();
 
   const pose = buildPhase1Pose({
@@ -99,7 +95,7 @@ export function Phase1Canvas({
   }, []);
 
   useEffect(() => {
-    if (!showStartModal) {
+    if (!overlayStep) {
       return;
     }
 
@@ -109,7 +105,9 @@ export function Phase1Canvas({
       }
 
       event.preventDefault();
-      setShowStartModal(false);
+      setOverlayStep((current) =>
+        current === "manifesto" ? "controls" : null,
+      );
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -117,7 +115,7 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showStartModal]);
+  }, [overlayStep]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -168,7 +166,9 @@ export function Phase1Canvas({
       distance: game.distance,
       differentialLockEnabled: game.differentialLockEnabled,
     });
-    if (showStartModal) {
+    if (overlayStep === "manifesto") {
+      drawPhase1SpeechModal(context, PHASE1_MANIFESTO_MODAL, instructorImage);
+    } else if (overlayStep === "controls") {
       drawPhase1StartModal({
         context,
         instructorImage,
@@ -177,6 +177,8 @@ export function Phase1Canvas({
         machineContentHeight: game.excavatorScene.contentHeight,
         machineContentWidth: game.excavatorScene.contentWidth,
       });
+    } else if (game.speechModal) {
+      drawPhase1SpeechModal(context, game.speechModal, instructorImage);
     } else if (game.questionModal) {
       drawQuestionModal(context, game.questionModal, instructorImage);
     }
@@ -194,7 +196,8 @@ export function Phase1Canvas({
     images,
     instructorImage,
     pose.angles,
-    showStartModal,
+    game.speechModal,
+    overlayStep,
   ]);
 
   if (isPlaying && (!game.excavatorScene || !images)) {
@@ -235,7 +238,7 @@ export function Phase1Canvas({
           <Phase1PreGameScreen
             onPlay={() => {
               setPhaseStep("playing");
-              setShowStartModal(true);
+              setOverlayStep("manifesto");
             }}
             onOpenEditor={() => onChangeView("editor")}
           />

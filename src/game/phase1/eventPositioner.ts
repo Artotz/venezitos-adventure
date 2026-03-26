@@ -14,7 +14,7 @@ type EventSpawnSlot = {
   hitboxX: number
 }
 
-// Edite aqui apenas a ordem e o posicionamento dos spawns no mapa.
+// Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
   { group: 'pickup', hitboxX: 700 },
   { group: 'traction', hitboxX: 1650 },
@@ -27,13 +27,67 @@ const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
   { group: 'dig', hitboxX: 9750 },
 ]
 
-export const INITIAL_EVENTS: MapEvent[] = EVENT_SPAWN_PLAN.map((slot, id) => ({
-  id,
-  group: slot.group,
-  hitboxX: slot.hitboxX,
-  status: 'upcoming',
-  type: null,
-}))
+const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length
+const MIN_UPCOMING_EVENT_BUFFER = EVENT_SEQUENCE_LENGTH
+const FIRST_EVENT_HITBOX_X = EVENT_SPAWN_PLAN[0]?.hitboxX ?? 0
+const FIRST_EVENT_GAP =
+  (EVENT_SPAWN_PLAN[1]?.hitboxX ?? 0) - FIRST_EVENT_HITBOX_X ||
+  FIRST_EVENT_HITBOX_X + CANVAS_WIDTH + EVENT_SPAWN_MARGIN
+const EVENT_SPAWN_CYCLE_LENGTH =
+  (EVENT_SPAWN_PLAN.at(-1)?.hitboxX ?? 0) + FIRST_EVENT_GAP - FIRST_EVENT_HITBOX_X
+
+function createSpawnedEvent(id: number): MapEvent {
+  const slot = EVENT_SPAWN_PLAN[id % EVENT_SPAWN_PLAN.length]
+  const cycleIndex = Math.floor(id / EVENT_SPAWN_PLAN.length)
+
+  return {
+    id,
+    group: slot.group,
+    hitboxX: slot.hitboxX + cycleIndex * EVENT_SPAWN_CYCLE_LENGTH,
+    status: 'upcoming',
+    type: null,
+  }
+}
+
+function trimExpiredEvents(events: MapEvent[], distance: number) {
+  let hasChanges = false
+
+  const nextEvents = events.filter((event) => {
+    if (event.status === 'upcoming' || event.status === 'active') {
+      return true
+    }
+
+    const screenX = getEventHitboxScreenX(event, distance)
+    const keepEvent = screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
+    hasChanges ||= !keepEvent
+
+    return keepEvent
+  })
+
+  return hasChanges ? nextEvents : events
+}
+
+function ensureUpcomingEventBuffer(events: MapEvent[]) {
+  let upcomingCount = events.reduce(
+    (total, event) => total + (event.status === 'upcoming' ? 1 : 0),
+    0,
+  )
+
+  if (upcomingCount >= MIN_UPCOMING_EVENT_BUFFER) {
+    return events
+  }
+
+  const nextEvents = [...events]
+  let nextEventId = nextEvents.at(-1)?.id ?? -1
+
+  while (upcomingCount < MIN_UPCOMING_EVENT_BUFFER) {
+    nextEventId += 1
+    nextEvents.push(createSpawnedEvent(nextEventId))
+    upcomingCount += 1
+  }
+
+  return nextEvents
+}
 
 export function getEventHitboxScreenX(event: MapEvent, distance: number) {
   return PLAYER_SCREEN_X - (event.hitboxX - distance)
@@ -145,7 +199,31 @@ export function assignSpawnedEventTypes(
 }
 
 export function createInitialPhase1Events() {
-  return assignSpawnedEventTypes(cloneEvents(INITIAL_EVENTS), 0, false, false)
+  return assignSpawnedEventTypes(
+    Array.from({ length: EVENT_SEQUENCE_LENGTH * 2 }, (_, id) =>
+      createSpawnedEvent(id),
+    ),
+    0,
+    false,
+    false,
+  )
+}
+
+export function syncInfiniteEventStream(
+  events: MapEvent[],
+  distance: number,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
+) {
+  const trimmedEvents = trimExpiredEvents(events, distance)
+  const bufferedEvents = ensureUpcomingEventBuffer(trimmedEvents)
+
+  return assignSpawnedEventTypes(
+    bufferedEvents,
+    distance,
+    loadedDirt,
+    rearLoaded,
+  )
 }
 
 export function isWithinEventHitZone(screenX: number, extraMargin = 0) {

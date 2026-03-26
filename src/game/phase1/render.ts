@@ -22,7 +22,11 @@ import {
   isEventScreenXVisible,
   resolveMapEventType,
 } from "./eventPositioner";
-import type { MapEvent, QuestionModalState } from "./types";
+import type {
+  MapEvent,
+  Phase1SpeechModalState,
+  QuestionModalState,
+} from "./types";
 
 type Phase1SceneParams = {
   context: CanvasRenderingContext2D;
@@ -232,6 +236,90 @@ export function drawQuestionModal(
     "\u2193",
     modalState.question.choices.down.label,
   );
+  context.restore();
+}
+
+export function drawPhase1SpeechModal(
+  context: CanvasRenderingContext2D,
+  modalState: Phase1SpeechModalState,
+  instructorImage?: CanvasImageSource | null,
+) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const bodyX = titleX;
+  const bodyY = layout.panelY + 156;
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+  drawSpeechBubble(
+    context,
+    layout.portraitX + 26,
+    layout.portraitY + 100,
+    layout.portraitWidth - 52,
+    modalState.speech,
+  );
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText(modalState.title.toUpperCase(), titleX, layout.panelY + 30);
+
+  context.fillStyle = "rgba(255, 245, 220, 0.07)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.14)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(
+    titleX,
+    layout.panelY + 54,
+    layout.panelWidth - layout.panelPadding * 2,
+    74,
+    20,
+  );
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#fff3d7";
+  context.font = '700 26px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    modalState.speech,
+    titleX + 24,
+    layout.panelY + 98,
+    layout.panelWidth - layout.panelPadding * 2 - 48,
+    30,
+  );
+
+  if (modalState.body) {
+    context.fillStyle = "#fff3d7";
+    context.font = '600 20px "Segoe UI", sans-serif';
+    drawWrappedParagraphText(
+      context,
+      modalState.body,
+      bodyX,
+      bodyY,
+      layout.panelWidth - layout.panelPadding * 2,
+      30,
+      layout.panelHeight - 250,
+    );
+  }
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    modalState.continueHint,
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
   context.restore();
 }
 
@@ -895,6 +983,35 @@ function drawInstructionCard(
   context.restore();
 }
 
+function drawSpeechBubble(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  text: string,
+) {
+  context.save();
+  context.fillStyle = "rgba(255, 245, 220, 0.95)";
+  context.strokeStyle = "rgba(111, 76, 40, 0.28)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, width, 112, 24);
+  context.fill();
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(x + 70, y + 112);
+  context.lineTo(x + 94, y + 112);
+  context.lineTo(x + 82, y + 132);
+  context.closePath();
+  context.fill();
+
+  context.fillStyle = "#4e3218";
+  context.font = '700 22px "Segoe UI", sans-serif';
+  drawWrappedText(context, text, x + 24, y + 40, width - 48, 28);
+  context.restore();
+}
+
 function drawWrappedText(
   context: CanvasRenderingContext2D,
   text: string,
@@ -923,6 +1040,59 @@ function drawWrappedText(
   if (currentLine) {
     context.fillText(currentLine, x, currentY);
   }
+}
+
+function drawWrappedParagraphText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxHeight: number,
+) {
+  const paragraphs = text.split("\n\n");
+  let currentY = y;
+
+  for (const paragraph of paragraphs) {
+    if (currentY > y + maxHeight) {
+      break;
+    }
+
+    const beforeParagraph = currentY;
+    drawWrappedText(context, paragraph, x, currentY, maxWidth, lineHeight);
+    currentY = measureWrappedTextHeight(
+      context,
+      paragraph,
+      maxWidth,
+      lineHeight,
+    ) + beforeParagraph + 14;
+  }
+}
+
+function measureWrappedTextHeight(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  lineHeight: number,
+) {
+  const words = text.split(" ");
+  let lines = 1;
+  let currentLine = "";
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (context.measureText(nextLine).width <= maxWidth) {
+      currentLine = nextLine;
+      continue;
+    }
+
+    currentLine = word;
+    lines += 1;
+  }
+
+  return lines * lineHeight;
 }
 
 function drawMudPatch(

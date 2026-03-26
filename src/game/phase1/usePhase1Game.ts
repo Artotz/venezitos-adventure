@@ -40,11 +40,11 @@ import {
   isTractionEventDefinition,
 } from './eventCatalog'
 import {
-  assignSpawnedEventTypes,
   createInitialPhase1Events,
   describeMapEvent,
   getEventHitboxScreenX,
   isWithinTractionScoreLeniencyZone,
+  syncInfiniteEventStream,
   updateEventStatus,
 } from './eventPositioner'
 import { getQuestionFromCatalog } from './questionCatalog'
@@ -53,9 +53,16 @@ import {
   getQuestionDirectionFromKey,
   isCorrectQuestionAnswer,
 } from './questionModal'
-import type { MapEvent, QuestionModalState } from './types'
+import { createQuestionFeedbackModal } from './dialogue'
+import { PHASE1_CONTINUE_CODES } from './config'
+import type {
+  MapEvent,
+  Phase1SpeechModalState,
+  QuestionModalState,
+} from './types'
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events()
+const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES)
 
 export function usePhase1Game(enabled = true) {
   const sprites = useRetroSprites()
@@ -73,6 +80,9 @@ export function usePhase1Game(enabled = true) {
   const [questionModal, setQuestionModal] = useState<QuestionModalState | null>(
     null,
   )
+  const [speechModal, setSpeechModal] = useState<Phase1SpeechModalState | null>(
+    null,
+  )
   const [animationTick, setAnimationTick] = useState(0)
   const [activeAnimationLabel, setActiveAnimationLabel] = useState(
     'Rodagem continua',
@@ -88,6 +98,7 @@ export function usePhase1Game(enabled = true) {
   const distanceRef = useRef(0)
   const differentialLockEnabledRef = useRef(false)
   const questionModalRef = useRef<QuestionModalState | null>(null)
+  const speechModalRef = useRef<Phase1SpeechModalState | null>(null)
   const questionCursorRef = useRef(0)
   const tractionBoostFrameCountRef = useRef(0)
   const animationSoundPlayerRef = useRef<AnimationSoundPlayer | null>(null)
@@ -111,6 +122,16 @@ export function usePhase1Game(enabled = true) {
   const setQuestionModalState = (nextModal: QuestionModalState | null) => {
     questionModalRef.current = nextModal
     setQuestionModal(nextModal)
+  }
+
+  const setSpeechModalState = (nextModal: Phase1SpeechModalState | null) => {
+    speechModalRef.current = nextModal
+    setSpeechModal(nextModal)
+
+    if (nextModal) {
+      currentSpeedRef.current = 0
+      setSpeed(0)
+    }
   }
 
   const setDifferentialLockState = (enabled: boolean) => {
@@ -301,6 +322,16 @@ export function usePhase1Game(enabled = true) {
       return
     }
 
+    if (speechModalRef.current) {
+      if (!PHASE1_CONTINUE_KEY_SET.has(event.code) || event.repeat) {
+        return
+      }
+
+      event.preventDefault()
+      setSpeechModalState(null)
+      return
+    }
+
     const openQuestionModal = questionModalRef.current
 
     if (openQuestionModal) {
@@ -327,6 +358,7 @@ export function usePhase1Game(enabled = true) {
             scoreDelta: openQuestionModal.question.reward,
           },
         )
+        setSpeechModalState(createQuestionFeedbackModal('success'))
         return
       }
 
@@ -338,6 +370,7 @@ export function usePhase1Game(enabled = true) {
           scorePenalty: openQuestionModal.question.penalty,
         },
       )
+      setSpeechModalState(createQuestionFeedbackModal('failure'))
       return
     }
 
@@ -551,6 +584,10 @@ export function usePhase1Game(enabled = true) {
       targetSpeed = 0
     }
 
+    if (speechModalRef.current) {
+      targetSpeed = 0
+    }
+
     const nextSpeed =
       currentSpeedRef.current +
       (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * 4)
@@ -578,7 +615,7 @@ export function usePhase1Game(enabled = true) {
     setDistance(nextDistance)
     setScore((current) => current + Math.round(nextSpeed * dt * 0.08))
 
-    const spawnedEvents = assignSpawnedEventTypes(
+    const spawnedEvents = syncInfiniteEventStream(
       eventsRef.current,
       nextDistance,
       loadedDirtRef.current,
@@ -700,6 +737,7 @@ export function usePhase1Game(enabled = true) {
     events,
     activeEventId,
     questionModal,
+    speechModal,
     animationTick,
     activeAnimationLabel,
     frontAnimationRef,

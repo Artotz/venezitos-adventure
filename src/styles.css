@@ -304,6 +304,7 @@ h1 {
 }
 
 .phase-pre-game-card {
+  position: relative;
   display: grid;
   gap: 18px;
   width: var(--phase-canvas-width, 100%);
@@ -317,6 +318,43 @@ h1 {
     radial-gradient(circle at top left, rgba(221, 185, 112, 0.14), transparent 28%),
     linear-gradient(180deg, rgba(44, 29, 19, 0.96), rgba(22, 15, 11, 0.96));
   box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.06);
+  overflow: hidden;
+}
+
+.phase-pre-game-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+  max-width: min(52ch, calc(100% - 360px));
+}
+
+.phase-pre-game-hero {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(42%, 520px);
+  height: 100%;
+  pointer-events: none;
+}
+
+.phase-pre-game-hero-fade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(22, 15, 11, 0.98) 0%, rgba(22, 15, 11, 0.84) 18%, rgba(22, 15, 11, 0.18) 52%, transparent 78%),
+    radial-gradient(circle at 72% 44%, rgba(240, 203, 117, 0.18), transparent 42%);
+}
+
+.phase-pre-game-hero-image {
+  position: absolute;
+  right: -24px;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  object-position: right bottom;
+  filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.38));
 }
 
 .phase-pre-game-eyebrow {
@@ -436,6 +474,14 @@ h1 {
     width: 100%;
     min-height: auto;
     padding: 24px;
+  }
+
+  .phase-pre-game-content {
+    max-width: none;
+  }
+
+  .phase-pre-game-hero {
+    width: min(58%, 320px);
   }
 
 }

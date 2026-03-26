@@ -61,7 +61,8 @@ export type ManualEventDefinition = BaseEventDefinition<
   ManualEventGroup,
   'manual'
 > & {
-  key: string
+  acceptedCodes: KeyboardEvent['code'][]
+  keyLabel: string
   reward: number
   animation?: EventAnimationConfig
 }
@@ -71,7 +72,8 @@ export type TractionEventDefinition = BaseEventDefinition<
   'traction',
   'traction-zone'
 > & {
-  toggleKey: string
+  toggleCodes: KeyboardEvent['code'][]
+  toggleKeyLabel: string
   activeSpeed: number
   drainPerFrame: number
   rewardPerFrame: number

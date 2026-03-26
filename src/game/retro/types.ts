@@ -54,6 +54,19 @@ export type AnimationPreset = {
   keyframes: AnimationKeyframe[]
 }
 
+export type AnimationSoundId = 'dirt' | 'dirt-2' | 'unload'
+
+export type AnimationSoundCue = {
+  at: number
+  soundId: AnimationSoundId
+  volume: number
+}
+
+export type AnimationSoundPreset = {
+  id: AnimationPresetId
+  animationSound: AnimationSoundCue[]
+}
+
 export type ResolvedKeyframe = {
   at: number
   angles: Record<LayerName, number>

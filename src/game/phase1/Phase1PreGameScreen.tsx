@@ -1,12 +1,9 @@
-import {
-  PHASE1_MENU_DESCRIPTION,
-  PHASE1_MENU_TITLE,
-} from './config'
+import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./config";
 
 type Phase1PreGameScreenProps = {
-  onPlay: () => void
-  onOpenEditor: () => void
-}
+  onPlay: () => void;
+  onOpenEditor: () => void;
+};
 
 export function Phase1PreGameScreen({
   onPlay,
@@ -14,7 +11,7 @@ export function Phase1PreGameScreen({
 }: Phase1PreGameScreenProps) {
   return (
     <section className="phase-pre-game-card">
-      <p className="phase-pre-game-eyebrow">Pre-jogo</p>
+      <p className="phase-pre-game-eyebrow">Veneza Equipamentos</p>
       <h2>{PHASE1_MENU_TITLE}</h2>
       <p className="phase-pre-game-copy">{PHASE1_MENU_DESCRIPTION}</p>
       <div className="phase-pre-game-actions">
@@ -30,5 +27,5 @@ export function Phase1PreGameScreen({
         </button>
       </div>
     </section>
-  )
+  );
 }

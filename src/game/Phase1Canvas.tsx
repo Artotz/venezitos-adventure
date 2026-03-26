@@ -4,19 +4,22 @@ import {
   useRef,
   useState,
   type CSSProperties,
-} from 'react'
+} from "react";
 
-import { buildPhase1Pose } from './retro/animations'
-import { computeWorldMatrices, createTranslationMatrix } from './retro/geometry'
-import { createLayerImageMap, drawExcavator } from './retro/render'
+import { buildPhase1Pose } from "./retro/animations";
+import {
+  computeWorldMatrices,
+  createTranslationMatrix,
+} from "./retro/geometry";
+import { createLayerImageMap, drawExcavator } from "./retro/render";
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
   PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
-} from './phase1/config'
-import { Phase1PreGameScreen } from './phase1/Phase1PreGameScreen'
+} from "./phase1/config";
+import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
   drawCenterGuide,
   drawPhase1Backdrop,
@@ -24,26 +27,37 @@ import {
   drawPhase1Hud,
   drawPhase1StartModal,
   drawQuestionModal,
-} from './phase1/render'
-import { usePhase1InstructorImage } from './phase1/usePhase1InstructorImage'
-import { usePhase1Game } from './phase1/usePhase1Game'
+} from "./phase1/render";
+import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
+import { usePhase1Game } from "./phase1/usePhase1Game";
+
+const START_MODAL_CONTINUE_KEYS = new Set([
+  "KeyW",
+  "KeyA",
+  "KeyS",
+  "KeyD",
+  "ArrowUp",
+  "ArrowLeft",
+  "ArrowDown",
+  "ArrowRight",
+]);
 
 type Phase1CanvasProps = {
-  activeView: 'phase1' | 'editor'
-  onChangeView: (view: 'phase1' | 'editor') => void
-}
+  activeView: "phase1" | "editor";
+  onChangeView: (view: "phase1" | "editor") => void;
+};
 
 export function Phase1Canvas({
   activeView: _activeView,
   onChangeView,
 }: Phase1CanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [canvasScale, setCanvasScale] = useState(1)
-  const [phaseStep, setPhaseStep] = useState<'menu' | 'playing'>('menu')
-  const [showStartModal, setShowStartModal] = useState(false)
-  const isPlaying = phaseStep === 'playing'
-  const game = usePhase1Game(isPlaying && !showStartModal)
-  const instructorImage = usePhase1InstructorImage()
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
+  const [showStartModal, setShowStartModal] = useState(false);
+  const isPlaying = phaseStep === "playing";
+  const game = usePhase1Game(isPlaying && !showStartModal);
+  const instructorImage = usePhase1InstructorImage();
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -51,86 +65,87 @@ export function Phase1Canvas({
     rearLoaded: game.rearLoaded,
     frontAnimation: game.frontAnimationRef.current,
     rearAnimation: game.rearAnimationRef.current,
-  })
+  });
 
   const images = useMemo(
-    () => (game.sprites ? createLayerImageMap(game.sprites, pose.sprites) : null),
+    () =>
+      game.sprites ? createLayerImageMap(game.sprites, pose.sprites) : null,
     [game.sprites, pose.sprites],
-  )
+  );
 
   useEffect(() => {
     const updateCanvasScale = () => {
-      const viewportPadding = window.innerWidth <= 900 ? 16 : 24
-      const availableWidth = Math.max(320, window.innerWidth - viewportPadding)
+      const viewportPadding = window.innerWidth <= 900 ? 16 : 24;
+      const availableWidth = Math.max(320, window.innerWidth - viewportPadding);
       const availableHeight = Math.max(
         260,
         window.innerHeight - viewportPadding,
-      )
+      );
       const nextScale = Math.min(
         1,
         availableWidth / CANVAS_WIDTH,
         availableHeight / CANVAS_HEIGHT,
-      )
+      );
 
-      setCanvasScale(nextScale > 0 ? nextScale : 1)
-    }
+      setCanvasScale(nextScale > 0 ? nextScale : 1);
+    };
 
-    updateCanvasScale()
-    window.addEventListener('resize', updateCanvasScale)
+    updateCanvasScale();
+    window.addEventListener("resize", updateCanvasScale);
 
     return () => {
-      window.removeEventListener('resize', updateCanvasScale)
-    }
-  }, [])
+      window.removeEventListener("resize", updateCanvasScale);
+    };
+  }, []);
 
   useEffect(() => {
     if (!showStartModal) {
-      return
+      return;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Enter') {
-        return
+      if (!START_MODAL_CONTINUE_KEYS.has(event.code)) {
+        return;
       }
 
-      event.preventDefault()
-      setShowStartModal(false)
-    }
+      event.preventDefault();
+      setShowStartModal(false);
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [showStartModal])
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showStartModal]);
 
   useEffect(() => {
-    const canvas = canvasRef.current
+    const canvas = canvasRef.current;
 
     if (!canvas || !game.excavatorScene || !images) {
-      return
+      return;
     }
 
-    canvas.width = CANVAS_WIDTH
-    canvas.height = CANVAS_HEIGHT
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
 
-    const context = canvas.getContext('2d')
+    const context = canvas.getContext("2d");
 
     if (!context) {
-      return
+      return;
     }
 
-    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 60
+    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 60;
     const worldMatrices = computeWorldMatrices(
       pose.angles,
       createTranslationMatrix(
         PLAYER_SCREEN_X - game.excavatorScene.contentWidth / 2,
         machineY,
       ),
-    )
+    );
 
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    drawPhase1Backdrop(context)
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    drawPhase1Backdrop(context);
     drawPhase1Environment({
       context,
       distance: game.distance,
@@ -138,21 +153,21 @@ export function Phase1Canvas({
       activeEventId: game.activeEventId,
       loadedDirt: game.loadedDirt,
       rearLoaded: game.rearLoaded,
-    })
-    drawExcavator(context, images, worldMatrices)
+    });
+    drawExcavator(context, images, worldMatrices);
     drawCenterGuide(
       context,
       PLAYER_HIT_LINE_X,
       machineY + 70,
       machineY + game.excavatorScene.contentHeight - 20,
       game.activeEventId !== null,
-    )
+    );
     drawPhase1Hud({
       context,
       score: game.score,
       distance: game.distance,
       differentialLockEnabled: game.differentialLockEnabled,
-    })
+    });
     if (showStartModal) {
       drawPhase1StartModal({
         context,
@@ -161,9 +176,9 @@ export function Phase1Canvas({
         machineAngles: pose.angles,
         machineContentHeight: game.excavatorScene.contentHeight,
         machineContentWidth: game.excavatorScene.contentWidth,
-      })
+      });
     } else if (game.questionModal) {
-      drawQuestionModal(context, game.questionModal, instructorImage)
+      drawQuestionModal(context, game.questionModal, instructorImage);
     }
   }, [
     game.activeEventId,
@@ -180,14 +195,14 @@ export function Phase1Canvas({
     instructorImage,
     pose.angles,
     showStartModal,
-  ])
+  ]);
 
   if (isPlaying && (!game.excavatorScene || !images)) {
-    return <p className="canvas-status">Carregando fase 1...</p>
+    return <p className="canvas-status">Carregando fase 1...</p>;
   }
 
-  const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale)
-  const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale)
+  const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
+  const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
 
   return (
     <div className="phase-layout">
@@ -196,8 +211,8 @@ export function Phase1Canvas({
           className="phase-canvas-frame"
           style={
             {
-              '--phase-canvas-width': `${scaledCanvasWidth}px`,
-              '--phase-canvas-height': `${scaledCanvasHeight}px`,
+              "--phase-canvas-width": `${scaledCanvasWidth}px`,
+              "--phase-canvas-height": `${scaledCanvasHeight}px`,
             } as CSSProperties
           }
         >
@@ -212,20 +227,20 @@ export function Phase1Canvas({
           className="phase-canvas-frame"
           style={
             {
-              '--phase-canvas-width': `${scaledCanvasWidth}px`,
-              '--phase-canvas-height': `${scaledCanvasHeight}px`,
+              "--phase-canvas-width": `${scaledCanvasWidth}px`,
+              "--phase-canvas-height": `${scaledCanvasHeight}px`,
             } as CSSProperties
           }
         >
           <Phase1PreGameScreen
             onPlay={() => {
-              setPhaseStep('playing')
-              setShowStartModal(true)
+              setPhaseStep("playing");
+              setShowStartModal(true);
             }}
-            onOpenEditor={() => onChangeView('editor')}
+            onOpenEditor={() => onChangeView("editor")}
           />
         </div>
       )}
     </div>
-  )
+  );
 }

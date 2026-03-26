@@ -1,12 +1,11 @@
 import {
-  EVENT_BUTTON,
-  EVENT_BUTTON_LABEL,
+  DIG_EVENT_KEYS_LABEL,
   LOW_TRACTION_SPEED,
+  PICKUP_EVENT_KEYS_LABEL,
   QUESTION_APPROACH_SLOWDOWN_DISTANCE,
   QUESTION_APPROACH_TARGET_SPEED,
   QUESTION_OPTION_DISPLAY_LABEL,
   QUESTION_OPTION_KEYS_LABEL,
-  TRACTION_TOGGLE_KEY,
   TRACTION_TOGGLE_KEY_LABEL,
 } from './config'
 import type {
@@ -24,7 +23,8 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     group: 'pickup',
     interaction: 'manual',
     visualOffset: 360,
-    key: EVENT_BUTTON,
+    acceptedCodes: ['KeyA', 'ArrowLeft'],
+    keyLabel: PICKUP_EVENT_KEYS_LABEL,
     title: 'Carregar carregadeira',
     description: 'Punhado de terra no caminho',
     hint: 'A carregadeira enche a frente sem mexer na traseira.',
@@ -45,7 +45,8 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     group: 'pickup',
     interaction: 'manual',
     visualOffset: 360,
-    key: EVENT_BUTTON,
+    acceptedCodes: ['KeyA', 'ArrowLeft'],
+    keyLabel: PICKUP_EVENT_KEYS_LABEL,
     title: 'Descarregar carregadeira',
     description: 'Caminhao esperando a frente',
     hint: 'Pare a maquina e descarregue a terra da frente.',
@@ -66,7 +67,8 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     group: 'dig',
     interaction: 'manual',
     visualOffset: -220,
-    key: EVENT_BUTTON,
+    acceptedCodes: ['KeyD', 'ArrowRight'],
+    keyLabel: DIG_EVENT_KEYS_LABEL,
     title: 'Carregar retroescavadeira',
     description: 'Ponto de escavacao atras',
     hint: 'A retroescavadeira carrega a traseira e persiste no final.',
@@ -87,7 +89,8 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     group: 'dig',
     interaction: 'manual',
     visualOffset: -220,
-    key: EVENT_BUTTON,
+    acceptedCodes: ['KeyD', 'ArrowRight'],
+    keyLabel: DIG_EVENT_KEYS_LABEL,
     title: 'Descarregar retroescavadeira',
     description: 'Vala para descarregar atras',
     hint: 'A retro abre e descarrega atras sem mexer na frente.',
@@ -112,7 +115,8 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: 'Lamacal no caminho',
     hint: 'Use o bloqueio de diferencial no trecho escorregadio.',
     successMessage: 'Trecho vencido com o bloqueio de diferencial.',
-    toggleKey: TRACTION_TOGGLE_KEY,
+    toggleCodes: ['KeyS', 'ArrowDown'],
+    toggleKeyLabel: TRACTION_TOGGLE_KEY_LABEL,
     activeSpeed: LOW_TRACTION_SPEED,
     drainPerFrame: 1,
     rewardPerFrame: 1,
@@ -162,11 +166,11 @@ export function isQuestionEventDefinition(
 
 export function getEventActivationMessage(definition: EventDefinition) {
   if (isManualEventDefinition(definition)) {
-    return `${definition.title}: pressione ${EVENT_BUTTON_LABEL}.`
+    return `${definition.title}: pressione ${definition.keyLabel}.`
   }
 
   if (isTractionEventDefinition(definition)) {
-    return `${definition.title}: use ${TRACTION_TOGGLE_KEY_LABEL} no trecho.`
+    return `${definition.title}: use ${definition.toggleKeyLabel} no trecho.`
   }
 
   return `${definition.title}: responda com ${QUESTION_OPTION_KEYS_LABEL}.`

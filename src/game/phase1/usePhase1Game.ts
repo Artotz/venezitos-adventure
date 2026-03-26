@@ -9,9 +9,19 @@ import {
 
 import { getAnimationTotalDuration } from '../retro/animations'
 import { measureBaseExcavator } from '../retro/render'
+import {
+  createAnimationSoundPlayer,
+  getAnimationSoundCuesAtTime,
+  getAnimationSoundCuesInRange,
+  type AnimationSoundPlayer,
+} from '../retro/sounds'
 import { useRetroSprites } from '../retro/sprites'
 import type { ActiveAnimation, AnimationPresetId } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
+import {
+  createPhase1SoundPlayer,
+  type Phase1SoundPlayer,
+} from './sounds'
 import {
   BASE_SPEED,
   EVENT_HITBOX_HALF_WIDTH,
@@ -20,7 +30,6 @@ import {
   PLAYER_HIT_LINE_X,
   QUESTION_MODAL_OPEN_SPEED_THRESHOLD,
   TRACTION_SCORE_LENIENCY_MARGIN,
-  TRACTION_TOGGLE_KEY,
 } from './config'
 import {
   getEventActivationMessage,
@@ -48,22 +57,10 @@ import type { MapEvent, QuestionModalState } from './types'
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events()
 
-function normalizePressedKey(event: KeyboardEvent) {
-  if (event.code === 'Space') {
-    return 'Space'
-  }
-
-  if (event.key.length === 1) {
-    return event.key.toUpperCase()
-  }
-
-  return event.key
-}
-
 export function usePhase1Game(enabled = true) {
   const sprites = useRetroSprites()
   const [distance, setDistance] = useState(0)
-  const [speed, setSpeed] = useState(BASE_SPEED)
+  const [speed, setSpeed] = useState(0)
   const [score, setScore] = useState(0)
   const [hits, setHits] = useState(0)
   const [fails, setFails] = useState(0)
@@ -87,12 +84,15 @@ export function usePhase1Game(enabled = true) {
   const rearLoadedRef = useRef(false)
   const frontAnimationRef = useRef<ActiveAnimation | null>(null)
   const rearAnimationRef = useRef<ActiveAnimation | null>(null)
-  const currentSpeedRef = useRef(BASE_SPEED)
+  const currentSpeedRef = useRef(0)
   const distanceRef = useRef(0)
   const differentialLockEnabledRef = useRef(false)
   const questionModalRef = useRef<QuestionModalState | null>(null)
   const questionCursorRef = useRef(0)
   const tractionBoostFrameCountRef = useRef(0)
+  const animationSoundPlayerRef = useRef<AnimationSoundPlayer | null>(null)
+  const phase1SoundPlayerRef = useRef<Phase1SoundPlayer | null>(null)
+  const startupLockedRef = useRef(true)
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -124,6 +124,24 @@ export function usePhase1Game(enabled = true) {
     tractionBoostFrameCountRef.current = 0
     setQuestionModalState(null)
   }
+
+  const playAnimationSoundCues = (
+    soundCues: ReturnType<typeof getAnimationSoundCuesInRange>,
+  ) => {
+    if (soundCues.length === 0) {
+      return
+    }
+
+    for (const soundCue of soundCues) {
+      animationSoundPlayerRef.current?.playSound(
+        soundCue.soundId,
+        soundCue.volume,
+      )
+    }
+  }
+
+  const playPhase1Sound = (soundId: 'engine-start' | 'mud' | 'success' | 'failure') =>
+    phase1SoundPlayerRef.current?.playSound(soundId, 0.3) ?? null
 
   const resolveEvent = (
     eventId: number,
@@ -179,6 +197,7 @@ export function usePhase1Game(enabled = true) {
       lockMovement,
       onComplete,
     }
+    playAnimationSoundCues(getAnimationSoundCuesAtTime(presetId, 0))
     syncAnimationLabel()
   }
 
@@ -221,6 +240,62 @@ export function usePhase1Game(enabled = true) {
     activeEventIdRef.current = activeEventId
   }, [activeEventId])
 
+  useEffect(() => {
+    const soundPlayer = createAnimationSoundPlayer()
+
+    animationSoundPlayerRef.current = soundPlayer
+
+    return () => {
+      soundPlayer.dispose()
+
+      if (animationSoundPlayerRef.current === soundPlayer) {
+        animationSoundPlayerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const soundPlayer = createPhase1SoundPlayer()
+
+    phase1SoundPlayerRef.current = soundPlayer
+
+    return () => {
+      soundPlayer.dispose()
+
+      if (phase1SoundPlayerRef.current === soundPlayer) {
+        phase1SoundPlayerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    startupLockedRef.current = true
+    currentSpeedRef.current = 0
+    setSpeed(0)
+
+    let cancelled = false
+    const playback = playPhase1Sound('engine-start')
+
+    if (!playback) {
+      startupLockedRef.current = false
+      return
+    }
+
+    void playback.done.finally(() => {
+      if (!cancelled) {
+        startupLockedRef.current = false
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [enabled])
+
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (!enabled) {
       return
@@ -244,6 +319,7 @@ export function usePhase1Game(enabled = true) {
       if (
         isCorrectQuestionAnswer(openQuestionModal.question, selectedDirection)
       ) {
+        playPhase1Sound('success')
         resolveEvent(
           openQuestionModal.eventId,
           openQuestionModal.question.successMessage,
@@ -254,6 +330,7 @@ export function usePhase1Game(enabled = true) {
         return
       }
 
+      playPhase1Sound('failure')
       failEvent(
         openQuestionModal.eventId,
         openQuestionModal.question.failureMessage,
@@ -264,9 +341,12 @@ export function usePhase1Game(enabled = true) {
       return
     }
 
-    const pressedKey = normalizePressedKey(event)
+    const tractionDefinition = getTractionEventDefinition()
 
-    if (pressedKey === TRACTION_TOGGLE_KEY && !event.repeat) {
+    if (
+      tractionDefinition.toggleCodes.includes(event.code) &&
+      !event.repeat
+    ) {
       event.preventDefault()
       const nextEnabled = !differentialLockEnabledRef.current
       setDifferentialLockState(nextEnabled)
@@ -296,7 +376,7 @@ export function usePhase1Game(enabled = true) {
       return
     }
 
-    if (pressedKey !== eventDefinition.key) {
+    if (!eventDefinition.acceptedCodes.includes(event.code)) {
       return
     }
 
@@ -378,7 +458,16 @@ export function usePhase1Game(enabled = true) {
         return
       }
 
+      const previousElapsed = animation.elapsed
+
       animation.elapsed += dt * 1000
+      playAnimationSoundCues(
+        getAnimationSoundCuesInRange(
+          animation.presetId,
+          previousElapsed,
+          animation.elapsed,
+        ),
+      )
 
       if (animation.elapsed >= getAnimationTotalDuration(animation.presetId)) {
         const onComplete = animation.onComplete
@@ -400,6 +489,10 @@ export function usePhase1Game(enabled = true) {
     }
 
     let targetSpeed = BASE_SPEED
+
+    if (startupLockedRef.current) {
+      targetSpeed = 0
+    }
 
     if (
       activeEventDefinition &&
@@ -521,6 +614,10 @@ export function usePhase1Game(enabled = true) {
           rearLoadedRef.current,
         )
         setMessage(getEventActivationMessage(eventInfo))
+
+        if (isTractionEventDefinition(eventInfo)) {
+          playPhase1Sound('mud')
+        }
 
         if (isQuestionEventDefinition(eventInfo)) {
           setMessage('Parando para a pergunta do instrutor...')

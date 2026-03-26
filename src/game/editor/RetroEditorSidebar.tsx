@@ -1,5 +1,6 @@
 import { AnimationControls } from './AnimationControls'
 import { PoseControls } from './PoseControls'
+import { SoundControls } from './SoundControls'
 import type { useRetroEditor } from './useRetroEditor'
 
 type RetroEditorSidebarProps = {
@@ -15,7 +16,7 @@ export function RetroEditorSidebar({ editor }: RetroEditorSidebarProps) {
           onAngleChange={editor.handleAngleChange}
           onReset={editor.resetPose}
         />
-      ) : (
+      ) : editor.activeTab === 'animations' ? (
         <AnimationControls
           selectedAnimationId={editor.selectedAnimationId}
           selectedAnimation={editor.selectedAnimation}
@@ -26,6 +27,8 @@ export function RetroEditorSidebar({ editor }: RetroEditorSidebarProps) {
           onTimelineChange={editor.handleTimelineChange}
           onTogglePlayback={editor.togglePlayback}
         />
+      ) : (
+        <SoundControls />
       )}
     </div>
   )

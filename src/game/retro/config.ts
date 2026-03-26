@@ -8,10 +8,10 @@ import type {
 export const ROOT_LAYER: LayerName = "Camada 3.png";
 
 export const DRAW_ORDER: LayerName[] = [
+  "Camada 6.png",
   "Camada 3.png",
   "Camada 1.png",
   "Camada 2.png",
-  "Camada 6.png",
   "Camada 7.png",
   "Camada 8.png",
   "Camada 4.png",

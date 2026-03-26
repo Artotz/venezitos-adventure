@@ -15,13 +15,14 @@ import type {
   LayerName,
 } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
+import type { EditorTab } from './types'
 
 export function useRetroEditor() {
   const [basePose, setBasePose] = useState<ExcavatorPose>({
     angles: { ...BASE_ANGLES },
     sprites: { ...BASE_SPRITES },
   })
-  const [activeTab, setActiveTab] = useState<'poses' | 'animations'>('poses')
+  const [activeTab, setActiveTab] = useState<EditorTab>('poses')
   const [selectedAnimationId, setSelectedAnimationId] =
     useState<AnimationPresetId>(ANIMATION_PRESETS[0]?.id ?? 'idle')
   const [isPlaying, setIsPlaying] = useState(false)

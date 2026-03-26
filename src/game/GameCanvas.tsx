@@ -14,7 +14,11 @@ import {
 import { useRetroSprites } from './retro/sprites'
 import { CANVAS_HEIGHT, CANVAS_WIDTH, GROUND_Y } from './phase1/config'
 import { EditorTabs } from './editor/EditorTabs'
-import { drawPhase1Backdrop, drawPhase1Environment } from './phase1/render'
+import {
+  drawPhase1Backdrop,
+  drawPhase1Environment,
+  drawPhase1Foreground,
+} from './phase1/render'
 import { ModeTabs } from './ModeTabs'
 import { RetroEditorSidebar } from './editor/RetroEditorSidebar'
 import { useRetroEditor } from './editor/useRetroEditor'
@@ -86,6 +90,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       rearLoaded: false,
     })
     drawExcavator(context, images, worldMatrices)
+    drawPhase1Foreground(context, 0)
   }, [editor.displayPose, excavatorScene, images])
 
   if (!excavatorScene || !images) {

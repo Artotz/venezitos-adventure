@@ -1,6 +1,8 @@
+import type { EditorTab } from './types'
+
 type EditorTabsProps = {
-  activeTab: 'poses' | 'animations'
-  onChange: (tab: 'poses' | 'animations') => void
+  activeTab: EditorTab
+  onChange: (tab: EditorTab) => void
 }
 
 export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
@@ -23,6 +25,15 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         onClick={() => onChange('animations')}
       >
         Animacoes
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeTab === 'sounds'}
+        className={`tab-button${activeTab === 'sounds' ? ' is-active' : ''}`}
+        onClick={() => onChange('sounds')}
+      >
+        Sons
       </button>
     </div>
   )

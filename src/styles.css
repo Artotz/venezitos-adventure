@@ -149,7 +149,8 @@ h1 {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
   border-radius: 14px;
@@ -185,6 +186,11 @@ h1 {
 .animation-controls {
   max-height: 520px;
   overflow: hidden;
+}
+
+.sound-controls {
+  max-height: 520px;
+  overflow: auto;
 }
 
 .controls-header {
@@ -244,6 +250,47 @@ h1 {
   color: #f4f1e8;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.sound-section {
+  display: grid;
+  gap: 10px;
+}
+
+.sound-section h3 {
+  font-size: 0.88rem;
+  color: #f0cb75;
+}
+
+.sound-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sound-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.sound-card-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.sound-card-copy strong {
+  color: #f4f1e8;
+}
+
+.sound-card-copy span {
+  color: #d6c7b1;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
 }
 
 .animation-select {
@@ -342,8 +389,8 @@ h1 {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(22, 15, 11, 0.98) 0%, rgba(22, 15, 11, 0.84) 18%, rgba(22, 15, 11, 0.18) 52%, transparent 78%),
-    radial-gradient(circle at 72% 44%, rgba(240, 203, 117, 0.18), transparent 42%);
+    radial-gradient(circle at 72% 44%, rgba(240, 203, 117, 0.18), transparent 42%),
+    linear-gradient(180deg, transparent 0%, rgba(22, 15, 11, 0.16) 100%);
 }
 
 .phase-pre-game-hero-image {
@@ -355,6 +402,11 @@ h1 {
   object-fit: contain;
   object-position: right bottom;
   filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.38));
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.28) 16%, rgba(0, 0, 0, 0.84) 34%, #000 50%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.28) 16%, rgba(0, 0, 0, 0.84) 34%, #000 50%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  max-width: none;
 }
 
 .phase-pre-game-eyebrow {

@@ -26,6 +26,7 @@ import {
   drawCenterGuide,
   drawPhase1Backdrop,
   drawPhase1Environment,
+  drawPhase1Foreground,
   drawPhase1Hud,
   drawPhase1StartModal,
   drawPhase1SpeechModal,
@@ -153,6 +154,7 @@ export function Phase1Canvas({
       rearLoaded: game.rearLoaded,
     });
     drawExcavator(context, images, worldMatrices);
+    drawPhase1Foreground(context, game.distance);
     drawCenterGuide(
       context,
       PLAYER_HIT_LINE_X,

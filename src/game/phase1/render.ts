@@ -95,6 +95,12 @@ export function drawPhase1Environment({
     rearLoaded,
   );
   drawGround(context, distance, events, activeEventId, loadedDirt, rearLoaded);
+}
+
+export function drawPhase1Foreground(
+  context: CanvasRenderingContext2D,
+  distance: number,
+) {
   drawForeground(context, distance);
 }
 

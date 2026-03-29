@@ -193,6 +193,11 @@ h1 {
   overflow: auto;
 }
 
+.points-controls {
+  max-height: 520px;
+  overflow: auto;
+}
+
 .controls-header {
   display: flex;
   align-items: center;
@@ -250,6 +255,86 @@ h1 {
   color: #f4f1e8;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.points-help {
+  color: #d6c7b1;
+  font-size: 0.92rem;
+}
+
+.points-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.points-summary strong {
+  color: #f0cb75;
+  font-size: 1.2rem;
+}
+
+.points-summary span {
+  color: #d6c7b1;
+}
+
+.point-list {
+  display: grid;
+  gap: 10px;
+}
+
+.point-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.point-card-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.point-card-copy strong {
+  color: #f4f1e8;
+}
+
+.point-card-copy code,
+.point-export code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #f4f1e8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.point-export {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+}
+
+.point-export span {
+  color: #d6c7b1;
+  font-size: 0.84rem;
+}
+
+.empty-state {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.04);
+  border: 1px solid rgba(255, 248, 220, 0.08);
+  color: #d6c7b1;
 }
 
 .sound-section {

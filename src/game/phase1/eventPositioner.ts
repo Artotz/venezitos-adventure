@@ -21,9 +21,9 @@ type EventSpawnSlot = {
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
   { group: "question", hitboxX: 700 },
-  { group: "pickup", hitboxX: 2050 },
-  { group: "dig", hitboxX: 2720 },
-  { group: "pickup", hitboxX: 4980 },
+  { group: "question", hitboxX: 2050 },
+  { group: "question", hitboxX: 2720 },
+  { group: "question", hitboxX: 4980 },
   { group: "traction", hitboxX: 6150 },
   { group: "dig", hitboxX: 7350 },
   { group: "pickup", hitboxX: 8520 },
@@ -233,7 +233,7 @@ export function syncInfiniteEventStream(
     distance,
     loadedDirt,
     rearLoaded,
-  )
+  );
 }
 
 export function getEventHitboxHalfWidth(
@@ -241,9 +241,8 @@ export function getEventHitboxHalfWidth(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  return getEventDefinition(
-    resolveMapEventType(event, loadedDirt, rearLoaded),
-  ).hitboxHalfWidth
+  return getEventDefinition(resolveMapEventType(event, loadedDirt, rearLoaded))
+    .hitboxHalfWidth;
 }
 
 export function isWithinEventHitZone(
@@ -251,9 +250,7 @@ export function isWithinEventHitZone(
   hitboxHalfWidth: number,
   extraMargin = 0,
 ) {
-  return (
-    Math.abs(screenX - PLAYER_HIT_LINE_X) <= hitboxHalfWidth + extraMargin
-  )
+  return Math.abs(screenX - PLAYER_HIT_LINE_X) <= hitboxHalfWidth + extraMargin;
 }
 
 export function isWithinTractionScoreLeniencyZone(
@@ -263,15 +260,15 @@ export function isWithinTractionScoreLeniencyZone(
 ) {
   return events.some((event) => {
     if (event.group !== "traction") {
-      return false
+      return false;
     }
 
     return isWithinEventHitZone(
       getEventHitboxScreenX(event, distance),
       getEventDefinition("traction").hitboxHalfWidth,
       extraMargin,
-    )
-  })
+    );
+  });
 }
 
 export function describeMapEvent(

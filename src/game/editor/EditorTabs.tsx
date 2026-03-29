@@ -35,6 +35,15 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
       >
         Sons
       </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeTab === 'points'}
+        className={`tab-button${activeTab === 'points' ? ' is-active' : ''}`}
+        onClick={() => onChange('points')}
+      >
+        Pontos
+      </button>
     </div>
   )
 }

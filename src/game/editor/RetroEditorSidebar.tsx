@@ -1,4 +1,5 @@
 import { AnimationControls } from './AnimationControls'
+import { PointsControls } from './PointsControls'
 import { PoseControls } from './PoseControls'
 import { SoundControls } from './SoundControls'
 import type { useRetroEditor } from './useRetroEditor'
@@ -26,6 +27,12 @@ export function RetroEditorSidebar({ editor }: RetroEditorSidebarProps) {
           onAnimationChange={editor.handleAnimationChange}
           onTimelineChange={editor.handleTimelineChange}
           onTogglePlayback={editor.togglePlayback}
+        />
+      ) : editor.activeTab === 'points' ? (
+        <PointsControls
+          points={editor.points}
+          onClear={editor.clearPoints}
+          onRemove={editor.removePoint}
         />
       ) : (
         <SoundControls />

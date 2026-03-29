@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 
 import {
+  applyToPoint,
   computeWorldMatrices,
   createScaleMatrix,
   createTranslationMatrix,
@@ -56,10 +57,30 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
     [editor.displayPose.sprites, sprites],
   );
 
+  const machineRootMatrix = useMemo(() => {
+    if (!excavatorScene) {
+      return null;
+    }
+
+    const scaledMachineWidth =
+      excavatorScene.contentWidth * EDITOR_MACHINE_SCALE;
+    const scaledMachineHeight =
+      excavatorScene.contentHeight * EDITOR_MACHINE_SCALE;
+    const machineY = GROUND_Y - scaledMachineHeight + 120;
+
+    return multiplyMatrices(
+      createTranslationMatrix(
+        EDITOR_CANVAS_WIDTH / 2 - scaledMachineWidth / 2,
+        machineY,
+      ),
+      createScaleMatrix(EDITOR_MACHINE_SCALE, EDITOR_MACHINE_SCALE),
+    );
+  }, [excavatorScene]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!canvas || !images || !excavatorScene) {
+    if (!canvas || !images || !excavatorScene || !machineRootMatrix) {
       return;
     }
 
@@ -72,20 +93,9 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       return;
     }
 
-    const scaledMachineWidth =
-      excavatorScene.contentWidth * EDITOR_MACHINE_SCALE;
-    const scaledMachineHeight =
-      excavatorScene.contentHeight * EDITOR_MACHINE_SCALE;
-    const machineY = GROUND_Y - scaledMachineHeight + 120;
     const worldMatrices = computeWorldMatrices(
       editor.displayPose.angles,
-      multiplyMatrices(
-        createTranslationMatrix(
-          EDITOR_CANVAS_WIDTH / 2 - scaledMachineWidth / 2,
-          machineY,
-        ),
-        createScaleMatrix(EDITOR_MACHINE_SCALE, EDITOR_MACHINE_SCALE),
-      ),
+      machineRootMatrix,
     );
 
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -111,15 +121,78 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       foregroundImage,
       pickupUnloadTruckImage,
     });
+
+    if (editor.points.length > 0) {
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.textBaseline = "bottom";
+      context.font = '14px Consolas, "Courier New", monospace';
+
+      editor.points.forEach((point, index) => {
+        const canvasPoint = applyToPoint(machineRootMatrix, point);
+
+        context.strokeStyle = "#0b0b0b";
+        context.lineWidth = 3;
+        context.beginPath();
+        context.moveTo(canvasPoint.x - 8, canvasPoint.y);
+        context.lineTo(canvasPoint.x + 8, canvasPoint.y);
+        context.moveTo(canvasPoint.x, canvasPoint.y - 8);
+        context.lineTo(canvasPoint.x, canvasPoint.y + 8);
+        context.stroke();
+
+        context.strokeStyle = "#f0cb75";
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(canvasPoint.x - 8, canvasPoint.y);
+        context.lineTo(canvasPoint.x + 8, canvasPoint.y);
+        context.moveTo(canvasPoint.x, canvasPoint.y - 8);
+        context.lineTo(canvasPoint.x, canvasPoint.y + 8);
+        context.stroke();
+
+        const label = `P${index + 1} (${point.x}, ${point.y})`;
+        context.fillStyle = "rgba(11, 11, 11, 0.82)";
+        const textWidth = context.measureText(label).width;
+        context.fillRect(canvasPoint.x + 10, canvasPoint.y - 22, textWidth + 10, 18);
+        context.fillStyle = "#f4f1e8";
+        context.fillText(label, canvasPoint.x + 15, canvasPoint.y - 8);
+      });
+
+      context.restore();
+    }
   }, [
     carnaubaImage,
     editor.displayPose,
+    editor.points,
     excavatorScene,
     foregroundImage,
     groundImage,
     images,
+    machineRootMatrix,
     pickupUnloadTruckImage,
   ]);
+
+  const handleCanvasClick = (event: MouseEvent<HTMLCanvasElement>) => {
+    if (editor.activeTab !== "points" || !machineRootMatrix) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = (event.clientX - rect.left) * scaleX;
+    const canvasY = (event.clientY - rect.top) * scaleY;
+
+    editor.addPoint({
+      x: (canvasX - machineRootMatrix.e) / machineRootMatrix.a,
+      y: (canvasY - machineRootMatrix.f) / machineRootMatrix.d,
+    });
+  };
 
   if (!excavatorScene || !images) {
     return <p className="canvas-status">Carregando camadas retro...</p>;
@@ -143,6 +216,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
             ref={canvasRef}
             className="game-canvas"
             aria-label="Editor da retroescavadeira usando as mesmas poses e animacoes da fase 1"
+            onClick={handleCanvasClick}
           />
         </div>
       </div>

@@ -1,28 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
-import instructorSrc from '../../assets/venezito.png'
-import { loadImage } from '../loadImage'
+import instructorSrc from "../../assets/venezito/venezito.png";
+import { loadImage } from "../loadImage";
 
 export function usePhase1InstructorImage() {
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
     loadImage(instructorSrc)
       .then((loadedImage) => {
         if (!cancelled) {
-          setImage(loadedImage)
+          setImage(loadedImage);
         }
       })
       .catch((error: unknown) => {
-        console.error('Falha ao carregar o instrutor da fase 1.', error)
-      })
+        console.error("Falha ao carregar o instrutor da fase 1.", error);
+      });
 
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
-  return image
+  return image;
 }

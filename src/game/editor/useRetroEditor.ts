@@ -15,7 +15,7 @@ import type {
   LayerName,
 } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
-import type { EditorTab } from './types'
+import type { EditorPoint, EditorTab } from './types'
 
 export function useRetroEditor() {
   const [basePose, setBasePose] = useState<ExcavatorPose>({
@@ -27,6 +27,7 @@ export function useRetroEditor() {
     useState<AnimationPresetId>(ANIMATION_PRESETS[0]?.id ?? 'idle')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [points, setPoints] = useState<EditorPoint[]>([])
 
   const selectedAnimation = useMemo(
     () =>
@@ -109,6 +110,25 @@ export function useRetroEditor() {
     setIsPlaying(false)
   }
 
+  const addPoint = (point: { x: number; y: number }) => {
+    setPoints((current) => [
+      ...current,
+      {
+        id: `point-${current.length + 1}-${Date.now()}`,
+        x: Math.round(point.x),
+        y: Math.round(point.y),
+      },
+    ])
+  }
+
+  const removePoint = (id: string) => {
+    setPoints((current) => current.filter((point) => point.id !== id))
+  }
+
+  const clearPoints = () => {
+    setPoints([])
+  }
+
   return {
     activeTab,
     setActiveTab,
@@ -124,5 +144,9 @@ export function useRetroEditor() {
     handleTimelineChange,
     togglePlayback,
     resetPose,
+    points,
+    addPoint,
+    removePoint,
+    clearPoints,
   }
 }

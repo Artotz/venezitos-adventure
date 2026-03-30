@@ -51,7 +51,9 @@ import {
 } from "./questionModal";
 import { createQuestionFeedbackModal } from "./dialogue";
 import { PHASE1_CONTINUE_CODES } from "./config";
+import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
 import type {
+  GreaseAnimationState,
   MapEvent,
   Phase1SpeechModalState,
   QuestionModalState,
@@ -89,6 +91,7 @@ export function usePhase1Game(enabled = true) {
   const rearLoadedRef = useRef(false);
   const frontAnimationRef = useRef<ActiveAnimation | null>(null);
   const rearAnimationRef = useRef<ActiveAnimation | null>(null);
+  const greaseAnimationRef = useRef<GreaseAnimationState | null>(null);
   const currentSpeedRef = useRef(0);
   const distanceRef = useRef(0);
   const differentialLockEnabledRef = useRef(false);
@@ -109,6 +112,7 @@ export function usePhase1Game(enabled = true) {
     const labels = [
       frontAnimationRef.current?.label,
       rearAnimationRef.current?.label,
+      greaseAnimationRef.current ? "Aplicando graxa" : null,
     ].filter(Boolean);
 
     setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
@@ -431,17 +435,29 @@ export function usePhase1Game(enabled = true) {
       return;
     }
 
+    if (eventDefinition.animation.kind === "grease") {
+      greaseAnimationRef.current = {
+        elapsed: 0,
+        durationMs:
+          eventDefinition.animation.durationMs || getGreaseAnimationTotalDuration(),
+      };
+      syncAnimationLabel();
+      return;
+    }
+
+    const retroAnimation = eventDefinition.animation;
+
     const animationTarget =
-      eventDefinition.animation.target === "front"
+      retroAnimation.target === "front"
         ? frontAnimationRef
         : rearAnimationRef;
 
     startAnimation(
       animationTarget,
-      eventDefinition.animation.presetId,
-      eventDefinition.animation.label,
-      eventDefinition.animation.lockMovement,
-      () => applyLoadStatePatch(eventDefinition.animation?.loadStateOnComplete),
+      retroAnimation.presetId,
+      retroAnimation.label,
+      retroAnimation.lockMovement,
+      () => applyLoadStatePatch(retroAnimation.loadStateOnComplete),
     );
   });
 
@@ -516,7 +532,22 @@ export function usePhase1Game(enabled = true) {
       rearAnimationRef.current = null;
     });
 
-    if (frontAnimationRef.current || rearAnimationRef.current) {
+    if (greaseAnimationRef.current) {
+      greaseAnimationRef.current.elapsed += dt * 1000;
+
+      if (
+        greaseAnimationRef.current.elapsed >= greaseAnimationRef.current.durationMs
+      ) {
+        greaseAnimationRef.current = null;
+        syncAnimationLabel();
+      }
+    }
+
+    if (
+      frontAnimationRef.current ||
+      rearAnimationRef.current ||
+      greaseAnimationRef.current
+    ) {
       setAnimationTick((current) => current + 1);
     }
 
@@ -576,7 +607,8 @@ export function usePhase1Game(enabled = true) {
 
     if (
       frontAnimationRef.current?.lockMovement ||
-      rearAnimationRef.current?.lockMovement
+      rearAnimationRef.current?.lockMovement ||
+      greaseAnimationRef.current
     ) {
       targetSpeed = 0;
     }
@@ -763,6 +795,7 @@ export function usePhase1Game(enabled = true) {
     animationTick,
     activeAnimationLabel,
     frontAnimationRef,
+    greaseAnimationElapsed: greaseAnimationRef.current?.elapsed ?? null,
     rearAnimationRef,
   };
 }

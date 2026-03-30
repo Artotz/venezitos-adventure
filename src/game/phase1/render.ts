@@ -10,12 +10,17 @@ import {
 import { getEventDefinition } from "./eventCatalog";
 import { drawExcavator } from "../retro/render";
 import {
+  applyToPoint,
   computeWorldMatrices,
   createScaleMatrix,
   createTranslationMatrix,
   multiplyMatrices,
 } from "../retro/geometry";
-import type { LayerName } from "../retro/types";
+import type { LayerName, Matrix2D, Point } from "../retro/types";
+import {
+  GREASE_SPRITE_HEIGHT,
+  getGreaseAnimationPose,
+} from "./greaseAnimation";
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
@@ -55,6 +60,14 @@ type Phase1HudParams = {
   score: number;
   distance: number;
   differentialLockEnabled: boolean;
+};
+
+type Phase1GreaseAnimationParams = {
+  context: CanvasRenderingContext2D;
+  greaseAnimationElapsed: number | null;
+  greaseImage?: HTMLImageElement | null;
+  machineRootMatrix: Matrix2D;
+  pointProjector?: (matrix: Matrix2D, point: Point) => Point;
 };
 
 type Phase1ModalLayout = {
@@ -173,6 +186,42 @@ export function drawCenterGuide(
   context.moveTo(centerX, topY);
   context.lineTo(centerX, bottomY);
   context.stroke();
+  context.restore();
+}
+
+export function drawPhase1GreaseAnimation({
+  context,
+  greaseAnimationElapsed,
+  greaseImage,
+  machineRootMatrix,
+  pointProjector = applyToPoint,
+}: Phase1GreaseAnimationParams) {
+  if (
+    greaseAnimationElapsed === null ||
+    !greaseImage ||
+    !greaseImage.naturalWidth ||
+    !greaseImage.naturalHeight
+  ) {
+    return;
+  }
+
+  const pose = getGreaseAnimationPose(greaseAnimationElapsed);
+
+  if (!pose) {
+    return;
+  }
+
+  const canvasPoint = pointProjector(machineRootMatrix, pose.point);
+  const drawHeight = GREASE_SPRITE_HEIGHT;
+  const drawWidth =
+    (greaseImage.naturalWidth / greaseImage.naturalHeight) * drawHeight;
+
+  context.save();
+  context.translate(canvasPoint.x, canvasPoint.y + pose.offsetY);
+  context.rotate(pose.rotation);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(greaseImage, -drawWidth / 2, -drawHeight, drawWidth, drawHeight);
   context.restore();
 }
 
@@ -478,8 +527,8 @@ export function drawPhase1StartModal({
     260,
     82,
     "W",
-    "Nao faz nada",
-    "Ainda nao foi atribuido.",
+    "Grease",
+    "Pausa para aplicacao de graxa.",
   );
   drawInstructionCard(
     context,
@@ -760,6 +809,16 @@ function drawBackground(
         event.id === activeEventId,
       );
     }
+
+    if (eventType === "grease") {
+      drawGreaseMarker(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        event.id === activeEventId,
+      );
+    }
   }
 }
 
@@ -842,6 +901,10 @@ function drawGround(
 
     if (eventType === "traction") {
       drawMudPatch(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+    }
+
+    if (eventType === "grease") {
+      drawGreaseStation(context, visualX, hitboxX, hitboxHalfWidth, isActive);
     }
   }
 }
@@ -1361,6 +1424,26 @@ function drawMudPatch(
   context.restore();
 }
 
+function drawGreaseStation(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  hitboxHalfWidth: number,
+  isActive: boolean,
+) {
+  context.save();
+  context.fillStyle = "#714d1f";
+  context.fillRect(visualX - 38, GROUND_Y - 4, 76, 22);
+  context.fillStyle = "#c98b2d";
+  context.fillRect(visualX - 16, GROUND_Y - 54, 32, 52);
+  context.fillStyle = "#2b1c0f";
+  context.fillRect(visualX - 6, GROUND_Y - 42, 12, 22);
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 70, 92);
+  context.restore();
+}
+
 function drawRearDitch(
   context: CanvasRenderingContext2D,
   visualX: number,
@@ -1491,6 +1574,35 @@ function drawSignage(
     hitboxHalfWidth,
     GROUND_Y - 174,
     204,
+  );
+  context.restore();
+}
+
+function drawGreaseMarker(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  hitboxHalfWidth: number,
+  isActive: boolean,
+) {
+  context.save();
+  context.fillStyle = "#e7e3cc";
+  context.fillRect(visualX - 8, GROUND_Y - 120, 16, 122);
+  context.fillStyle = isActive ? "#c98b2d" : "#7d5b28";
+  context.beginPath();
+  context.roundRect(visualX - 64, GROUND_Y - 188, 128, 62, 18);
+  context.fill();
+  context.fillStyle = "#fff3d7";
+  context.font = '700 22px "Segoe UI", sans-serif';
+  context.fillText("GRAXA", visualX - 40, GROUND_Y - 149);
+  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+  context.lineWidth = 2;
+  drawEventHitboxOutline(
+    context,
+    hitboxX,
+    hitboxHalfWidth,
+    GROUND_Y - 192,
+    216,
   );
   context.restore();
 }

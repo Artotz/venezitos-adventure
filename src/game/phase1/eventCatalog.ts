@@ -1,5 +1,6 @@
 import {
   DIG_EVENT_KEYS_LABEL,
+  GREASE_EVENT_KEYS_LABEL,
   LOW_TRACTION_SPEED,
   PICKUP_EVENT_KEYS_LABEL,
   QUESTION_APPROACH_SLOWDOWN_DISTANCE,
@@ -8,6 +9,7 @@ import {
   QUESTION_OPTION_KEYS_LABEL,
   TRACTION_TOGGLE_KEY_LABEL,
 } from "./config";
+import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
 import type {
   EventDefinition,
   ManualEventDefinition,
@@ -32,6 +34,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     successMessage: "Terra apanhada. A cacamba esta carregada.",
     reward: 180,
     animation: {
+      kind: "retro-preset",
       target: "front",
       presetId: "idle",
       label: "Ciclo de cacamba 1",
@@ -55,6 +58,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     successMessage: "Terra descarregada no caminhao.",
     reward: 180,
     animation: {
+      kind: "retro-preset",
       target: "front",
       presetId: "idle2",
       label: "Ciclo de cacamba 2",
@@ -78,6 +82,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     successMessage: "Retroescavadeira carregada atras.",
     reward: 180,
     animation: {
+      kind: "retro-preset",
       target: "rear",
       presetId: "arm-extended",
       label: "Braco estendido",
@@ -101,6 +106,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     successMessage: "Retroescavadeira descarregada na vala.",
     reward: 180,
     animation: {
+      kind: "retro-preset",
       target: "rear",
       presetId: "arm-unload",
       label: "Descarregando traseira",
@@ -108,6 +114,26 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
       loadStateOnComplete: {
         rearLoaded: false,
       },
+    },
+  },
+  grease: {
+    type: "grease",
+    group: "grease",
+    interaction: "manual",
+    visualOffset: 40,
+    hitboxHalfWidth: 92,
+    acceptedCodes: ["KeyW", "ArrowUp"],
+    keyLabel: GREASE_EVENT_KEYS_LABEL,
+    title: "Aplicar graxa",
+    description: "Ponto de lubrificacao no caminho",
+    hint: "A maquina desacelera, para para a graxa e retoma depois.",
+    successMessage: "Graxa aplicada. Volte para a operacao.",
+    reward: 180,
+    animation: {
+      kind: "grease",
+      label: "Aplicando graxa",
+      lockMovement: true,
+      durationMs: getGreaseAnimationTotalDuration(),
     },
   },
   traction: {

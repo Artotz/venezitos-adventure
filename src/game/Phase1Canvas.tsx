@@ -8,6 +8,7 @@ import {
 
 import { buildPhase1Pose } from "./retro/animations";
 import {
+  applyToPoint,
   computeWorldMatrices,
   createTranslationMatrix,
 } from "./retro/geometry";
@@ -27,6 +28,7 @@ import {
   drawPhase1Backdrop,
   drawPhase1Environment,
   drawPhase1Foreground,
+  drawPhase1GreaseAnimation,
   drawPhase1Hud,
   drawPhase1StartModal,
   drawPhase1SpeechModal,
@@ -34,6 +36,7 @@ import {
 } from "./phase1/render";
 import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
 import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
+import { usePhase1GreaseImage } from "./phase1/usePhase1GreaseImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
 import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
@@ -60,6 +63,7 @@ export function Phase1Canvas({
   const game = usePhase1Game(isPlaying && overlayStep === null);
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
+  const greaseImage = usePhase1GreaseImage();
   const instructorImage = usePhase1InstructorImage();
   const groundImage = usePhase1GroundImage();
   const pickupUnloadTruckImage = usePhase1PickupUnloadTruckImage();
@@ -143,13 +147,11 @@ export function Phase1Canvas({
     }
 
     const machineY = GROUND_Y - game.excavatorScene.contentHeight + 120;
-    const worldMatrices = computeWorldMatrices(
-      pose.angles,
-      createTranslationMatrix(
-        PLAYER_SCREEN_X - game.excavatorScene.contentWidth / 2,
-        machineY,
-      ),
+    const machineRootMatrix = createTranslationMatrix(
+      PLAYER_SCREEN_X - game.excavatorScene.contentWidth / 2,
+      machineY,
     );
+    const worldMatrices = computeWorldMatrices(pose.angles, machineRootMatrix);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawPhase1Backdrop(context);
@@ -164,6 +166,13 @@ export function Phase1Canvas({
       carnaubaImage,
     });
     drawExcavator(context, images, worldMatrices);
+    drawPhase1GreaseAnimation({
+      context,
+      greaseAnimationElapsed: game.greaseAnimationElapsed,
+      greaseImage,
+      machineRootMatrix,
+      pointProjector: applyToPoint,
+    });
     drawPhase1Foreground({
       context,
       distance: game.distance,
@@ -210,6 +219,7 @@ export function Phase1Canvas({
     game.events,
     game.excavatorScene,
     foregroundImage,
+    greaseImage,
     game.loadedDirt,
     game.rearLoaded,
     carnaubaImage,

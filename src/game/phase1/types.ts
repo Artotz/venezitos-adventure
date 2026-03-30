@@ -5,6 +5,7 @@ export type ManualEventType =
   | 'pickup-unload'
   | 'dig-load'
   | 'dig-unload'
+  | 'grease'
 
 export type EnvironmentalEventType = 'traction'
 export type ModalEventType = 'question'
@@ -13,7 +14,7 @@ export type MapEventType =
   | EnvironmentalEventType
   | ModalEventType
 
-export type ManualEventGroup = 'pickup' | 'dig'
+export type ManualEventGroup = 'pickup' | 'dig' | 'grease'
 export type EnvironmentalEventGroup = 'traction'
 export type ModalEventGroup = 'question'
 export type MapEventGroup =
@@ -30,7 +31,8 @@ export type MapEvent = {
   type: MapEventType | null
 }
 
-export type EventAnimationConfig = {
+export type RetroEventAnimationConfig = {
+  kind: 'retro-preset'
   target: 'front' | 'rear'
   presetId: AnimationPresetId
   label: string
@@ -39,6 +41,22 @@ export type EventAnimationConfig = {
     loadedDirt?: boolean
     rearLoaded?: boolean
   }
+}
+
+export type GreaseEventAnimationConfig = {
+  kind: 'grease'
+  label: string
+  lockMovement: boolean
+  durationMs: number
+}
+
+export type EventAnimationConfig =
+  | RetroEventAnimationConfig
+  | GreaseEventAnimationConfig
+
+export type GreaseAnimationState = {
+  elapsed: number
+  durationMs: number
 }
 
 type BaseEventDefinition<

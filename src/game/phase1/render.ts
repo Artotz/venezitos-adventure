@@ -18,6 +18,10 @@ import {
 } from "../retro/geometry";
 import type { LayerName, Matrix2D, Point } from "../retro/types";
 import {
+  GREASE_SPRITE_OFFSET_X,
+  GREASE_SPRITE_OFFSET_Y,
+  GREASE_SPRITE_PIVOT_X,
+  GREASE_SPRITE_PIVOT_Y,
   GREASE_SPRITE_HEIGHT,
   getGreaseAnimationPose,
 } from "./greaseAnimation";
@@ -215,13 +219,18 @@ export function drawPhase1GreaseAnimation({
   const drawHeight = GREASE_SPRITE_HEIGHT;
   const drawWidth =
     (greaseImage.naturalWidth / greaseImage.naturalHeight) * drawHeight;
+  const pivotX = drawWidth * GREASE_SPRITE_PIVOT_X;
+  const pivotY = drawHeight * GREASE_SPRITE_PIVOT_Y;
 
   context.save();
-  context.translate(canvasPoint.x, canvasPoint.y + pose.offsetY);
+  context.translate(
+    canvasPoint.x + GREASE_SPRITE_OFFSET_X,
+    canvasPoint.y + GREASE_SPRITE_OFFSET_Y + pose.offsetY,
+  );
   context.rotate(pose.rotation);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
-  context.drawImage(greaseImage, -drawWidth / 2, -drawHeight, drawWidth, drawHeight);
+  context.drawImage(greaseImage, -pivotX, -pivotY, drawWidth, drawHeight);
   context.restore();
 }
 

@@ -55,8 +55,10 @@ export type EventAnimationConfig =
   | GreaseEventAnimationConfig
 
 export type GreaseAnimationState = {
+  hasStarted: boolean
   elapsed: number
   durationMs: number
+  lastSoundPointIndex: number
 }
 
 type BaseEventDefinition<

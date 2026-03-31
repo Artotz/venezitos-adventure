@@ -51,7 +51,10 @@ import {
 } from "./questionModal";
 import { createQuestionFeedbackModal } from "./dialogue";
 import { PHASE1_CONTINUE_CODES } from "./config";
-import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
+import {
+  getGreaseAnimationPose,
+  getGreaseAnimationTotalDuration,
+} from "./greaseAnimation";
 import type {
   GreaseAnimationState,
   MapEvent,
@@ -112,7 +115,7 @@ export function usePhase1Game(enabled = true) {
     const labels = [
       frontAnimationRef.current?.label,
       rearAnimationRef.current?.label,
-      greaseAnimationRef.current ? "Aplicando graxa" : null,
+      greaseAnimationRef.current?.hasStarted ? "Aplicando graxa" : null,
     ].filter(Boolean);
 
     setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
@@ -437,9 +440,11 @@ export function usePhase1Game(enabled = true) {
 
     if (eventDefinition.animation.kind === "grease") {
       greaseAnimationRef.current = {
+        hasStarted: false,
         elapsed: 0,
         durationMs:
           eventDefinition.animation.durationMs || getGreaseAnimationTotalDuration(),
+        lastSoundPointIndex: -1,
       };
       syncAnimationLabel();
       return;
@@ -532,17 +537,6 @@ export function usePhase1Game(enabled = true) {
       rearAnimationRef.current = null;
     });
 
-    if (greaseAnimationRef.current) {
-      greaseAnimationRef.current.elapsed += dt * 1000;
-
-      if (
-        greaseAnimationRef.current.elapsed >= greaseAnimationRef.current.durationMs
-      ) {
-        greaseAnimationRef.current = null;
-        syncAnimationLabel();
-      }
-    }
-
     if (
       frontAnimationRef.current ||
       rearAnimationRef.current ||
@@ -627,6 +621,36 @@ export function usePhase1Game(enabled = true) {
 
     currentSpeedRef.current = nextSpeed;
     setSpeed(nextSpeed);
+
+    if (greaseAnimationRef.current) {
+      if (!greaseAnimationRef.current.hasStarted) {
+        if (nextSpeed <= 2) {
+          greaseAnimationRef.current.hasStarted = true;
+          greaseAnimationRef.current.elapsed = 0;
+          greaseAnimationRef.current.lastSoundPointIndex = -1;
+          syncAnimationLabel();
+        }
+      } else {
+        greaseAnimationRef.current.elapsed += dt * 1000;
+
+        const greasePose = getGreaseAnimationPose(greaseAnimationRef.current.elapsed);
+
+        if (
+          greasePose &&
+          greasePose.pointIndex !== greaseAnimationRef.current.lastSoundPointIndex
+        ) {
+          greaseAnimationRef.current.lastSoundPointIndex = greasePose.pointIndex;
+          playPhase1Sound("mud");
+        }
+
+        if (
+          greaseAnimationRef.current.elapsed >= greaseAnimationRef.current.durationMs
+        ) {
+          greaseAnimationRef.current = null;
+          syncAnimationLabel();
+        }
+      }
+    }
 
     if (differentialLockEnabledRef.current) {
       if (
@@ -795,7 +819,9 @@ export function usePhase1Game(enabled = true) {
     animationTick,
     activeAnimationLabel,
     frontAnimationRef,
-    greaseAnimationElapsed: greaseAnimationRef.current?.elapsed ?? null,
+    greaseAnimationElapsed: greaseAnimationRef.current?.hasStarted
+      ? greaseAnimationRef.current.elapsed
+      : null,
     rearAnimationRef,
   };
 }

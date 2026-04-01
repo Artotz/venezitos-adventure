@@ -29,6 +29,15 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
       <button
         type="button"
         role="tab"
+        aria-selected={activeTab === 'grease'}
+        className={`tab-button${activeTab === 'grease' ? ' is-active' : ''}`}
+        onClick={() => onChange('grease')}
+      >
+        Venezito
+      </button>
+      <button
+        type="button"
+        role="tab"
         aria-selected={activeTab === 'sounds'}
         className={`tab-button${activeTab === 'sounds' ? ' is-active' : ''}`}
         onClick={() => onChange('sounds')}

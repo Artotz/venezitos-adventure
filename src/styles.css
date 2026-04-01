@@ -193,6 +193,11 @@ h1 {
   overflow: auto;
 }
 
+.grease-controls {
+  max-height: 520px;
+  overflow: auto;
+}
+
 .points-controls {
   max-height: 520px;
   overflow: auto;
@@ -203,6 +208,13 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.controls-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .controls-header h2 {
@@ -327,6 +339,11 @@ h1 {
 .point-export span {
   color: #d6c7b1;
   font-size: 0.84rem;
+}
+
+.grease-sequence-grid {
+  display: grid;
+  gap: 10px;
 }
 
 .empty-state {

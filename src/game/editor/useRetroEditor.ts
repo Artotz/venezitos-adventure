@@ -15,6 +15,13 @@ import type {
   LayerName,
 } from '../retro/types'
 import { useGameLoop } from '../useGameLoop'
+import {
+  DEFAULT_GREASE_ANIMATION_CONFIG,
+  getGreaseAnimationPose,
+  getGreaseAnimationTotalDuration,
+  sanitizeGreaseAnimationConfig,
+  type GreaseAnimationConfig,
+} from '../venezito/greaseAnimation'
 import type { EditorPoint, EditorTab } from './types'
 
 export function useRetroEditor() {
@@ -27,6 +34,11 @@ export function useRetroEditor() {
     useState<AnimationPresetId>(ANIMATION_PRESETS[0]?.id ?? 'idle')
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [greaseConfig, setGreaseConfig] = useState<GreaseAnimationConfig>(
+    DEFAULT_GREASE_ANIMATION_CONFIG,
+  )
+  const [isGreasePlaying, setIsGreasePlaying] = useState(false)
+  const [greaseCurrentTime, setGreaseCurrentTime] = useState(0)
   const [points, setPoints] = useState<EditorPoint[]>([])
 
   const selectedAnimation = useMemo(
@@ -39,6 +51,7 @@ export function useRetroEditor() {
   const totalDuration = selectedAnimation
     ? getAnimationTotalDuration(selectedAnimation.id)
     : 0
+  const greaseTotalDuration = getGreaseAnimationTotalDuration(greaseConfig)
 
   useGameLoop(
     (dt) => {
@@ -56,6 +69,22 @@ export function useRetroEditor() {
     isPlaying && totalDuration > 0,
   )
 
+  useGameLoop(
+    (dt) => {
+      setGreaseCurrentTime((previous) => {
+        const next = previous + dt * 1000
+
+        if (next >= greaseTotalDuration) {
+          setIsGreasePlaying(false)
+          return greaseTotalDuration
+        }
+
+        return next
+      })
+    },
+    isGreasePlaying && greaseTotalDuration > 0,
+  )
+
   const displayPose = useMemo(() => {
     if (!selectedAnimation) {
       return basePose
@@ -63,6 +92,11 @@ export function useRetroEditor() {
 
     return applyAnimationToPose(basePose, selectedAnimation.id, currentTime)
   }, [basePose, currentTime, selectedAnimation])
+
+  const greaseCurrentPose = useMemo(
+    () => getGreaseAnimationPose(greaseCurrentTime, greaseConfig),
+    [greaseConfig, greaseCurrentTime],
+  )
 
   const handleAngleChange = (layerName: LayerName, value: string) => {
     const nextAngle = Number(value)
@@ -101,6 +135,10 @@ export function useRetroEditor() {
     setIsPlaying((current) => !current)
   }
 
+  const toggleGreasePlayback = () => {
+    setIsGreasePlaying((current) => !current)
+  }
+
   const resetPose = () => {
     setBasePose({
       angles: { ...BASE_ANGLES },
@@ -108,6 +146,48 @@ export function useRetroEditor() {
     })
     setCurrentTime(0)
     setIsPlaying(false)
+  }
+
+  const handleGreaseTimelineChange = (value: string) => {
+    setGreaseCurrentTime(Number(value))
+    setIsGreasePlaying(false)
+  }
+
+  const handleGreaseScalarConfigChange = (
+    key: keyof Omit<GreaseAnimationConfig, 'wobbleRotations' | 'wobbleYOffsets'>,
+    value: string,
+  ) => {
+    setIsGreasePlaying(false)
+    setGreaseCurrentTime(0)
+    setGreaseConfig((current) =>
+      sanitizeGreaseAnimationConfig({
+        ...current,
+        [key]: Number(value),
+      }),
+    )
+  }
+
+  const handleGreaseSequenceConfigChange = (
+    key: 'wobbleRotations' | 'wobbleYOffsets',
+    index: number,
+    value: string,
+  ) => {
+    setIsGreasePlaying(false)
+    setGreaseCurrentTime(0)
+    setGreaseConfig((current) =>
+      sanitizeGreaseAnimationConfig({
+        ...current,
+        [key]: current[key].map((entry, entryIndex) =>
+          entryIndex === index ? Number(value) : entry,
+        ),
+      }),
+    )
+  }
+
+  const resetGreaseConfig = () => {
+    setGreaseConfig(DEFAULT_GREASE_ANIMATION_CONFIG)
+    setGreaseCurrentTime(0)
+    setIsGreasePlaying(false)
   }
 
   const addPoint = (point: { x: number; y: number }) => {
@@ -137,13 +217,24 @@ export function useRetroEditor() {
     isPlaying,
     currentTime,
     totalDuration,
+    greaseConfig,
+    isGreasePlaying,
+    greaseCurrentTime,
+    greaseTotalDuration,
+    greaseCurrentPose,
     basePose,
     displayPose,
     handleAngleChange,
     handleAnimationChange,
     handleTimelineChange,
     togglePlayback,
+    toggleGreasePlayback,
     resetPose,
+    handleGreaseTimelineChange,
+    handleGreaseScalarConfigChange,
+    handleGreaseSequenceConfigChange,
+    resetGreaseConfig,
+    greaseCurrentPointIndex: greaseCurrentPose?.pointIndex ?? null,
     points,
     addPoint,
     removePoint,

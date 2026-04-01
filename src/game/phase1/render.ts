@@ -18,13 +18,9 @@ import {
 } from "../retro/geometry";
 import type { LayerName, Matrix2D, Point } from "../retro/types";
 import {
-  GREASE_SPRITE_OFFSET_X,
-  GREASE_SPRITE_OFFSET_Y,
-  GREASE_SPRITE_PIVOT_X,
-  GREASE_SPRITE_PIVOT_Y,
-  GREASE_SPRITE_HEIGHT,
-  getGreaseAnimationPose,
-} from "./greaseAnimation";
+  DEFAULT_GREASE_ANIMATION_CONFIG,
+} from "../venezito/greaseAnimation";
+import { drawGreaseAnimation } from "../venezito/render";
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
@@ -200,38 +196,14 @@ export function drawPhase1GreaseAnimation({
   machineRootMatrix,
   pointProjector = applyToPoint,
 }: Phase1GreaseAnimationParams) {
-  if (
-    greaseAnimationElapsed === null ||
-    !greaseImage ||
-    !greaseImage.naturalWidth ||
-    !greaseImage.naturalHeight
-  ) {
-    return;
-  }
-
-  const pose = getGreaseAnimationPose(greaseAnimationElapsed);
-
-  if (!pose) {
-    return;
-  }
-
-  const canvasPoint = pointProjector(machineRootMatrix, pose.point);
-  const drawHeight = GREASE_SPRITE_HEIGHT;
-  const drawWidth =
-    (greaseImage.naturalWidth / greaseImage.naturalHeight) * drawHeight;
-  const pivotX = drawWidth * GREASE_SPRITE_PIVOT_X;
-  const pivotY = drawHeight * GREASE_SPRITE_PIVOT_Y;
-
-  context.save();
-  context.translate(
-    canvasPoint.x + GREASE_SPRITE_OFFSET_X,
-    canvasPoint.y + GREASE_SPRITE_OFFSET_Y + pose.offsetY,
-  );
-  context.rotate(pose.rotation);
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.drawImage(greaseImage, -pivotX, -pivotY, drawWidth, drawHeight);
-  context.restore();
+  drawGreaseAnimation({
+    context,
+    elapsed: greaseAnimationElapsed,
+    greaseImage,
+    machineRootMatrix,
+    config: DEFAULT_GREASE_ANIMATION_CONFIG,
+    pointProjector,
+  });
 }
 
 export function drawPhase1Hud({

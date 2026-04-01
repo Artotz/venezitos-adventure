@@ -24,6 +24,8 @@ import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
 import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
+import { drawGreaseAnimation } from "./venezito/render";
+import { useVenezitoGreaseImage } from "./venezito/useVenezitoGreaseImage";
 import { ModeTabs } from "./ModeTabs";
 import { RetroEditorSidebar } from "./editor/RetroEditorSidebar";
 import { useRetroEditor } from "./editor/useRetroEditor";
@@ -45,6 +47,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
   const foregroundImage = usePhase1ForegroundImage();
   const groundImage = usePhase1GroundImage();
   const pickupUnloadTruckImage = usePhase1PickupUnloadTruckImage();
+  const greaseImage = useVenezitoGreaseImage();
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -111,6 +114,17 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       groundImage,
     });
     drawExcavator(context, images, worldMatrices);
+    if (editor.activeTab === "grease") {
+      drawGreaseAnimation({
+        context,
+        elapsed: editor.greaseCurrentTime,
+        greaseImage,
+        machineRootMatrix,
+        config: editor.greaseConfig,
+        pointProjector: applyToPoint,
+        showPivot: true,
+      });
+    }
     drawPhase1Foreground({
       context,
       distance: 0,
@@ -162,9 +176,13 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
   }, [
     carnaubaImage,
     editor.displayPose,
+    editor.activeTab,
+    editor.greaseConfig,
+    editor.greaseCurrentTime,
     editor.points,
     excavatorScene,
     foregroundImage,
+    greaseImage,
     groundImage,
     images,
     machineRootMatrix,

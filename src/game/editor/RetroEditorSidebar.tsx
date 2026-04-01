@@ -1,4 +1,5 @@
 import { AnimationControls } from './AnimationControls'
+import { GreaseControls } from './GreaseControls'
 import { PointsControls } from './PointsControls'
 import { PoseControls } from './PoseControls'
 import { SoundControls } from './SoundControls'
@@ -27,6 +28,19 @@ export function RetroEditorSidebar({ editor }: RetroEditorSidebarProps) {
           onAnimationChange={editor.handleAnimationChange}
           onTimelineChange={editor.handleTimelineChange}
           onTogglePlayback={editor.togglePlayback}
+        />
+      ) : editor.activeTab === 'grease' ? (
+        <GreaseControls
+          config={editor.greaseConfig}
+          isPlaying={editor.isGreasePlaying}
+          currentTime={editor.greaseCurrentTime}
+          totalDuration={editor.greaseTotalDuration}
+          currentPointIndex={editor.greaseCurrentPointIndex}
+          onTogglePlayback={editor.toggleGreasePlayback}
+          onTimelineChange={editor.handleGreaseTimelineChange}
+          onReset={editor.resetGreaseConfig}
+          onScalarConfigChange={editor.handleGreaseScalarConfigChange}
+          onSequenceConfigChange={editor.handleGreaseSequenceConfigChange}
         />
       ) : editor.activeTab === 'points' ? (
         <PointsControls

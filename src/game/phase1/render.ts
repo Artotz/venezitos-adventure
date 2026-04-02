@@ -42,6 +42,12 @@ type Phase1SceneParams = {
   rearLoaded: boolean;
   groundImage?: HTMLImageElement | null;
   carnaubaImage?: HTMLImageElement | null;
+  pickupDirtImage?: HTMLImageElement | null;
+  greaseSignImage?: HTMLImageElement | null;
+  holeEmptyImage?: HTMLImageElement | null;
+  holeFullImage?: HTMLImageElement | null;
+  mudImage?: HTMLImageElement | null;
+  workSignImage?: HTMLImageElement | null;
 };
 
 type Phase1ForegroundParams = {
@@ -108,6 +114,21 @@ const PICKUP_UNLOAD_TRUCK_DRAW_WIDTH = 1200;
 const PICKUP_UNLOAD_TRUCK_BASE_Y = CANVAS_HEIGHT - 50;
 const PICKUP_UNLOAD_TRUCK_BASE_SOURCE_Y = 714;
 const PICKUP_UNLOAD_TRUCK_CENTER_OFFSET_X = -20;
+const PICKUP_DIRT_DRAW_HEIGHT = 150;
+const PICKUP_DIRT_BASE_Y = GROUND_Y + 24;
+const PICKUP_DIRT_OFFSET_X = 18;
+const GREASE_SIGN_DRAW_HEIGHT = 176;
+const GREASE_SIGN_BASE_Y = GROUND_Y + 10;
+const GREASE_SIGN_OFFSET_X = 18;
+const HOLE_DRAW_HEIGHT = 128;
+const HOLE_BASE_Y = GROUND_Y + 34;
+const HOLE_OFFSET_X = 0;
+const MUD_DRAW_HEIGHT = 112;
+const MUD_BASE_Y = GROUND_Y + 32;
+const MUD_OFFSET_X = 0;
+const WORK_SIGN_DRAW_HEIGHT = 184;
+const WORK_SIGN_BASE_Y = GROUND_Y + 12;
+const WORK_SIGN_OFFSET_X = 150;
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
   const skyGradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -127,6 +148,12 @@ export function drawPhase1Environment({
   rearLoaded,
   groundImage,
   carnaubaImage,
+  pickupDirtImage,
+  greaseSignImage,
+  holeEmptyImage,
+  holeFullImage,
+  mudImage,
+  workSignImage,
 }: Phase1SceneParams) {
   drawBackground(
     context,
@@ -136,6 +163,7 @@ export function drawPhase1Environment({
     loadedDirt,
     rearLoaded,
     carnaubaImage,
+    pickupDirtImage,
   );
   drawGround(
     context,
@@ -145,6 +173,19 @@ export function drawPhase1Environment({
     loadedDirt,
     rearLoaded,
     groundImage,
+    holeEmptyImage,
+    holeFullImage,
+    mudImage,
+  );
+  drawGroundOverlay(
+    context,
+    distance,
+    events,
+    activeEventId,
+    loadedDirt,
+    rearLoaded,
+    greaseSignImage,
+    workSignImage,
   );
 }
 
@@ -719,6 +760,7 @@ function drawBackground(
   loadedDirt: boolean,
   rearLoaded: boolean,
   carnaubaImage?: HTMLImageElement | null,
+  pickupDirtImage?: HTMLImageElement | null,
 ) {
   const farOffset = (distance * 0.08) % 320;
   const backgroundYOffset = GROUND_Y - 485;
@@ -771,16 +813,6 @@ function drawBackground(
       continue;
     }
 
-    if (eventType === "dig-load") {
-      drawSignage(
-        context,
-        visualX,
-        hitboxX,
-        hitboxHalfWidth,
-        event.id === activeEventId,
-      );
-    }
-
     if (eventType === "question") {
       drawQuestionMarker(
         context,
@@ -791,13 +823,14 @@ function drawBackground(
       );
     }
 
-    if (eventType === "grease") {
-      drawGreaseMarker(
+    if (eventType === "pickup-load") {
+      drawPickupDirtBackdrop(
         context,
         visualX,
         hitboxX,
         hitboxHalfWidth,
         event.id === activeEventId,
+        pickupDirtImage,
       );
     }
   }
@@ -848,6 +881,9 @@ function drawGround(
   loadedDirt: boolean,
   rearLoaded: boolean,
   groundImage?: HTMLImageElement | null,
+  holeEmptyImage?: HTMLImageElement | null,
+  holeFullImage?: HTMLImageElement | null,
+  mudImage?: HTMLImageElement | null,
 ) {
   if (groundImage) {
     drawGroundSprite(context, distance, groundImage);
@@ -877,15 +913,88 @@ function drawGround(
     }
 
     if (eventType === "dig-unload") {
-      drawRearDitch(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+      drawRearDitch(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        holeEmptyImage,
+      );
+    }
+
+    if (eventType === "dig-load") {
+      drawRearDitch(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        holeFullImage,
+      );
     }
 
     if (eventType === "traction") {
-      drawMudPatch(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+      drawMudPatch(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        mudImage,
+      );
+    }
+  }
+}
+
+function drawGroundOverlay(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  events: MapEvent[],
+  activeEventId: number | null,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
+  greaseSignImage?: HTMLImageElement | null,
+  workSignImage?: HTMLImageElement | null,
+) {
+  for (const event of events) {
+    const visualX = getEventVisualScreenX(
+      event,
+      distance,
+      loadedDirt,
+      rearLoaded,
+    );
+    const hitboxX = getEventHitboxScreenX(event, distance);
+    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+    const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
+
+    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+      continue;
+    }
+
+    const isActive = event.id === activeEventId;
+
+    if (eventType === "dig-load" || eventType === "dig-unload") {
+      drawSignage(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        workSignImage,
+      );
     }
 
     if (eventType === "grease") {
       drawGreaseStation(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+      drawGreaseMarker(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        greaseSignImage,
+      );
     }
   }
 }
@@ -1121,6 +1230,33 @@ function drawPickupDirt(
   context.lineWidth = 2;
   drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 18, 48);
   context.restore();
+}
+
+function drawPickupDirtBackdrop(
+  context: CanvasRenderingContext2D,
+  visualX: number,
+  hitboxX: number,
+  hitboxHalfWidth: number,
+  isActive: boolean,
+  dirtImage?: HTMLImageElement | null,
+) {
+  if (dirtImage) {
+    drawPlacedSprite(
+      context,
+      dirtImage,
+      visualX + PICKUP_DIRT_OFFSET_X,
+      PICKUP_DIRT_BASE_Y,
+      PICKUP_DIRT_DRAW_HEIGHT,
+    );
+    context.save();
+    context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+    context.lineWidth = 2;
+    drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 18, 48);
+    context.restore();
+    return;
+  }
+
+  drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
 }
 
 function drawQuestionMarker(
@@ -1376,7 +1512,36 @@ function drawMudPatch(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
+  mudImage?: HTMLImageElement | null,
 ) {
+  if (mudImage) {
+    drawPlacedSprite(
+      context,
+      mudImage,
+      visualX + MUD_OFFSET_X,
+      MUD_BASE_Y,
+      MUD_DRAW_HEIGHT,
+    );
+    context.save();
+    context.strokeStyle = isActive
+      ? "rgba(255, 231, 156, 0.5)"
+      : "rgba(255,255,255,0.18)";
+    context.lineWidth = 2;
+    context.setLineDash([10, 8]);
+    drawEventHitboxOutline(
+      context,
+      hitboxX,
+      hitboxHalfWidth + TRACTION_SCORE_LENIENCY_MARGIN,
+      GROUND_Y - 8,
+      70,
+    );
+    context.setLineDash([]);
+    context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+    drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y + 2, 50);
+    context.restore();
+    return;
+  }
+
   context.save();
   context.fillStyle = isActive ? "#453217" : "#5b4322";
   context.beginPath();
@@ -1431,7 +1596,24 @@ function drawRearDitch(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
+  holeImage?: HTMLImageElement | null,
 ) {
+  if (holeImage) {
+    drawPlacedSprite(
+      context,
+      holeImage,
+      visualX + HOLE_OFFSET_X,
+      HOLE_BASE_Y,
+      HOLE_DRAW_HEIGHT,
+    );
+    context.save();
+    context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+    context.lineWidth = 2;
+    drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y + 2, 50);
+    context.restore();
+    return;
+  }
+
   context.save();
   context.fillStyle = "#4f361b";
   context.beginPath();
@@ -1536,7 +1718,30 @@ function drawSignage(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
+  signImage?: HTMLImageElement | null,
 ) {
+  if (signImage) {
+    drawPlacedSprite(
+      context,
+      signImage,
+      visualX + WORK_SIGN_OFFSET_X,
+      WORK_SIGN_BASE_Y,
+      WORK_SIGN_DRAW_HEIGHT,
+    );
+    context.save();
+    context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+    context.lineWidth = 2;
+    drawEventHitboxOutline(
+      context,
+      hitboxX,
+      hitboxHalfWidth,
+      GROUND_Y - 174,
+      204,
+    );
+    context.restore();
+    return;
+  }
+
   context.save();
   context.fillStyle = "#e7e3cc";
   context.fillRect(visualX - 8, GROUND_Y - 120, 16, 122);
@@ -1565,7 +1770,30 @@ function drawGreaseMarker(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
+  signImage?: HTMLImageElement | null,
 ) {
+  if (signImage) {
+    drawPlacedSprite(
+      context,
+      signImage,
+      visualX + GREASE_SIGN_OFFSET_X,
+      GREASE_SIGN_BASE_Y,
+      GREASE_SIGN_DRAW_HEIGHT,
+    );
+    context.save();
+    context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
+    context.lineWidth = 2;
+    drawEventHitboxOutline(
+      context,
+      hitboxX,
+      hitboxHalfWidth,
+      GROUND_Y - 192,
+      216,
+    );
+    context.restore();
+    return;
+  }
+
   context.save();
   context.fillStyle = "#e7e3cc";
   context.fillRect(visualX - 8, GROUND_Y - 120, 16, 122);
@@ -1601,4 +1829,29 @@ function drawEventHitboxOutline(
     hitboxHalfWidth * 2,
     height,
   );
+}
+
+function drawPlacedSprite(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  centerX: number,
+  baseY: number,
+  drawHeight: number,
+) {
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    return;
+  }
+
+  const drawWidth = (sourceWidth / sourceHeight) * drawHeight;
+  const drawX = centerX - drawWidth / 2;
+  const drawY = baseY - drawHeight;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  context.restore();
 }

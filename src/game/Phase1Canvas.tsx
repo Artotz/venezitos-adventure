@@ -36,6 +36,7 @@ import {
 } from "./phase1/render";
 import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
 import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
+import { usePhase1EventSprites } from "./phase1/usePhase1EventSprites";
 import { usePhase1GreaseImage } from "./phase1/usePhase1GreaseImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
@@ -63,6 +64,7 @@ export function Phase1Canvas({
   const game = usePhase1Game(isPlaying && overlayStep === null);
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
+  const eventSprites = usePhase1EventSprites();
   const greaseImage = usePhase1GreaseImage();
   const instructorImage = usePhase1InstructorImage();
   const groundImage = usePhase1GroundImage();
@@ -164,6 +166,12 @@ export function Phase1Canvas({
       rearLoaded: game.rearLoaded,
       groundImage,
       carnaubaImage,
+      pickupDirtImage: eventSprites.dirtPileImage,
+      greaseSignImage: eventSprites.greaseSignImage,
+      holeEmptyImage: eventSprites.holeEmptyImage,
+      holeFullImage: eventSprites.holeFullImage,
+      mudImage: eventSprites.mudImage,
+      workSignImage: eventSprites.workSignImage,
     });
     drawExcavator(context, images, worldMatrices);
     drawPhase1GreaseAnimation({
@@ -219,12 +227,18 @@ export function Phase1Canvas({
     game.events,
     game.excavatorScene,
     foregroundImage,
+    eventSprites.dirtPileImage,
+    eventSprites.greaseSignImage,
     greaseImage,
     game.loadedDirt,
     game.rearLoaded,
+    eventSprites.holeEmptyImage,
+    eventSprites.holeFullImage,
+    eventSprites.mudImage,
     carnaubaImage,
     groundImage,
     pickupUnloadTruckImage,
+    eventSprites.workSignImage,
     game.animationTick,
     game.questionModal,
     game.score,

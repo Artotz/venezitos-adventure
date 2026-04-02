@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 
 import pickupUnloadTruckSrc from "../../assets/410.png";
-import { loadImage } from "../loadImage";
+import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
 
 export function usePhase1PickupUnloadTruckImage() {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [image, setImage] = useState<LoadedImageSource | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    loadImage(pickupUnloadTruckSrc)
+    loadOptimizedImage(pickupUnloadTruckSrc, {
+      maxWidth: 1400,
+      maxHeight: 900,
+    })
       .then((loadedImage) => {
         if (!cancelled) {
           setImage(loadedImage);

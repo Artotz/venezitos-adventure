@@ -17,9 +17,8 @@ import {
   multiplyMatrices,
 } from "../retro/geometry";
 import type { LayerName, Matrix2D, Point } from "../retro/types";
-import {
-  DEFAULT_GREASE_ANIMATION_CONFIG,
-} from "../venezito/greaseAnimation";
+import { getImageSourceSize, type LoadedImageSource } from "../imageSource";
+import { DEFAULT_GREASE_ANIMATION_CONFIG } from "../venezito/greaseAnimation";
 import { drawGreaseAnimation } from "../venezito/render";
 import {
   getEventHitboxScreenX,
@@ -40,14 +39,16 @@ type Phase1SceneParams = {
   activeEventId: number | null;
   loadedDirt: boolean;
   rearLoaded: boolean;
-  groundImage?: HTMLImageElement | null;
-  carnaubaImage?: HTMLImageElement | null;
-  pickupDirtImage?: HTMLImageElement | null;
-  greaseSignImage?: HTMLImageElement | null;
-  holeEmptyImage?: HTMLImageElement | null;
-  holeFullImage?: HTMLImageElement | null;
-  mudImage?: HTMLImageElement | null;
-  workSignImage?: HTMLImageElement | null;
+  greaseAnimationActive: boolean;
+  groundImage?: LoadedImageSource | null;
+  carnaubaImage?: LoadedImageSource | null;
+  instructorImage?: LoadedImageSource | null;
+  pickupDirtImage?: LoadedImageSource | null;
+  greaseSignImage?: LoadedImageSource | null;
+  holeEmptyImage?: LoadedImageSource | null;
+  holeFullImage?: LoadedImageSource | null;
+  mudImage?: LoadedImageSource | null;
+  workSignImage?: LoadedImageSource | null;
 };
 
 type Phase1ForegroundParams = {
@@ -57,8 +58,8 @@ type Phase1ForegroundParams = {
   activeEventId: number | null;
   loadedDirt: boolean;
   rearLoaded: boolean;
-  foregroundImage?: HTMLImageElement | null;
-  pickupUnloadTruckImage?: HTMLImageElement | null;
+  foregroundImage?: LoadedImageSource | null;
+  pickupUnloadTruckImage?: LoadedImageSource | null;
 };
 
 type Phase1HudParams = {
@@ -66,12 +67,14 @@ type Phase1HudParams = {
   score: number;
   distance: number;
   differentialLockEnabled: boolean;
+  message: string;
+  instructorImage?: CanvasImageSource | null;
 };
 
 type Phase1GreaseAnimationParams = {
   context: CanvasRenderingContext2D;
   greaseAnimationElapsed: number | null;
-  greaseImage?: HTMLImageElement | null;
+  greaseImage?: LoadedImageSource | null;
   machineRootMatrix: Matrix2D;
   pointProjector?: (matrix: Matrix2D, point: Point) => Point;
 };
@@ -101,6 +104,8 @@ type Phase1StartModalParams = {
   machineContentHeight: number;
 };
 
+const WRAPPED_TEXT_LAYOUT_CACHE = new Map<string, string[]>();
+
 const GROUND_SPRITE_SURFACE_Y = 356;
 const CARNAUBA_LAYER_SPEED = 0.18;
 const CARNAUBA_SPACING = 280;
@@ -118,8 +123,11 @@ const PICKUP_DIRT_DRAW_HEIGHT = 150;
 const PICKUP_DIRT_BASE_Y = GROUND_Y + 24;
 const PICKUP_DIRT_OFFSET_X = 18;
 const GREASE_SIGN_DRAW_HEIGHT = 176;
-const GREASE_SIGN_BASE_Y = GROUND_Y + 10;
+const GREASE_SIGN_BASE_Y = GROUND_Y - 10;
 const GREASE_SIGN_OFFSET_X = 18;
+const GREASE_VENEZITO_DRAW_HEIGHT = 124;
+const GREASE_VENEZITO_BASE_Y = GROUND_Y - 12;
+const GREASE_VENEZITO_OFFSET_X = -84;
 const HOLE_DRAW_HEIGHT = 128;
 const HOLE_BASE_Y = GROUND_Y + 34;
 const HOLE_OFFSET_X = 0;
@@ -146,8 +154,10 @@ export function drawPhase1Environment({
   activeEventId,
   loadedDirt,
   rearLoaded,
+  greaseAnimationActive,
   groundImage,
   carnaubaImage,
+  instructorImage,
   pickupDirtImage,
   greaseSignImage,
   holeEmptyImage,
@@ -163,7 +173,6 @@ export function drawPhase1Environment({
     loadedDirt,
     rearLoaded,
     carnaubaImage,
-    pickupDirtImage,
   );
   drawGround(
     context,
@@ -184,6 +193,9 @@ export function drawPhase1Environment({
     activeEventId,
     loadedDirt,
     rearLoaded,
+    greaseAnimationActive,
+    instructorImage,
+    pickupDirtImage,
     greaseSignImage,
     workSignImage,
   );
@@ -252,20 +264,38 @@ export function drawPhase1Hud({
   score,
   distance,
   differentialLockEnabled,
+  message,
+  instructorImage,
 }: Phase1HudParams) {
   const hudY = 26;
   const leftX = 28;
-  const centerX = CANVAS_WIDTH / 2 - 140;
   const rightX = CANVAS_WIDTH - 292;
+  const speechX = CANVAS_WIDTH / 2 - 260;
+  const bottomCardX = CANVAS_WIDTH / 2 - 180;
+  const bottomCardY = CANVAS_HEIGHT - 102;
 
   drawHudCard(context, leftX, hudY, "Pontuacao", String(score));
-  drawDifferentialLockCard(context, centerX, hudY, differentialLockEnabled);
   drawHudCard(
     context,
     rightX,
     hudY,
     "Distancia",
     `${Math.floor(distance / 10)} m`,
+  );
+  drawVenezitoSpeechHud(
+    context,
+    speechX,
+    hudY,
+    520,
+    110,
+    message,
+    instructorImage,
+  );
+  drawDifferentialLockCard(
+    context,
+    bottomCardX,
+    bottomCardY,
+    differentialLockEnabled,
   );
 }
 
@@ -719,15 +749,15 @@ function drawInstructorStage(
   context.font = '700 34px "Segoe UI", sans-serif';
   context.fillText("Venezito", x + 24, y + 72);
 
-  if (image instanceof HTMLImageElement) {
+  if (image instanceof HTMLImageElement || image instanceof HTMLCanvasElement) {
+    const { width: sourceWidth, height: sourceHeight } = getImageSourceSize(
+      image,
+    );
     const maxWidth = width - 52;
     const maxHeight = height - 152;
-    const scale = Math.min(
-      maxWidth / image.naturalWidth,
-      maxHeight / image.naturalHeight,
-    );
-    const drawWidth = image.naturalWidth * scale;
-    const drawHeight = image.naturalHeight * scale;
+    const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
     const drawX = x + (width - drawWidth) / 2;
     const drawY = y + height - drawHeight - 16;
 
@@ -759,8 +789,7 @@ function drawBackground(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
-  carnaubaImage?: HTMLImageElement | null,
-  pickupDirtImage?: HTMLImageElement | null,
+  carnaubaImage?: LoadedImageSource | null,
 ) {
   const farOffset = (distance * 0.08) % 320;
   const backgroundYOffset = GROUND_Y - 485;
@@ -822,27 +851,16 @@ function drawBackground(
         event.id === activeEventId,
       );
     }
-
-    if (eventType === "pickup-load") {
-      drawPickupDirtBackdrop(
-        context,
-        visualX,
-        hitboxX,
-        hitboxHalfWidth,
-        event.id === activeEventId,
-        pickupDirtImage,
-      );
-    }
   }
 }
 
 function drawBackgroundCarnaubas(
   context: CanvasRenderingContext2D,
   distance: number,
-  carnaubaImage: HTMLImageElement,
+  carnaubaImage: LoadedImageSource,
 ) {
-  const sourceWidth = carnaubaImage.naturalWidth || carnaubaImage.width;
-  const sourceHeight = carnaubaImage.naturalHeight || carnaubaImage.height;
+  const { width: sourceWidth, height: sourceHeight } =
+    getImageSourceSize(carnaubaImage);
 
   if (!sourceWidth || !sourceHeight) {
     return;
@@ -880,10 +898,10 @@ function drawGround(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
-  groundImage?: HTMLImageElement | null,
-  holeEmptyImage?: HTMLImageElement | null,
-  holeFullImage?: HTMLImageElement | null,
-  mudImage?: HTMLImageElement | null,
+  groundImage?: LoadedImageSource | null,
+  holeEmptyImage?: LoadedImageSource | null,
+  holeFullImage?: LoadedImageSource | null,
+  mudImage?: LoadedImageSource | null,
 ) {
   if (groundImage) {
     drawGroundSprite(context, distance, groundImage);
@@ -954,8 +972,11 @@ function drawGroundOverlay(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
-  greaseSignImage?: HTMLImageElement | null,
-  workSignImage?: HTMLImageElement | null,
+  greaseAnimationActive: boolean,
+  instructorImage?: LoadedImageSource | null,
+  pickupDirtImage?: LoadedImageSource | null,
+  greaseSignImage?: LoadedImageSource | null,
+  workSignImage?: LoadedImageSource | null,
 ) {
   for (const event of events) {
     const visualX = getEventVisualScreenX(
@@ -986,7 +1007,6 @@ function drawGroundOverlay(
     }
 
     if (eventType === "grease") {
-      drawGreaseStation(context, visualX, hitboxX, hitboxHalfWidth, isActive);
       drawGreaseMarker(
         context,
         visualX,
@@ -994,6 +1014,19 @@ function drawGroundOverlay(
         hitboxHalfWidth,
         isActive,
         greaseSignImage,
+        instructorImage,
+        greaseAnimationActive,
+      );
+    }
+
+    if (eventType === "pickup-load") {
+      drawPickupDirtBackdrop(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        pickupDirtImage,
       );
     }
   }
@@ -1002,10 +1035,10 @@ function drawGroundOverlay(
 function drawGroundSprite(
   context: CanvasRenderingContext2D,
   distance: number,
-  groundImage: HTMLImageElement,
+  groundImage: LoadedImageSource,
 ) {
-  const sourceWidth = groundImage.naturalWidth || groundImage.width;
-  const sourceHeight = groundImage.naturalHeight || groundImage.height;
+  const { width: sourceWidth, height: sourceHeight } =
+    getImageSourceSize(groundImage);
 
   if (!sourceWidth || !sourceHeight) {
     drawProceduralGround(context, distance);
@@ -1122,6 +1155,91 @@ function drawDifferentialLockCard(
   context.restore();
 }
 
+function drawVenezitoSpeechHud(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  message: string,
+  instructorImage?: CanvasImageSource | null,
+) {
+  const portraitWidth = 110;
+  const textX = x + portraitWidth + 24;
+  const textWidth = width - portraitWidth - 44;
+
+  context.save();
+
+  context.fillStyle = "rgba(18, 14, 10, 0.86)";
+  context.strokeStyle = "rgba(255, 232, 186, 0.28)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, width, height, 24);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(255, 214, 133, 0.08)";
+  context.beginPath();
+  context.roundRect(x + portraitWidth, y, 1, height, 0);
+  context.fill();
+  context.stroke();
+
+  drawHudPortrait(context, x, y, portraitWidth, height, instructorImage);
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 14px "Segoe UI", sans-serif';
+  context.fillText("VENEZITO", textX, y + 24);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 22px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    message,
+    textX,
+    y + 54,
+    textWidth,
+    26,
+  );
+
+  context.restore();
+}
+
+function drawHudPortrait(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  image?: CanvasImageSource | null,
+) {
+  context.save();
+  context.beginPath();
+  context.roundRect(x, y, width, height, [24, 0, 0, 24]);
+  context.clip();
+
+  const portraitGradient = context.createLinearGradient(x, y, x, y + height);
+  portraitGradient.addColorStop(0, "#5a3824");
+  portraitGradient.addColorStop(1, "#1b130e");
+  context.fillStyle = portraitGradient;
+  context.fillRect(x, y, width, height);
+
+  if (image) {
+    context.drawImage(image, x, y, width, height);
+  } else {
+    const centerX = x + width / 2;
+    context.fillStyle = "#d9b276";
+    context.beginPath();
+    context.arc(centerX, y + height * 0.34, height * 0.16, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#7c4f32";
+    context.beginPath();
+    context.roundRect(x + width * 0.24, y + height * 0.48, width * 0.52, height * 0.3, 16);
+    context.fill();
+  }
+
+  context.restore();
+}
+
 function drawForegroundPickupUnloadEvents(
   context: CanvasRenderingContext2D,
   distance: number,
@@ -1129,7 +1247,7 @@ function drawForegroundPickupUnloadEvents(
   activeEventId: number | null,
   loadedDirt: boolean,
   rearLoaded: boolean,
-  pickupUnloadTruckImage?: HTMLImageElement | null,
+  pickupUnloadTruckImage?: LoadedImageSource | null,
 ) {
   for (const event of events) {
     const visualX = getEventVisualScreenX(
@@ -1163,7 +1281,7 @@ function drawForegroundPickupUnloadEvents(
 function drawForeground(
   context: CanvasRenderingContext2D,
   distance: number,
-  foregroundImage?: HTMLImageElement | null,
+  foregroundImage?: LoadedImageSource | null,
 ) {
   if (foregroundImage) {
     drawForegroundSprite(context, distance, foregroundImage);
@@ -1183,10 +1301,10 @@ function drawForeground(
 function drawForegroundSprite(
   context: CanvasRenderingContext2D,
   distance: number,
-  foregroundImage: HTMLImageElement,
+  foregroundImage: LoadedImageSource,
 ) {
-  const sourceWidth = foregroundImage.naturalWidth || foregroundImage.width;
-  const sourceHeight = foregroundImage.naturalHeight || foregroundImage.height;
+  const { width: sourceWidth, height: sourceHeight } =
+    getImageSourceSize(foregroundImage);
 
   if (!sourceWidth || !sourceHeight) {
     return;
@@ -1238,7 +1356,7 @@ function drawPickupDirtBackdrop(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  dirtImage?: HTMLImageElement | null,
+  dirtImage?: LoadedImageSource | null,
 ) {
   if (dirtImage) {
     drawPlacedSprite(
@@ -1251,7 +1369,13 @@ function drawPickupDirtBackdrop(
     context.save();
     context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
     context.lineWidth = 2;
-    drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 18, 48);
+    drawEventHitboxOutline(
+      context,
+      hitboxX,
+      hitboxHalfWidth,
+      GROUND_Y - 18,
+      48,
+    );
     context.restore();
     return;
   }
@@ -1433,25 +1557,12 @@ function drawWrappedText(
   maxWidth: number,
   lineHeight: number,
 ) {
-  const words = text.split(" ");
-  let currentLine = "";
+  const lines = getWrappedTextLines(context, text, maxWidth);
   let currentY = y;
 
-  for (const word of words) {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-
-    if (context.measureText(nextLine).width <= maxWidth) {
-      currentLine = nextLine;
-      continue;
-    }
-
-    context.fillText(currentLine, x, currentY);
-    currentLine = word;
+  for (const line of lines) {
+    context.fillText(line, x, currentY);
     currentY += lineHeight;
-  }
-
-  if (currentLine) {
-    context.fillText(currentLine, x, currentY);
   }
 }
 
@@ -1487,8 +1598,23 @@ function measureWrappedTextHeight(
   maxWidth: number,
   lineHeight: number,
 ) {
+  return getWrappedTextLines(context, text, maxWidth).length * lineHeight;
+}
+
+function getWrappedTextLines(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+) {
+  const cacheKey = `${context.font}__${maxWidth}__${text}`;
+  const cachedLines = WRAPPED_TEXT_LAYOUT_CACHE.get(cacheKey);
+
+  if (cachedLines) {
+    return cachedLines;
+  }
+
   const words = text.split(" ");
-  let lines = 1;
+  const lines: string[] = [];
   let currentLine = "";
 
   for (const word of words) {
@@ -1499,11 +1625,28 @@ function measureWrappedTextHeight(
       continue;
     }
 
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
     currentLine = word;
-    lines += 1;
   }
 
-  return lines * lineHeight;
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  if (WRAPPED_TEXT_LAYOUT_CACHE.size >= 200) {
+    const oldestKey = WRAPPED_TEXT_LAYOUT_CACHE.keys().next().value;
+
+    if (oldestKey) {
+      WRAPPED_TEXT_LAYOUT_CACHE.delete(oldestKey);
+    }
+  }
+
+  WRAPPED_TEXT_LAYOUT_CACHE.set(cacheKey, lines);
+
+  return lines;
 }
 
 function drawMudPatch(
@@ -1512,7 +1655,7 @@ function drawMudPatch(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  mudImage?: HTMLImageElement | null,
+  mudImage?: LoadedImageSource | null,
 ) {
   if (mudImage) {
     drawPlacedSprite(
@@ -1570,33 +1713,13 @@ function drawMudPatch(
   context.restore();
 }
 
-function drawGreaseStation(
-  context: CanvasRenderingContext2D,
-  visualX: number,
-  hitboxX: number,
-  hitboxHalfWidth: number,
-  isActive: boolean,
-) {
-  context.save();
-  context.fillStyle = "#714d1f";
-  context.fillRect(visualX - 38, GROUND_Y - 4, 76, 22);
-  context.fillStyle = "#c98b2d";
-  context.fillRect(visualX - 16, GROUND_Y - 54, 32, 52);
-  context.fillStyle = "#2b1c0f";
-  context.fillRect(visualX - 6, GROUND_Y - 42, 12, 22);
-  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
-  context.lineWidth = 2;
-  drawEventHitboxOutline(context, hitboxX, hitboxHalfWidth, GROUND_Y - 70, 92);
-  context.restore();
-}
-
 function drawRearDitch(
   context: CanvasRenderingContext2D,
   visualX: number,
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  holeImage?: HTMLImageElement | null,
+  holeImage?: LoadedImageSource | null,
 ) {
   if (holeImage) {
     drawPlacedSprite(
@@ -1635,7 +1758,7 @@ function drawTruck(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  truckImage?: HTMLImageElement | null,
+  truckImage?: LoadedImageSource | null,
 ) {
   if (truckImage) {
     drawPickupUnloadTruckSprite(
@@ -1679,10 +1802,10 @@ function drawPickupUnloadTruckSprite(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  truckImage: HTMLImageElement,
+  truckImage: LoadedImageSource,
 ) {
-  const sourceWidth = truckImage.naturalWidth || truckImage.width;
-  const sourceHeight = truckImage.naturalHeight || truckImage.height;
+  const { width: sourceWidth, height: sourceHeight } =
+    getImageSourceSize(truckImage);
 
   if (!sourceWidth || !sourceHeight) {
     drawTruck(context, visualX, hitboxX, hitboxHalfWidth, isActive);
@@ -1718,7 +1841,7 @@ function drawSignage(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  signImage?: HTMLImageElement | null,
+  signImage?: LoadedImageSource | null,
 ) {
   if (signImage) {
     drawPlacedSprite(
@@ -1770,9 +1893,21 @@ function drawGreaseMarker(
   hitboxX: number,
   hitboxHalfWidth: number,
   isActive: boolean,
-  signImage?: HTMLImageElement | null,
+  signImage?: LoadedImageSource | null,
+  instructorImage?: LoadedImageSource | null,
+  greaseAnimationActive?: boolean,
 ) {
   if (signImage) {
+    if (instructorImage && !greaseAnimationActive) {
+      drawPlacedSprite(
+        context,
+        instructorImage,
+        visualX + GREASE_VENEZITO_OFFSET_X,
+        GREASE_VENEZITO_BASE_Y,
+        GREASE_VENEZITO_DRAW_HEIGHT,
+      );
+    }
+
     drawPlacedSprite(
       context,
       signImage,
@@ -1833,13 +1968,12 @@ function drawEventHitboxOutline(
 
 function drawPlacedSprite(
   context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
+  image: LoadedImageSource,
   centerX: number,
   baseY: number,
   drawHeight: number,
 ) {
-  const sourceWidth = image.naturalWidth || image.width;
-  const sourceHeight = image.naturalHeight || image.height;
+  const { width: sourceWidth, height: sourceHeight } = getImageSourceSize(image);
 
   if (!sourceWidth || !sourceHeight) {
     return;

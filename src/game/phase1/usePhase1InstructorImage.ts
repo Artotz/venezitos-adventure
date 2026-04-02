@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 
 import instructorSrc from "../../assets/venezito/venezito.png";
-import { loadImage } from "../loadImage";
+import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
 
 export function usePhase1InstructorImage() {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [image, setImage] = useState<LoadedImageSource | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    loadImage(instructorSrc)
+    loadOptimizedImage(instructorSrc, {
+      maxHeight: 960,
+      maxWidth: 768,
+    })
       .then((loadedImage) => {
         if (!cancelled) {
           setImage(loadedImage);

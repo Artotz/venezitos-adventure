@@ -110,6 +110,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
       activeEventId: null,
       loadedDirt: false,
       rearLoaded: false,
+      greaseAnimationActive: false,
       carnaubaImage,
       groundImage,
     });

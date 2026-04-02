@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react"
 
 import greaseSrc from "../../assets/venezito/venezito-grease.png"
-import { loadImage } from "../loadImage"
+import { loadOptimizedImage, type LoadedImageSource } from "../imageSource"
 
 export function useVenezitoGreaseImage() {
-  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [image, setImage] = useState<LoadedImageSource | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    loadImage(greaseSrc)
+    loadOptimizedImage(greaseSrc, {
+      maxHeight: 512,
+      maxWidth: 512,
+    })
       .then((loadedImage) => {
         if (!cancelled) {
           setImage(loadedImage)

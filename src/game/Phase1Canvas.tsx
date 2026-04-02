@@ -164,8 +164,10 @@ export function Phase1Canvas({
       activeEventId: game.activeEventId,
       loadedDirt: game.loadedDirt,
       rearLoaded: game.rearLoaded,
+      greaseAnimationActive: game.greaseAnimationElapsed !== null,
       groundImage,
       carnaubaImage,
+      instructorImage,
       pickupDirtImage: eventSprites.dirtPileImage,
       greaseSignImage: eventSprites.greaseSignImage,
       holeEmptyImage: eventSprites.holeEmptyImage,
@@ -203,6 +205,8 @@ export function Phase1Canvas({
       score: game.score,
       distance: game.distance,
       differentialLockEnabled: game.differentialLockEnabled,
+      message: game.message,
+      instructorImage,
     });
     if (overlayStep === "manifesto") {
       drawPhase1SpeechModal(context, PHASE1_MANIFESTO_MODAL, instructorImage);

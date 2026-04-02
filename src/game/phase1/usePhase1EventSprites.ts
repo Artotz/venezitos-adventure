@@ -6,15 +6,15 @@ import holeEmptySrc from "../../assets/hole-empty.png";
 import holeFullSrc from "../../assets/hole-full.png";
 import mudSrc from "../../assets/mud.png";
 import workSignSrc from "../../assets/work-sign.png";
-import { loadImage } from "../loadImage";
+import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
 
 type Phase1EventSprites = {
-  dirtPileImage: HTMLImageElement | null;
-  greaseSignImage: HTMLImageElement | null;
-  holeEmptyImage: HTMLImageElement | null;
-  holeFullImage: HTMLImageElement | null;
-  mudImage: HTMLImageElement | null;
-  workSignImage: HTMLImageElement | null;
+  dirtPileImage: LoadedImageSource | null;
+  greaseSignImage: LoadedImageSource | null;
+  holeEmptyImage: LoadedImageSource | null;
+  holeFullImage: LoadedImageSource | null;
+  mudImage: LoadedImageSource | null;
+  workSignImage: LoadedImageSource | null;
 };
 
 const INITIAL_SPRITES: Phase1EventSprites = {
@@ -33,12 +33,12 @@ export function usePhase1EventSprites() {
     let cancelled = false;
 
     void Promise.allSettled([
-      loadImage(dirtPileSrc),
-      loadImage(greaseSignSrc),
-      loadImage(holeEmptySrc),
-      loadImage(holeFullSrc),
-      loadImage(mudSrc),
-      loadImage(workSignSrc),
+      loadOptimizedImage(dirtPileSrc, { maxWidth: 768, maxHeight: 384 }),
+      loadOptimizedImage(greaseSignSrc, { maxWidth: 512, maxHeight: 512 }),
+      loadOptimizedImage(holeEmptySrc, { maxWidth: 512, maxHeight: 512 }),
+      loadOptimizedImage(holeFullSrc, { maxWidth: 512, maxHeight: 512 }),
+      loadOptimizedImage(mudSrc, { maxWidth: 768, maxHeight: 384 }),
+      loadOptimizedImage(workSignSrc, { maxWidth: 512, maxHeight: 512 }),
     ]).then((results) => {
       if (cancelled) {
         return;

@@ -1,5 +1,6 @@
 import { applyToPoint } from "../retro/geometry"
 import type { Matrix2D, Point } from "../retro/types"
+import { getImageSourceSize, type LoadedImageSource } from "../imageSource"
 
 import {
   DEFAULT_GREASE_ANIMATION_CONFIG,
@@ -11,7 +12,7 @@ import {
 type DrawGreaseAnimationParams = {
   context: CanvasRenderingContext2D
   elapsed: number | null
-  greaseImage?: HTMLImageElement | null
+  greaseImage?: LoadedImageSource | null
   machineRootMatrix: Matrix2D
   config?: GreaseAnimationConfig
   pointProjector?: (matrix: Matrix2D, point: Point) => Point
@@ -29,10 +30,14 @@ export function drawGreaseAnimation({
 }: DrawGreaseAnimationParams) {
   if (
     elapsed === null ||
-    !greaseImage ||
-    !greaseImage.naturalWidth ||
-    !greaseImage.naturalHeight
+    !greaseImage
   ) {
+    return
+  }
+
+  const { width: sourceWidth, height: sourceHeight } = getImageSourceSize(greaseImage)
+
+  if (!sourceWidth || !sourceHeight) {
     return
   }
 
@@ -45,8 +50,7 @@ export function drawGreaseAnimation({
 
   const canvasPoint = pointProjector(machineRootMatrix, pose.point)
   const drawHeight = safeConfig.spriteHeight
-  const drawWidth =
-    (greaseImage.naturalWidth / greaseImage.naturalHeight) * drawHeight
+  const drawWidth = (sourceWidth / sourceHeight) * drawHeight
   const pivotX = drawWidth * safeConfig.spritePivotX
   const pivotY = drawHeight * safeConfig.spritePivotY
 

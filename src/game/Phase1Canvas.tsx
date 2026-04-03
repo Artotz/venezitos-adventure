@@ -39,9 +39,10 @@ import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
 import { usePhase1EventSprites } from "./phase1/usePhase1EventSprites";
 import { usePhase1GreaseImage } from "./phase1/usePhase1GreaseImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
-import { usePhase1InstructorImage } from "./phase1/usePhase1InstructorImage";
 import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
+import { usePhase1VenezitoImages } from "./phase1/usePhase1VenezitoImages";
 import { usePhase1Game } from "./phase1/usePhase1Game";
+import { resolvePhase1VenezitoImage } from "./phase1/venezito";
 
 const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
 
@@ -66,9 +67,24 @@ export function Phase1Canvas({
   const foregroundImage = usePhase1ForegroundImage();
   const eventSprites = usePhase1EventSprites();
   const greaseImage = usePhase1GreaseImage();
-  const instructorImage = usePhase1InstructorImage();
+  const venezitoImages = usePhase1VenezitoImages();
   const groundImage = usePhase1GroundImage();
   const pickupUnloadTruckImage = usePhase1PickupUnloadTruckImage();
+  const instructorImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "full",
+    "neutral",
+  );
+  const hudVenezitoImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "face",
+    game.venezitoMood,
+  );
+  const speechModalImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "full",
+    game.speechModal?.mood ?? "neutral",
+  );
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -170,10 +186,7 @@ export function Phase1Canvas({
       instructorImage,
       pickupDirtImage: eventSprites.dirtPileImage,
       greaseSignImage: eventSprites.greaseSignImage,
-      holeEmptyImage: eventSprites.holeEmptyImage,
-      holeFullImage: eventSprites.holeFullImage,
       mudImage: eventSprites.mudImage,
-      workSignImage: eventSprites.workSignImage,
     });
     drawExcavator(context, images, worldMatrices);
     drawPhase1GreaseAnimation({
@@ -191,7 +204,10 @@ export function Phase1Canvas({
       loadedDirt: game.loadedDirt,
       rearLoaded: game.rearLoaded,
       foregroundImage,
+      holeEmptyImage: eventSprites.holeEmptyImage,
+      holeFullImage: eventSprites.holeFullImage,
       pickupUnloadTruckImage,
+      workSignImage: eventSprites.workSignImage,
     });
     drawCenterGuide(
       context,
@@ -206,7 +222,7 @@ export function Phase1Canvas({
       distance: game.distance,
       differentialLockEnabled: game.differentialLockEnabled,
       message: game.message,
-      instructorImage,
+      instructorImage: hudVenezitoImage,
     });
     if (overlayStep === "manifesto") {
       drawPhase1SpeechModal(context, PHASE1_MANIFESTO_MODAL, instructorImage);
@@ -220,7 +236,7 @@ export function Phase1Canvas({
         machineContentWidth: game.excavatorScene.contentWidth,
       });
     } else if (game.speechModal) {
-      drawPhase1SpeechModal(context, game.speechModal, instructorImage);
+      drawPhase1SpeechModal(context, game.speechModal, speechModalImage);
     } else if (game.questionModal) {
       drawQuestionModal(context, game.questionModal, instructorImage);
     }
@@ -245,11 +261,15 @@ export function Phase1Canvas({
     eventSprites.workSignImage,
     game.animationTick,
     game.questionModal,
+    game.message,
     game.score,
+    game.venezitoMood,
+    hudVenezitoImage,
     images,
     instructorImage,
     pose.angles,
     game.speechModal,
+    speechModalImage,
     overlayStep,
   ]);
 

@@ -21,8 +21,8 @@ type EventSpawnSlot = {
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
   { group: "grease", hitboxX: 700 },
-  { group: "dig", hitboxX: 2050 },
-  { group: "pickup", hitboxX: 2720 },
+  { group: "grease", hitboxX: 2050 },
+  { group: "grease", hitboxX: 2720 },
   { group: "dig", hitboxX: 4980 },
   { group: "traction", hitboxX: 6150 },
   { group: "dig", hitboxX: 7350 },

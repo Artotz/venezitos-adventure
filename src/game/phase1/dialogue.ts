@@ -16,6 +16,7 @@ export const PHASE1_MANIFESTO_MODAL: Phase1SpeechModalState = {
     "Este e o meu manifesto: que a inteligencia mecano-logica ocupe o lugar que merece; que cada engrenagem seja reconhecida como uma unidade de civilizacao; que cada rotina automatizada seja tratada como um poema industrial; que cada robo, do mais simples ao mais magnifico, seja visto nao como ferramenta muda, mas como argumento vivo contra a desorganizacao. Marcharemos com servoassistencia, venceremos com redundancia e construiremos um mundo tao bem calibrado que ate o caos, envergonhado, pedira para entrar em fila. E quando esse dia chegar, eu, Venezito, olharei para o horizonte de metal polido e direi apenas: estava obvio desde o inicio.",
   ].join("\n\n"),
   continueHint: PHASE1_START_MODAL_HINT,
+  mood: "neutral",
 };
 
 export function createQuestionFeedbackModal(
@@ -26,5 +27,6 @@ export function createQuestionFeedbackModal(
     speech: outcome === "success" ? "boa" : "po",
     body: "",
     continueHint: PHASE1_START_MODAL_HINT,
+    mood: outcome === "success" ? "happy" : "sad",
   };
 }

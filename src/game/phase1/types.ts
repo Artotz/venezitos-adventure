@@ -1,4 +1,5 @@
 import type { AnimationPresetId } from '../retro/types'
+import type { VenezitoMood } from './venezito'
 
 export type ManualEventType =
   | 'pickup-load'
@@ -148,4 +149,5 @@ export type Phase1SpeechModalState = {
   speech: string
   body: string
   continueHint: string
+  mood: VenezitoMood
 }

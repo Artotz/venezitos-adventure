@@ -61,6 +61,7 @@ import type {
   Phase1SpeechModalState,
   QuestionModalState,
 } from "./types";
+import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
 const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
@@ -84,6 +85,7 @@ export function usePhase1Game(enabled = true) {
   const [speechModal, setSpeechModal] = useState<Phase1SpeechModalState | null>(
     null,
   );
+  const [venezitoMood, setVenezitoMood] = useState<VenezitoMood>("neutral");
   const [animationTick, setAnimationTick] = useState(0);
   const [activeAnimationLabel, setActiveAnimationLabel] =
     useState("Rodagem continua");
@@ -189,6 +191,7 @@ export function usePhase1Game(enabled = true) {
       setScore((current) => current + scoreDelta);
     }
     setMessage(nextMessage);
+    setVenezitoMood("happy");
   };
 
   const failEvent = (
@@ -209,6 +212,7 @@ export function usePhase1Game(enabled = true) {
       setScore((current) => Math.max(0, current - scorePenalty));
     }
     setMessage(nextMessage);
+    setVenezitoMood("sad");
   };
 
   const startAnimation = (
@@ -392,6 +396,7 @@ export function usePhase1Game(enabled = true) {
           ? "Bloqueio de diferencial ligado."
           : "Bloqueio de diferencial desligado.",
       );
+      setVenezitoMood("neutral");
       return;
     }
 
@@ -427,6 +432,7 @@ export function usePhase1Game(enabled = true) {
       setFails((current) => current + 1);
       setScore((current) => Math.max(0, current - 50));
       setMessage("Fora da hitbox do evento.");
+      setVenezitoMood("sad");
       return;
     }
 
@@ -718,6 +724,7 @@ export function usePhase1Game(enabled = true) {
         setActiveEventId(nextUpcoming.id);
         activeEventIdRef.current = nextUpcoming.id;
         setMessage(getEventActivationMessage(eventInfo));
+        setVenezitoMood("neutral");
 
         if (isTractionEventDefinition(eventInfo)) {
           playPhase1Sound("mud");
@@ -725,6 +732,7 @@ export function usePhase1Game(enabled = true) {
 
         if (isQuestionEventDefinition(eventInfo)) {
           setMessage("Parando para a pergunta do instrutor...");
+          setVenezitoMood("neutral");
         }
       }
     }
@@ -812,6 +820,7 @@ export function usePhase1Game(enabled = true) {
     loadedDirt,
     rearLoaded,
     message,
+    venezitoMood,
     events,
     activeEventId,
     questionModal,

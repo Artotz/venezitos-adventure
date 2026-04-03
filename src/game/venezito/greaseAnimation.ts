@@ -41,7 +41,7 @@ export const DEFAULT_GREASE_ANIMATION_CONFIG: GreaseAnimationConfig = {
   framesPerPoint: 4,
   wobbleRotations: [-0.12, 0.08, -0.05, 0.04],
   wobbleYOffsets: [0, -4, 2, -2],
-  spriteHeight: 120,
+  spriteHeight: 155,
   spriteOffsetX: 4,
   spriteOffsetY: -5,
   spritePivotX: 0.14,

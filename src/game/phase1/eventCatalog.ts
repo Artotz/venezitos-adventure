@@ -9,6 +9,7 @@ import {
   QUESTION_OPTION_KEYS_LABEL,
   TRACTION_TOGGLE_KEY_LABEL,
 } from "./config";
+import { getAnimationTotalDuration } from "../retro/animations";
 import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
 import type {
   EventDefinition,
@@ -87,6 +88,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
       presetId: "arm-extended",
       label: "Braco estendido",
       lockMovement: true,
+      spriteSwapAtMs: 2000,
       loadStateOnComplete: {
         rearLoaded: true,
       },
@@ -111,6 +113,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
       presetId: "arm-unload",
       label: "Descarregando traseira",
       lockMovement: true,
+      spriteSwapAtMs: 2400,
       loadStateOnComplete: {
         rearLoaded: false,
       },

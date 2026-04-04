@@ -45,6 +45,7 @@ type Phase1SceneParams = {
   instructorImage?: LoadedImageSource | null;
   pickupDirtImage?: LoadedImageSource | null;
   greaseSignImage?: LoadedImageSource | null;
+  maintenanceSignImage?: LoadedImageSource | null;
   mudImage?: LoadedImageSource | null;
 };
 
@@ -160,6 +161,7 @@ export function drawPhase1Environment({
   instructorImage,
   pickupDirtImage,
   greaseSignImage,
+  maintenanceSignImage,
   mudImage,
 }: Phase1SceneParams) {
   drawBackground(
@@ -192,6 +194,7 @@ export function drawPhase1Environment({
     instructorImage,
     pickupDirtImage,
     greaseSignImage,
+    maintenanceSignImage,
   );
 }
 
@@ -792,29 +795,28 @@ function drawInstructorStage(
 function drawBackground(
   context: CanvasRenderingContext2D,
   distance: number,
-  events: MapEvent[],
-  activeEventId: number | null,
-  loadedDirt: boolean,
-  rearLoaded: boolean,
+  _events: MapEvent[],
+  _activeEventId: number | null,
+  _loadedDirt: boolean,
+  _rearLoaded: boolean,
   carnaubaImage?: LoadedImageSource | null,
 ) {
-  const farOffset = (distance * 0.08) % 320;
   const backgroundYOffset = GROUND_Y - 485;
 
-  context.fillStyle = "rgba(255, 244, 214, 0.25)";
-  context.beginPath();
-  context.arc(910, 110, 58, 0, Math.PI * 2);
-  context.fill();
+  // context.fillStyle = "rgba(255, 244, 214, 0.25)";
+  // context.beginPath();
+  // context.arc(910, 110, 58, 0, Math.PI * 2);
+  // context.fill();
 
-  context.fillStyle = "#6d8b57";
-  for (let x = farOffset - 320; x < CANVAS_WIDTH + 320; x += 320) {
-    context.beginPath();
-    context.moveTo(x, 480 + backgroundYOffset);
-    context.lineTo(x + 140, 350 + backgroundYOffset);
-    context.lineTo(x + 300, 480 + backgroundYOffset);
-    context.closePath();
-    context.fill();
-  }
+  // context.fillStyle = "#6d8b57";
+  // for (let x = farOffset - 320; x < CANVAS_WIDTH + 320; x += 320) {
+  //   context.beginPath();
+  //   context.moveTo(x, 480 + backgroundYOffset);
+  //   context.lineTo(x + 140, 350 + backgroundYOffset);
+  //   context.lineTo(x + 300, 480 + backgroundYOffset);
+  //   context.closePath();
+  //   context.fill();
+  // }
 
   if (carnaubaImage) {
     drawBackgroundCarnaubas(context, distance, carnaubaImage);
@@ -834,31 +836,6 @@ function drawBackground(
     }
   }
 
-  for (const event of events) {
-    const visualX = getEventVisualScreenX(
-      event,
-      distance,
-      loadedDirt,
-      rearLoaded,
-    );
-    const hitboxX = getEventHitboxScreenX(event, distance);
-    const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
-    const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
-
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
-      continue;
-    }
-
-    if (eventType === "question") {
-      drawQuestionMarker(
-        context,
-        visualX,
-        hitboxX,
-        hitboxHalfWidth,
-        event.id === activeEventId,
-      );
-    }
-  }
 }
 
 function drawBackgroundCarnaubas(
@@ -931,9 +908,9 @@ function drawGround(
 
     const isActive = event.id === activeEventId;
 
-    if (eventType === "pickup-load") {
-      drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
-    }
+    // if (eventType === "pickup-load") {
+    //   drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
+    // }
 
     if (eventType === "dig-unload") {
     }
@@ -962,6 +939,7 @@ function drawGroundOverlay(
   instructorImage?: LoadedImageSource | null,
   pickupDirtImage?: LoadedImageSource | null,
   greaseSignImage?: LoadedImageSource | null,
+  maintenanceSignImage?: LoadedImageSource | null,
 ) {
   for (const event of events) {
     const visualX = getEventVisualScreenX(
@@ -990,6 +968,19 @@ function drawGroundOverlay(
         greaseSignImage,
         instructorImage,
         greaseAnimationActive,
+      );
+    }
+
+    if (eventType === "question") {
+      drawGreaseMarker(
+        context,
+        visualX,
+        hitboxX,
+        hitboxHalfWidth,
+        isActive,
+        maintenanceSignImage,
+        instructorImage,
+        false,
       );
     }
 
@@ -1100,28 +1091,28 @@ function drawGroundSprite(
 }
 
 function drawProceduralGround(
-  context: CanvasRenderingContext2D,
-  distance: number,
+  _context: CanvasRenderingContext2D,
+  _distance: number,
 ) {
-  context.fillStyle = "#a77943";
-  context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
+  // context.fillStyle = "#a77943";
+  // context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
 
-  context.fillStyle = "#6e4b2a";
-  context.fillRect(0, GROUND_Y + 46, CANVAS_WIDTH, 90);
+  // context.fillStyle = "#6e4b2a";
+  // context.fillRect(0, GROUND_Y + 46, CANVAS_WIDTH, 90);
 
-  context.fillStyle = "#d8b16c";
-  const laneOffset = distance % 120;
-  for (let x = laneOffset - 120; x < CANVAS_WIDTH + 120; x += 120) {
-    context.fillRect(x, GROUND_Y + 12, 70, 8);
-  }
+  // context.fillStyle = "#d8b16c";
+  // const laneOffset = distance % 120;
+  // for (let x = laneOffset - 120; x < CANVAS_WIDTH + 120; x += 120) {
+  //   context.fillRect(x, GROUND_Y + 12, 70, 8);
+  // }
 
-  context.fillStyle = "rgba(40, 23, 10, 0.28)";
-  const dirtOffset = (distance * 1.4) % 90;
-  for (let x = dirtOffset - 90; x < CANVAS_WIDTH + 90; x += 90) {
-    context.beginPath();
-    context.ellipse(x + 20, GROUND_Y + 58, 24, 8, 0, 0, Math.PI * 2);
-    context.fill();
-  }
+  // context.fillStyle = "rgba(40, 23, 10, 0.28)";
+  // const dirtOffset = (distance * 1.4) % 90;
+  // for (let x = dirtOffset - 90; x < CANVAS_WIDTH + 90; x += 90) {
+  //   context.beginPath();
+  //   context.ellipse(x + 20, GROUND_Y + 58, 24, 8, 0, 0, Math.PI * 2);
+  //   context.fill();
+  // }
 }
 
 function drawHudCard(
@@ -1223,7 +1214,7 @@ function drawVenezitoSpeechHud(
 
   context.fillStyle = "#fff3d7";
   context.font = '600 18px "Segoe UI", sans-serif';
-  drawWrappedText(context, message, textX, y + 54, textWidth, 26);
+  drawWrappedText(context, message, textX, y + 50, textWidth, 26);
 
   context.restore();
 }
@@ -1424,35 +1415,6 @@ function drawPickupDirtBackdrop(
   }
 
   drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
-}
-
-function drawQuestionMarker(
-  context: CanvasRenderingContext2D,
-  visualX: number,
-  hitboxX: number,
-  hitboxHalfWidth: number,
-  isActive: boolean,
-) {
-  context.save();
-  context.fillStyle = "#e8ddba";
-  context.fillRect(visualX - 10, GROUND_Y - 144, 20, 146);
-  context.fillStyle = isActive ? "#d68b1f" : "#ae3a26";
-  context.beginPath();
-  context.roundRect(visualX - 54, GROUND_Y - 210, 108, 66, 18);
-  context.fill();
-  context.fillStyle = "#fff3d7";
-  context.font = '700 44px "Segoe UI", sans-serif';
-  context.fillText("?", visualX - 14, GROUND_Y - 160);
-  context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
-  context.lineWidth = 2;
-  drawEventHitboxOutline(
-    context,
-    hitboxX,
-    hitboxHalfWidth,
-    GROUND_Y - 214,
-    220,
-  );
-  context.restore();
 }
 
 function drawDifferentialLockIcon(

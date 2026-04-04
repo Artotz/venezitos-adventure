@@ -4,6 +4,7 @@ import dirtPileSrc from "../../assets/dirt-pile.png";
 import greaseSignSrc from "../../assets/grease-sign.png";
 import holeEmptySrc from "../../assets/hole-empty.png";
 import holeFullSrc from "../../assets/hole-full.png";
+import maintenanceSignSrc from "../../assets/maintenance-sign.png";
 import mudSrc from "../../assets/mud.png";
 import workSignSrc from "../../assets/work-sign.png";
 import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
@@ -13,6 +14,7 @@ type Phase1EventSprites = {
   greaseSignImage: LoadedImageSource | null;
   holeEmptyImage: LoadedImageSource | null;
   holeFullImage: LoadedImageSource | null;
+  maintenanceSignImage: LoadedImageSource | null;
   mudImage: LoadedImageSource | null;
   workSignImage: LoadedImageSource | null;
 };
@@ -22,6 +24,7 @@ const INITIAL_SPRITES: Phase1EventSprites = {
   greaseSignImage: null,
   holeEmptyImage: null,
   holeFullImage: null,
+  maintenanceSignImage: null,
   mudImage: null,
   workSignImage: null,
 };
@@ -37,6 +40,7 @@ export function usePhase1EventSprites() {
       loadOptimizedImage(greaseSignSrc, { maxWidth: 512, maxHeight: 512 }),
       loadOptimizedImage(holeEmptySrc, { maxWidth: 512, maxHeight: 512 }),
       loadOptimizedImage(holeFullSrc, { maxWidth: 512, maxHeight: 512 }),
+      loadOptimizedImage(maintenanceSignSrc, { maxWidth: 512, maxHeight: 512 }),
       loadOptimizedImage(mudSrc, { maxWidth: 768, maxHeight: 384 }),
       loadOptimizedImage(workSignSrc, { maxWidth: 512, maxHeight: 512 }),
     ]).then((results) => {
@@ -49,8 +53,9 @@ export function usePhase1EventSprites() {
         greaseSignImage: results[1].status === "fulfilled" ? results[1].value : null,
         holeEmptyImage: results[2].status === "fulfilled" ? results[2].value : null,
         holeFullImage: results[3].status === "fulfilled" ? results[3].value : null,
-        mudImage: results[4].status === "fulfilled" ? results[4].value : null,
-        workSignImage: results[5].status === "fulfilled" ? results[5].value : null,
+        maintenanceSignImage: results[4].status === "fulfilled" ? results[4].value : null,
+        mudImage: results[5].status === "fulfilled" ? results[5].value : null,
+        workSignImage: results[6].status === "fulfilled" ? results[6].value : null,
       });
 
       results.forEach((result, index) => {
@@ -60,6 +65,7 @@ export function usePhase1EventSprites() {
             "grease-sign",
             "hole-empty",
             "hole-full",
+            "maintenance-sign",
             "mud",
             "work-sign",
           ];

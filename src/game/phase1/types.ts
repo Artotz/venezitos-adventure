@@ -38,6 +38,7 @@ export type RetroEventAnimationConfig = {
   presetId: AnimationPresetId
   label: string
   lockMovement: boolean
+  spriteSwapAtMs?: number
   loadStateOnComplete?: {
     loadedDirt?: boolean
     rearLoaded?: boolean

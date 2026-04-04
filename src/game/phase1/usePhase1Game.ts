@@ -41,6 +41,7 @@ import {
   getEventHitboxScreenX,
   isWithinTractionScoreLeniencyZone,
   syncInfiniteEventStream,
+  updateEventType,
   updateEventStatus,
 } from "./eventPositioner";
 import { getQuestionFromCatalog } from "./questionCatalog";
@@ -220,6 +221,7 @@ export function usePhase1Game(enabled = true) {
     presetId: AnimationPresetId,
     label: string,
     lockMovement: boolean,
+    onUpdate?: (previousElapsed: number, nextElapsed: number) => void,
     onComplete?: () => void,
   ) => {
     target.current = {
@@ -227,6 +229,7 @@ export function usePhase1Game(enabled = true) {
       label,
       elapsed: 0,
       lockMovement,
+      onUpdate,
       onComplete,
     };
     playAnimationSoundCues(getAnimationSoundCuesAtTime(presetId, 0));
@@ -250,6 +253,14 @@ export function usePhase1Game(enabled = true) {
       setRearLoaded(patch.rearLoaded);
       rearLoadedRef.current = patch.rearLoaded;
     }
+  };
+
+  const updateResolvedDigVisual = (eventId: number, eventType: "dig-load" | "dig-unload") => {
+    const nextType = eventType === "dig-load" ? "dig-unload" : "dig-load";
+    const nextEvents = updateEventType(eventsRef.current, eventId, nextType);
+
+    eventsRef.current = nextEvents;
+    setEvents(nextEvents);
   };
 
   useEffect(() => {
@@ -463,12 +474,41 @@ export function usePhase1Game(enabled = true) {
         ? frontAnimationRef
         : rearAnimationRef;
 
+    let hasSwappedDigSprite = false;
+
     startAnimation(
       animationTarget,
       retroAnimation.presetId,
       retroAnimation.label,
       retroAnimation.lockMovement,
-      () => applyLoadStatePatch(retroAnimation.loadStateOnComplete),
+      (previousElapsed, nextElapsed) => {
+        if (
+          hasSwappedDigSprite ||
+          retroAnimation.target !== "rear" ||
+          typeof retroAnimation.spriteSwapAtMs !== "number" ||
+          (activeEvent.type !== "dig-load" && activeEvent.type !== "dig-unload")
+        ) {
+          return;
+        }
+
+        if (
+          previousElapsed < retroAnimation.spriteSwapAtMs &&
+          nextElapsed >= retroAnimation.spriteSwapAtMs
+        ) {
+          hasSwappedDigSprite = true;
+          updateResolvedDigVisual(activeEvent.id, activeEvent.type);
+        }
+      },
+      () => {
+        applyLoadStatePatch(retroAnimation.loadStateOnComplete);
+
+        if (
+          !hasSwappedDigSprite &&
+          (activeEvent.type === "dig-load" || activeEvent.type === "dig-unload")
+        ) {
+          updateResolvedDigVisual(activeEvent.id, activeEvent.type);
+        }
+      },
     );
   });
 
@@ -520,6 +560,7 @@ export function usePhase1Game(enabled = true) {
       const previousElapsed = animation.elapsed;
 
       animation.elapsed += dt * 1000;
+      animation.onUpdate?.(previousElapsed, animation.elapsed);
       playAnimationSoundCues(
         getAnimationSoundCuesInRange(
           animation.presetId,

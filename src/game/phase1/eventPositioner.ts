@@ -20,9 +20,9 @@ type EventSpawnSlot = {
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: "grease", hitboxX: 700 },
-  { group: "grease", hitboxX: 2050 },
-  { group: "grease", hitboxX: 2720 },
+  { group: "question", hitboxX: 700 },
+  { group: "question", hitboxX: 2050 },
+  { group: "question", hitboxX: 2720 },
   { group: "dig", hitboxX: 4980 },
   { group: "traction", hitboxX: 6150 },
   { group: "dig", hitboxX: 7350 },
@@ -114,6 +114,16 @@ export function updateEventStatus(
 ) {
   return events.map((event) =>
     event.id === eventId ? { ...event, status } : event,
+  );
+}
+
+export function updateEventType(
+  events: MapEvent[],
+  eventId: number,
+  type: MapEventType,
+) {
+  return events.map((event) =>
+    event.id === eventId ? { ...event, type } : event,
   );
 }
 

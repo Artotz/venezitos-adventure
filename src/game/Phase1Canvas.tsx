@@ -186,6 +186,7 @@ export function Phase1Canvas({
       instructorImage,
       pickupDirtImage: eventSprites.dirtPileImage,
       greaseSignImage: eventSprites.greaseSignImage,
+      maintenanceSignImage: eventSprites.maintenanceSignImage,
       mudImage: eventSprites.mudImage,
     });
     drawExcavator(context, images, worldMatrices);
@@ -249,6 +250,7 @@ export function Phase1Canvas({
     foregroundImage,
     eventSprites.dirtPileImage,
     eventSprites.greaseSignImage,
+    eventSprites.maintenanceSignImage,
     greaseImage,
     game.loadedDirt,
     game.rearLoaded,

@@ -85,5 +85,6 @@ export type ActiveAnimation = {
   label: string
   elapsed: number
   lockMovement: boolean
+  onUpdate?: (previousElapsed: number, nextElapsed: number) => void
   onComplete?: () => void
 }

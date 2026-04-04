@@ -50,7 +50,7 @@ import {
   getQuestionDirectionFromKey,
   isCorrectQuestionAnswer,
 } from "./questionModal";
-import { createQuestionFeedbackModal } from "./dialogue";
+import { createQuestionFeedbackModal, createQuestionIntroModal } from "./dialogue";
 import { PHASE1_CONTINUE_CODES } from "./config";
 import {
   getGreaseAnimationPose,
@@ -66,6 +66,14 @@ import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
 const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
+const MANUAL_EVENT_KEY_CODES = new Set<string>([
+  "KeyA",
+  "ArrowLeft",
+  "KeyD",
+  "ArrowRight",
+  "KeyW",
+  "ArrowUp",
+]);
 
 export function usePhase1Game(enabled = true) {
   const sprites = useRetroSprites();
@@ -102,6 +110,7 @@ export function usePhase1Game(enabled = true) {
   const distanceRef = useRef(0);
   const differentialLockEnabledRef = useRef(false);
   const questionModalRef = useRef<QuestionModalState | null>(null);
+  const pendingQuestionModalRef = useRef<QuestionModalState | null>(null);
   const speechModalRef = useRef<Phase1SpeechModalState | null>(null);
   const questionCursorRef = useRef(0);
   const tractionBoostFrameCountRef = useRef(0);
@@ -149,6 +158,7 @@ export function usePhase1Game(enabled = true) {
     activeEventIdRef.current = null;
     tractionBoostFrameCountRef.current = 0;
     setQuestionModalState(null);
+    pendingQuestionModalRef.current = null;
   };
 
   const playAnimationSoundCues = (
@@ -175,6 +185,7 @@ export function usePhase1Game(enabled = true) {
     nextMessage: string,
     options?: {
       scoreDelta?: number;
+      playSound?: boolean;
     },
   ) => {
     const nextEvents = updateEventStatus(
@@ -191,6 +202,9 @@ export function usePhase1Game(enabled = true) {
     if (scoreDelta !== 0) {
       setScore((current) => current + scoreDelta);
     }
+    if (options?.playSound !== false) {
+      playPhase1Sound("success");
+    }
     setMessage(nextMessage);
     setVenezitoMood("happy");
   };
@@ -200,6 +214,7 @@ export function usePhase1Game(enabled = true) {
     nextMessage: string,
     options?: {
       scorePenalty?: number;
+      playSound?: boolean;
     },
   ) => {
     const nextEvents = updateEventStatus(eventsRef.current, eventId, "missed");
@@ -211,6 +226,9 @@ export function usePhase1Game(enabled = true) {
     const scorePenalty = options?.scorePenalty ?? 90;
     if (scorePenalty > 0) {
       setScore((current) => Math.max(0, current - scorePenalty));
+    }
+    if (options?.playSound !== false) {
+      playPhase1Sound("failure");
     }
     setMessage(nextMessage);
     setVenezitoMood("sad");
@@ -350,6 +368,14 @@ export function usePhase1Game(enabled = true) {
       }
 
       event.preventDefault();
+      if (pendingQuestionModalRef.current) {
+        const nextQuestionModal = pendingQuestionModalRef.current;
+        pendingQuestionModalRef.current = null;
+        setSpeechModalState(null);
+        setQuestionModalState(nextQuestionModal);
+        setMessage("Responda a pergunta do instrutor.");
+        return;
+      }
       setSpeechModalState(null);
       return;
     }
@@ -372,7 +398,6 @@ export function usePhase1Game(enabled = true) {
       if (
         isCorrectQuestionAnswer(openQuestionModal.question, selectedDirection)
       ) {
-        playPhase1Sound("success");
         resolveEvent(
           openQuestionModal.eventId,
           openQuestionModal.question.successMessage,
@@ -384,7 +409,6 @@ export function usePhase1Game(enabled = true) {
         return;
       }
 
-      playPhase1Sound("failure");
       failEvent(
         openQuestionModal.eventId,
         openQuestionModal.question.failureMessage,
@@ -429,17 +453,29 @@ export function usePhase1Game(enabled = true) {
       return;
     }
 
-    if (!eventDefinition.acceptedCodes.includes(event.code)) {
+    if (!MANUAL_EVENT_KEY_CODES.has(event.code)) {
       return;
     }
 
     event.preventDefault();
 
     const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+    const isWithinHitbox =
+      Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
 
-    if (
-      Math.abs(screenX - PLAYER_HIT_LINE_X) > eventDefinition.hitboxHalfWidth
-    ) {
+    if (!eventDefinition.acceptedCodes.includes(event.code)) {
+      if (!isWithinHitbox) {
+        return;
+      }
+
+      failEvent(
+        activeEvent.id,
+        `Comando incorreto para ${eventDefinition.title.toLowerCase()}.`,
+      );
+      return;
+    }
+
+    if (!isWithinHitbox) {
       setFails((current) => current + 1);
       setScore((current) => Math.max(0, current - 50));
       setMessage("Fora da hitbox do evento.");
@@ -789,12 +825,14 @@ export function usePhase1Game(enabled = true) {
       currentSpeedRef.current = 0;
       setSpeed(0);
       setQuestionModalState(
-        createQuestionModalState(
-          activeEvent!.id,
-          activeEventDefinition,
-          question,
-        ),
+        null,
       );
+      pendingQuestionModalRef.current = createQuestionModalState(
+        activeEvent!.id,
+        activeEventDefinition,
+        question,
+      );
+      setSpeechModalState(createQuestionIntroModal());
       setMessage(getEventActivationMessage(activeEventDefinition));
       return;
     }

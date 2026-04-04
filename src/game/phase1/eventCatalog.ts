@@ -9,7 +9,6 @@ import {
   QUESTION_OPTION_KEYS_LABEL,
   TRACTION_TOGGLE_KEY_LABEL,
 } from "./config";
-import { getAnimationTotalDuration } from "../retro/animations";
 import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
 import type {
   EventDefinition,

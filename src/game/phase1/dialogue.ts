@@ -30,3 +30,13 @@ export function createQuestionFeedbackModal(
     mood: outcome === "success" ? "happy" : "sad",
   };
 }
+
+export function createQuestionIntroModal(): Phase1SpeechModalState {
+  return {
+    title: "Pergunta do instrutor",
+    speech: "la vem a pergunta",
+    body: "",
+    continueHint: PHASE1_START_MODAL_HINT,
+    mood: "neutral",
+  };
+}

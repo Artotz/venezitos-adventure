@@ -25,6 +25,7 @@ import { PHASE1_MANIFESTO_MODAL } from "./phase1/dialogue";
 import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
   drawCenterGuide,
+  drawPhase1EventShowcaseModal,
   drawPhase1Backdrop,
   drawPhase1Environment,
   drawPhase1Foreground,
@@ -45,6 +46,15 @@ import { usePhase1Game } from "./phase1/usePhase1Game";
 import { resolvePhase1VenezitoImage } from "./phase1/venezito";
 
 const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
+const START_OVERLAY_SEQUENCE = [
+  "manifesto",
+  "controls",
+  "pickup",
+  "dig",
+  "grease",
+  "traction",
+] as const;
+type StartOverlayStep = (typeof START_OVERLAY_SEQUENCE)[number];
 
 type Phase1CanvasProps = {
   activeView: "phase1" | "editor";
@@ -58,9 +68,7 @@ export function Phase1Canvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
-  const [overlayStep, setOverlayStep] = useState<
-    "manifesto" | "controls" | null
-  >(null);
+  const [overlayStep, setOverlayStep] = useState<StartOverlayStep | null>(null);
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(isPlaying && overlayStep === null);
   const carnaubaImage = usePhase1CarnaubaImage();
@@ -136,9 +144,16 @@ export function Phase1Canvas({
       }
 
       event.preventDefault();
-      setOverlayStep((current) =>
-        current === "manifesto" ? "controls" : null,
-      );
+      setOverlayStep((current) => {
+        if (!current) {
+          return null;
+        }
+
+        const currentIndex = START_OVERLAY_SEQUENCE.indexOf(current);
+        const nextStep = START_OVERLAY_SEQUENCE[currentIndex + 1];
+
+        return nextStep ?? null;
+      });
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -236,6 +251,22 @@ export function Phase1Canvas({
         machineContentHeight: game.excavatorScene.contentHeight,
         machineContentWidth: game.excavatorScene.contentWidth,
       });
+    } else if (
+      overlayStep === "pickup" ||
+      overlayStep === "dig" ||
+      overlayStep === "grease" ||
+      overlayStep === "traction"
+    ) {
+      drawPhase1EventShowcaseModal({
+        context,
+        kind: overlayStep,
+        instructorImage,
+        pickupDirtImage: eventSprites.dirtPileImage,
+        holeFullImage: eventSprites.holeFullImage,
+        greaseSignImage: eventSprites.greaseSignImage,
+        mudImage: eventSprites.mudImage,
+        workSignImage: eventSprites.workSignImage,
+      });
     } else if (game.speechModal) {
       drawPhase1SpeechModal(context, game.speechModal, speechModalImage);
     } else if (game.questionModal) {
@@ -313,7 +344,7 @@ export function Phase1Canvas({
           <Phase1PreGameScreen
             onPlay={() => {
               setPhaseStep("playing");
-              setOverlayStep("manifesto");
+              setOverlayStep(START_OVERLAY_SEQUENCE[0]);
             }}
             onOpenEditor={() => onChangeView("editor")}
           />

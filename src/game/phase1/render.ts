@@ -105,6 +105,19 @@ type Phase1StartModalParams = {
   machineContentHeight: number;
 };
 
+type Phase1EventShowcaseKind = "pickup" | "dig" | "grease" | "traction";
+
+type Phase1EventShowcaseModalParams = {
+  context: CanvasRenderingContext2D;
+  kind: Phase1EventShowcaseKind;
+  instructorImage?: LoadedImageSource | null;
+  pickupDirtImage?: LoadedImageSource | null;
+  holeFullImage?: LoadedImageSource | null;
+  greaseSignImage?: LoadedImageSource | null;
+  mudImage?: LoadedImageSource | null;
+  workSignImage?: LoadedImageSource | null;
+};
+
 const WRAPPED_TEXT_LAYOUT_CACHE = new Map<string, string[]>();
 
 const GROUND_SPRITE_SURFACE_Y = 356;
@@ -623,6 +636,168 @@ export function drawPhase1StartModal({
     "Tracao",
     "Liga o bloqueio.",
   );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    PHASE1_START_MODAL_HINT,
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
+  context.restore();
+}
+
+export function drawPhase1EventShowcaseModal({
+  context,
+  kind,
+  instructorImage,
+  pickupDirtImage,
+  holeFullImage,
+  greaseSignImage,
+  mudImage,
+  workSignImage,
+}: Phase1EventShowcaseModalParams) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const stageX = layout.panelX + 42;
+  const stageY = layout.panelY + 118;
+  const stageWidth = layout.panelWidth - 84;
+  const stageHeight = layout.panelHeight - 188;
+  const stageCenterX = stageX + stageWidth / 2;
+  const stageCenterY = stageY + stageHeight / 2 + 6;
+  const stageBaseY = stageCenterY + 78;
+
+  const contentByKind: Record<
+    Phase1EventShowcaseKind,
+    { title: string; body: string; keyLabel: string }
+  > = {
+    pickup: {
+      title: "Pickup",
+      body: "Aproxime da pilha e use A para operar a carregadeira dianteira.",
+      keyLabel: "A",
+    },
+    dig: {
+      title: "Dig",
+      body: "Use D para operar a traseira e alternar o estado do buraco.",
+      keyLabel: "D",
+    },
+    grease: {
+      title: "Grease",
+      body: "Pare no ponto de manutencao e use W para iniciar a graxa.",
+      keyLabel: "W",
+    },
+    traction: {
+      title: "Traction",
+      body: "No trecho de lama, use S para ligar o bloqueio de diferencial.",
+      keyLabel: "S",
+    },
+  };
+
+  const content = contentByKind[kind];
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText(content.title.toUpperCase(), titleX, layout.panelY + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 22px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    content.body,
+    titleX,
+    layout.panelY + 68,
+    layout.panelWidth - layout.panelPadding * 2,
+    30,
+  );
+
+  context.fillStyle = "rgba(255, 245, 220, 0.05)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.16)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(stageX, stageY, stageWidth, stageHeight, 28);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(255, 214, 133, 0.09)";
+  context.beginPath();
+  context.ellipse(stageCenterX, stageCenterY + 28, 232, 156, 0, 0, Math.PI * 2);
+  context.fill();
+
+  if (kind === "pickup" && pickupDirtImage) {
+    drawPlacedSprite(
+      context,
+      pickupDirtImage,
+      stageCenterX,
+      stageBaseY + 10,
+      PICKUP_DIRT_DRAW_HEIGHT + 80,
+    );
+  }
+
+  if (kind === "dig") {
+    if (holeFullImage) {
+      drawPlacedSprite(
+        context,
+        holeFullImage,
+        stageCenterX - 52,
+        stageBaseY + 20,
+        HOLE_DRAW_HEIGHT + 30,
+      );
+    }
+    if (workSignImage) {
+      drawPlacedSprite(
+        context,
+        workSignImage,
+        stageCenterX + 132,
+        stageBaseY - 10,
+        WORK_SIGN_DRAW_HEIGHT - 20,
+      );
+    }
+  }
+
+  if (kind === "grease") {
+    if (greaseSignImage) {
+      drawPlacedSprite(
+        context,
+        greaseSignImage,
+        stageCenterX + 44,
+        stageBaseY - 4,
+        GREASE_SIGN_DRAW_HEIGHT + 10,
+      );
+    }
+    if (instructorImage) {
+      drawPlacedSprite(
+        context,
+        instructorImage,
+        stageCenterX - 96,
+        stageBaseY,
+        GREASE_VENEZITO_DRAW_HEIGHT + 28,
+      );
+    }
+  }
+
+  if (kind === "traction" && mudImage) {
+    drawPlacedSprite(
+      context,
+      mudImage,
+      stageCenterX,
+      stageBaseY + 8,
+      MUD_DRAW_HEIGHT + 60,
+    );
+  }
 
   context.fillStyle = "#d5b178";
   context.font = '600 16px "Segoe UI", sans-serif';

@@ -19,31 +19,31 @@ type EventSpawnSlot = {
 };
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
-// const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-//   { group: "grease", hitboxX: 1500 },
-//   { group: "pickup", hitboxX: 1500 * 2 },
-//   { group: "traction", hitboxX: 1500 * 3 },
-//   { group: "dig", hitboxX: 1500 * 4 },
-//   { group: "question", hitboxX: 1500 * 5 },
-//   { group: "grease", hitboxX: 1500 * 6 },
-//   { group: "dig", hitboxX: 1500 * 7 },
-//   { group: "traction", hitboxX: 1500 * 8 },
-//   { group: "pickup", hitboxX: 1500 * 9 },
-//   { group: "question", hitboxX: 1500 * 10 },
-// ];
-
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: "dig", hitboxX: 1500 },
+  { group: "grease", hitboxX: 1500 },
   { group: "pickup", hitboxX: 1500 * 2 },
   { group: "traction", hitboxX: 1500 * 3 },
   { group: "dig", hitboxX: 1500 * 4 },
-  { group: "pickup", hitboxX: 1500 * 5 },
+  { group: "question", hitboxX: 1500 * 5 },
   { group: "grease", hitboxX: 1500 * 6 },
-  { group: "question", hitboxX: 1500 * 7 },
+  { group: "dig", hitboxX: 1500 * 7 },
   { group: "traction", hitboxX: 1500 * 8 },
   { group: "pickup", hitboxX: 1500 * 9 },
   { group: "question", hitboxX: 1500 * 10 },
 ];
+
+// const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
+//   { group: "dig", hitboxX: 1500 },
+//   { group: "pickup", hitboxX: 1500 * 2 },
+//   { group: "traction", hitboxX: 1500 * 3 },
+//   { group: "dig", hitboxX: 1500 * 4 },
+//   { group: "pickup", hitboxX: 1500 * 5 },
+//   { group: "grease", hitboxX: 1500 * 6 },
+//   { group: "question", hitboxX: 1500 * 7 },
+//   { group: "traction", hitboxX: 1500 * 8 },
+//   { group: "pickup", hitboxX: 1500 * 9 },
+//   { group: "question", hitboxX: 1500 * 10 },
+// ];
 
 const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length;
 const MIN_UPCOMING_EVENT_BUFFER = EVENT_SEQUENCE_LENGTH;

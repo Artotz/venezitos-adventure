@@ -427,9 +427,7 @@ export function usePhase1Game(enabled = true) {
       const nextEnabled = !differentialLockEnabledRef.current;
       setDifferentialLockState(nextEnabled);
       setMessage(
-        nextEnabled
-          ? "Bloqueio de diferencial ligado."
-          : "Bloqueio de diferencial desligado.",
+        nextEnabled ? "4x4 ativado." : "4x4 desativado.",
       );
       setVenezitoMood("neutral");
       return;

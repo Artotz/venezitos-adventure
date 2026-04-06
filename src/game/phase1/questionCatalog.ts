@@ -8,7 +8,7 @@ export const QUESTION_CATALOG: Phase1Question[] = [
     choices: {
       up: { label: 'Reduzir a pressao dos pneus ate o minimo' },
       left: { label: 'Virar bruscamente para aliviar a frente' },
-      right: { label: 'Engatar o bloqueio de diferencial' },
+      right: { label: 'Ativar o 4x4' },
       down: { label: 'Desligar o motor e descer embalado' },
     },
     correctDirection: 'right',

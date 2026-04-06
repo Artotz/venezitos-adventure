@@ -634,7 +634,7 @@ export function drawPhase1StartModal({
     82,
     "S",
     "Tracao",
-    "Liga o bloqueio.",
+    "Ativa o 4x4.",
   );
 
   context.fillStyle = "#d5b178";
@@ -690,7 +690,7 @@ export function drawPhase1EventShowcaseModal({
     },
     traction: {
       title: "Traction",
-      body: "No trecho de lama, use S para ligar o bloqueio de diferencial.",
+      body: "No trecho de lama, use S para ativar o 4x4.",
       keyLabel: "S",
     },
   };
@@ -1348,13 +1348,13 @@ function drawDifferentialLockCard(
 
   context.fillStyle = "#e1bf75";
   context.font = '700 14px "Segoe UI", sans-serif';
-  context.fillText("BLOQ. DIF.", x + 22, y + 24);
+  context.fillText("TRACAO 4X4", x + 22, y + 24);
 
   context.fillStyle = enabled ? "#fff0a8" : "#fff3d7";
   context.font = '700 28px "Segoe UI", sans-serif';
   context.fillText(enabled ? "LIGADO" : "DESLIGADO", x + 22, y + 60);
 
-  drawDifferentialLockIcon(context, x + 212, y + 20, enabled);
+  drawFourByFourHudIcon(context, x + 202, y + 16, enabled);
   context.restore();
 }
 
@@ -1592,33 +1592,44 @@ function drawPickupDirtBackdrop(
   drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
 }
 
-function drawDifferentialLockIcon(
+function drawFourByFourHudIcon(
   context: CanvasRenderingContext2D,
   x: number,
   y: number,
   enabled: boolean,
 ) {
   context.save();
-  context.strokeStyle = enabled ? "#fff2a8" : "rgba(255, 243, 215, 0.24)";
-  context.lineWidth = 4;
-  context.beginPath();
-  context.moveTo(x + 6, y + 22);
-  context.lineTo(x + 26, y + 22);
-  context.moveTo(x + 34, y + 22);
-  context.lineTo(x + 54, y + 22);
-  context.stroke();
+  const accentFill = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.18)";
+  const accentStroke = enabled ? "#fff2a8" : "rgba(255, 243, 215, 0.28)";
 
-  context.fillStyle = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.18)";
-  context.beginPath();
-  context.arc(x + 6, y + 22, 6, 0, Math.PI * 2);
-  context.arc(x + 54, y + 22, 6, 0, Math.PI * 2);
-  context.fill();
-
-  context.strokeStyle = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.28)";
+  context.strokeStyle = accentStroke;
   context.lineWidth = 3;
   context.beginPath();
-  context.roundRect(x + 20, y + 8, 20, 28, 8);
+  context.moveTo(x + 12, y + 42);
+  context.lineTo(x + 62, y + 42);
+  context.moveTo(x + 37, y + 24);
+  context.lineTo(x + 37, y + 60);
   context.stroke();
+
+  for (const wheelCenter of [
+    [12, 18],
+    [62, 18],
+    [12, 66],
+    [62, 66],
+  ] as const) {
+    context.fillStyle = accentFill;
+    context.beginPath();
+    context.arc(x + wheelCenter[0], y + wheelCenter[1], 7, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.fillStyle = accentFill;
+  context.font = '700 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("4x4", x + 37, y + 42);
+  context.textAlign = "start";
+  context.textBaseline = "alphabetic";
   context.restore();
 }
 

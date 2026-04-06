@@ -51,7 +51,10 @@ import {
   getQuestionDirectionFromKey,
   isCorrectQuestionAnswer,
 } from "./questionModal";
-import { createQuestionFeedbackModal, createQuestionIntroModal } from "./dialogue";
+import {
+  createQuestionFeedbackModal,
+  createQuestionIntroModal,
+} from "./dialogue";
 import { PHASE1_CONTINUE_CODES } from "./config";
 import {
   getGreaseAnimationPose,
@@ -274,7 +277,10 @@ export function usePhase1Game(enabled = true) {
     }
   };
 
-  const updateResolvedDigVisual = (eventId: number, eventType: "dig-load" | "dig-unload") => {
+  const updateResolvedDigVisual = (
+    eventId: number,
+    eventType: "dig-load" | "dig-unload",
+  ) => {
     const nextType = eventType === "dig-load" ? "dig-unload" : "dig-load";
     const nextEvents = updateEventType(eventsRef.current, eventId, nextType);
 
@@ -418,7 +424,7 @@ export function usePhase1Game(enabled = true) {
 
       failEvent(
         openQuestionModal.eventId,
-        `Resposta errada. A resposta certa e ${correctAnswer}.`,
+        `Resposta errada. A resposta certa é ${correctAnswer}.`,
         {
           scorePenalty: openQuestionModal.question.penalty,
         },
@@ -435,9 +441,7 @@ export function usePhase1Game(enabled = true) {
       event.preventDefault();
       const nextEnabled = !differentialLockEnabledRef.current;
       setDifferentialLockState(nextEnabled);
-      setMessage(
-        nextEnabled ? "4x4 ativado." : "4x4 desativado.",
-      );
+      setMessage(nextEnabled ? "4x4 ativado." : "4x4 desativado.");
       setVenezitoMood("neutral");
       return;
     }
@@ -503,7 +507,8 @@ export function usePhase1Game(enabled = true) {
         hasStarted: false,
         elapsed: 0,
         durationMs:
-          eventDefinition.animation.durationMs || getGreaseAnimationTotalDuration(),
+          eventDefinition.animation.durationMs ||
+          getGreaseAnimationTotalDuration(),
         lastSoundPointIndex: -1,
       };
       syncAnimationLabel();
@@ -513,9 +518,7 @@ export function usePhase1Game(enabled = true) {
     const retroAnimation = eventDefinition.animation;
 
     const animationTarget =
-      retroAnimation.target === "front"
-        ? frontAnimationRef
-        : rearAnimationRef;
+      retroAnimation.target === "front" ? frontAnimationRef : rearAnimationRef;
 
     let hasSwappedDigSprite = false;
 
@@ -723,18 +726,23 @@ export function usePhase1Game(enabled = true) {
       } else {
         greaseAnimationRef.current.elapsed += dt * 1000;
 
-        const greasePose = getGreaseAnimationPose(greaseAnimationRef.current.elapsed);
+        const greasePose = getGreaseAnimationPose(
+          greaseAnimationRef.current.elapsed,
+        );
 
         if (
           greasePose &&
-          greasePose.pointIndex !== greaseAnimationRef.current.lastSoundPointIndex
+          greasePose.pointIndex !==
+            greaseAnimationRef.current.lastSoundPointIndex
         ) {
-          greaseAnimationRef.current.lastSoundPointIndex = greasePose.pointIndex;
+          greaseAnimationRef.current.lastSoundPointIndex =
+            greasePose.pointIndex;
           playPhase1Sound("mud");
         }
 
         if (
-          greaseAnimationRef.current.elapsed >= greaseAnimationRef.current.durationMs
+          greaseAnimationRef.current.elapsed >=
+          greaseAnimationRef.current.durationMs
         ) {
           greaseAnimationRef.current = null;
           syncAnimationLabel();
@@ -831,9 +839,7 @@ export function usePhase1Game(enabled = true) {
       questionCursorRef.current += 1;
       currentSpeedRef.current = 0;
       setSpeed(0);
-      setQuestionModalState(
-        null,
-      );
+      setQuestionModalState(null);
       pendingQuestionModalRef.current = createQuestionModalState(
         activeEvent!.id,
         activeEventDefinition,

@@ -32,9 +32,9 @@ export const INITIAL_MESSAGE =
   "Hora de dar partida! Aperte o cinto e vamos lá!";
 export const PHASE1_MENU_TITLE = "Treinando com o Venezito";
 export const PHASE1_MENU_DESCRIPTION =
-  "Entre na retroescavadeira e aprenda tudo sobre a operacao!";
+  "Entre na retroescavadeira e aprenda tudo sobre a operação!";
 export const PHASE1_START_MODAL_TITLE = "Controles da fase";
 export const PHASE1_START_MODAL_DESCRIPTION = `Este jogo usa as setas ou WASD.
-Aprenda a posicao de cada comando na maquina antes de sair.`;
+Aprenda a posição de cada comando na maquina antes de sair.`;
 export const PHASE1_START_MODAL_HINT =
   "Pressione as setas ou WASD para continuar";

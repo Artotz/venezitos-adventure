@@ -129,7 +129,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     title: "Aplicar graxa",
     description: "Ponto de lubrificacao no caminho",
     hint: "A maquina desacelera, para para a graxa e retoma depois.",
-    successMessage: "Graxa aplicada. Volte para a operacao.",
+    successMessage: "Graxa aplicada. Volte para a operação.",
     reward: 180,
     animation: {
       kind: "grease",

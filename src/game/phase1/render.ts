@@ -298,12 +298,12 @@ export function drawPhase1Hud({
   const bottomCardX = CANVAS_WIDTH / 2 - 180;
   const bottomCardY = CANVAS_HEIGHT - 102;
 
-  drawHudCard(context, leftX, hudY, "Pontuacao", String(score), "score");
+  drawHudCard(context, leftX, hudY, "pontuação", String(score), "score");
   drawHudCard(
     context,
     rightX,
     hudY,
-    "Horimetro",
+    "Horímetro",
     `${Math.floor(distance / 10)} h`,
     "hourmeter",
   );
@@ -620,7 +620,7 @@ export function drawPhase1StartModal({
     260,
     92,
     "↓",
-    "Tracao",
+    "tração",
     "Use ↓ / S para ativar o 4x4.",
   );
 
@@ -662,22 +662,22 @@ export function drawPhase1EventShowcaseModal({
   > = {
     pickup: {
       title: "Carregar",
-      body: "Aproxime da pilha e use ← / A para operar a carregadeira dianteira.",
+      body: "Aproxime da pilha e use ← / A para operar a carregadeira na dianteira.",
       keyLabel: "←",
     },
     dig: {
       title: "Cavar",
-      body: "Use → / D para operar a traseira e alternar o estado do buraco.",
+      body: "Use → / D para operar a escavadeira na traseira e cavar ou preencher buracos.",
       keyLabel: "→",
     },
     grease: {
       title: "Engraxar",
-      body: "Pare no ponto de manutencao e use ↑ / W para iniciar a graxa.",
+      body: "Pare no ponto de manutenção e use ↑ / W para iniciar a graxa.",
       keyLabel: "↑",
     },
     traction: {
-      title: "Tracao",
-      body: "No trecho de lama, use ↓ / S para ativar o 4x4.",
+      title: "tração",
+      body: "No trecho de lama, use ↓ / S para ativar o 4x4. Lembre de desativar depois!",
       keyLabel: "↓",
     },
   };
@@ -760,8 +760,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         greaseSignImage,
-        stageCenterX + 44 + 27,
-        stageBaseY + 25,
+        stageCenterX + 44 + 25,
+        stageBaseY + 30,
         GREASE_SIGN_DRAW_HEIGHT + 10,
       );
     }
@@ -769,8 +769,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         instructorImage,
-        stageCenterX - 96 + 27,
-        stageBaseY + 15,
+        stageCenterX - 96 + 25,
+        stageBaseY + 20,
         GREASE_VENEZITO_DRAW_HEIGHT + 28,
       );
     }
@@ -1399,7 +1399,7 @@ function drawDifferentialLockCard(
 
   context.fillStyle = "#e1bf75";
   context.font = '700 14px "Segoe UI", sans-serif';
-  context.fillText("TRACAO 4X4", x + 22, y + 24);
+  context.fillText("tração 4X4", x + 22, y + 24);
 
   context.fillStyle = enabled ? "#fff0a8" : "#fff3d7";
   context.font = '700 28px "Segoe UI", sans-serif';

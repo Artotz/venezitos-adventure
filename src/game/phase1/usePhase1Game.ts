@@ -47,6 +47,7 @@ import {
 import { getQuestionFromCatalog } from "./questionCatalog";
 import {
   createQuestionModalState,
+  getCorrectQuestionAnswerLabel,
   getQuestionDirectionFromKey,
   isCorrectQuestionAnswer,
 } from "./questionModal";
@@ -405,18 +406,26 @@ export function usePhase1Game(enabled = true) {
             scoreDelta: openQuestionModal.question.reward,
           },
         );
-        setSpeechModalState(createQuestionFeedbackModal("success"));
+        setSpeechModalState(
+          createQuestionFeedbackModal(openQuestionModal.question, "success"),
+        );
         return;
       }
 
+      const correctAnswer = getCorrectQuestionAnswerLabel(
+        openQuestionModal.question,
+      );
+
       failEvent(
         openQuestionModal.eventId,
-        openQuestionModal.question.failureMessage,
+        `Resposta errada. A resposta certa e ${correctAnswer}.`,
         {
           scorePenalty: openQuestionModal.question.penalty,
         },
       );
-      setSpeechModalState(createQuestionFeedbackModal("failure"));
+      setSpeechModalState(
+        createQuestionFeedbackModal(openQuestionModal.question, "failure"),
+      );
       return;
     }
 

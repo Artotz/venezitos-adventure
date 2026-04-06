@@ -41,3 +41,7 @@ export function isCorrectQuestionAnswer(
 ) {
   return question.correctDirection === direction
 }
+
+export function getCorrectQuestionAnswerLabel(question: Phase1Question) {
+  return question.choices[question.correctDirection].label
+}

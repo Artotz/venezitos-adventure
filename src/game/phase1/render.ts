@@ -298,13 +298,14 @@ export function drawPhase1Hud({
   const bottomCardX = CANVAS_WIDTH / 2 - 180;
   const bottomCardY = CANVAS_HEIGHT - 102;
 
-  drawHudCard(context, leftX, hudY, "Pontuacao", String(score));
+  drawHudCard(context, leftX, hudY, "Pontuacao", String(score), "score");
   drawHudCard(
     context,
     rightX,
     hudY,
-    "Distancia",
-    `${Math.floor(distance / 10)} m`,
+    "Horimetro",
+    `${Math.floor(distance / 10)} h`,
+    "hourmeter",
   );
   drawVenezitoSpeechHud(
     context,
@@ -431,7 +432,7 @@ export function drawPhase1SpeechModal(
   const layout = getPhase1ModalLayout();
   const titleX = layout.panelX + layout.panelPadding;
   const bodyX = titleX;
-  const bodyY = layout.panelY + 156;
+  const bodyY = layout.panelY + 72;
 
   context.save();
   drawModalFrame(context, layout);
@@ -456,34 +457,20 @@ export function drawPhase1SpeechModal(
   context.font = '700 18px "Segoe UI", sans-serif';
   context.fillText(modalState.title.toUpperCase(), titleX, layout.panelY + 30);
 
-  context.fillStyle = "rgba(255, 245, 220, 0.07)";
-  context.strokeStyle = "rgba(255, 229, 178, 0.14)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.roundRect(
-    titleX,
-    layout.panelY + 54,
-    layout.panelWidth - layout.panelPadding * 2,
-    74,
-    20,
-  );
-  context.fill();
-  context.stroke();
-
   context.fillStyle = "#fff3d7";
-  context.font = '700 26px "Segoe UI", sans-serif';
-  drawWrappedText(
-    context,
-    modalState.speech,
-    titleX + 24,
-    layout.panelY + 98,
-    layout.panelWidth - layout.panelPadding * 2 - 48,
-    30,
-  );
+  context.font = '600 20px "Segoe UI", sans-serif';
+  // drawWrappedText(
+  //   context,
+  //   modalState.speech,
+  //   titleX,
+  //   layout.panelY + 76,
+  //   layout.panelWidth - layout.panelPadding * 2,
+  //   28,
+  // );
 
   if (modalState.body) {
     context.fillStyle = "#fff3d7";
-    context.font = '600 20px "Segoe UI", sans-serif';
+    context.font = '600 22px "Segoe UI", sans-serif';
     drawWrappedParagraphText(
       context,
       modalState.body,
@@ -599,42 +586,42 @@ export function drawPhase1StartModal({
   drawInstructionCard(
     context,
     centerX - 130,
-    machineStageY + 18,
+    machineStageY + 10,
     260,
-    82,
-    "W",
-    "Grease",
-    "Pausa para aplicacao de graxa.",
+    92,
+    "↑",
+    "Engraxar",
+    "Use ↑ / W para aplicar graxa.",
   );
   drawInstructionCard(
     context,
-    machineStageX + 18,
+    machineStageX + 10,
     centerY - 44,
     224,
     92,
-    "A",
-    "Pickup",
-    "Eventos de pickup.",
+    "←",
+    "Carregar",
+    "Use ← / A para carregar.",
   );
   drawInstructionCard(
     context,
-    machineStageX + machineStageWidth - 242,
+    machineStageX + machineStageWidth - 242 + 8,
     centerY - 44,
     224,
     92,
-    "D",
-    "Dig",
-    "Eventos de dig.",
+    "→",
+    "Cavar",
+    "Use → / D para cavar.",
   );
   drawInstructionCard(
     context,
     centerX - 130,
     machineStageY + machineStageHeight - 100,
     260,
-    82,
-    "S",
+    92,
+    "↓",
     "Tracao",
-    "Ativa o 4x4.",
+    "Use ↓ / S para ativar o 4x4.",
   );
 
   context.fillStyle = "#d5b178";
@@ -674,24 +661,24 @@ export function drawPhase1EventShowcaseModal({
     { title: string; body: string; keyLabel: string }
   > = {
     pickup: {
-      title: "Pickup",
-      body: "Aproxime da pilha e use A para operar a carregadeira dianteira.",
-      keyLabel: "A",
+      title: "Carregar",
+      body: "Aproxime da pilha e use ← / A para operar a carregadeira dianteira.",
+      keyLabel: "←",
     },
     dig: {
-      title: "Dig",
-      body: "Use D para operar a traseira e alternar o estado do buraco.",
-      keyLabel: "D",
+      title: "Cavar",
+      body: "Use → / D para operar a traseira e alternar o estado do buraco.",
+      keyLabel: "→",
     },
     grease: {
-      title: "Grease",
-      body: "Pare no ponto de manutencao e use W para iniciar a graxa.",
-      keyLabel: "W",
+      title: "Engraxar",
+      body: "Pare no ponto de manutencao e use ↑ / W para iniciar a graxa.",
+      keyLabel: "↑",
     },
     traction: {
-      title: "Traction",
-      body: "No trecho de lama, use S para ativar o 4x4.",
-      keyLabel: "S",
+      title: "Tracao",
+      body: "No trecho de lama, use ↓ / S para ativar o 4x4.",
+      keyLabel: "↓",
     },
   };
 
@@ -742,7 +729,7 @@ export function drawPhase1EventShowcaseModal({
       context,
       pickupDirtImage,
       stageCenterX,
-      stageBaseY + 10,
+      stageBaseY + 50,
       PICKUP_DIRT_DRAW_HEIGHT + 80,
     );
   }
@@ -752,8 +739,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         holeFullImage,
-        stageCenterX - 52,
-        stageBaseY + 20,
+        stageCenterX - 52 - 20,
+        stageBaseY + 90 + 10,
         HOLE_DRAW_HEIGHT + 30,
       );
     }
@@ -761,8 +748,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         workSignImage,
-        stageCenterX + 132,
-        stageBaseY - 10,
+        stageCenterX + 132 - 20,
+        stageBaseY - 10 + 10,
         WORK_SIGN_DRAW_HEIGHT - 20,
       );
     }
@@ -773,8 +760,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         greaseSignImage,
-        stageCenterX + 44,
-        stageBaseY - 4,
+        stageCenterX + 44 + 27,
+        stageBaseY + 25,
         GREASE_SIGN_DRAW_HEIGHT + 10,
       );
     }
@@ -782,8 +769,8 @@ export function drawPhase1EventShowcaseModal({
       drawPlacedSprite(
         context,
         instructorImage,
-        stageCenterX - 96,
-        stageBaseY,
+        stageCenterX - 96 + 27,
+        stageBaseY + 15,
         GREASE_VENEZITO_DRAW_HEIGHT + 28,
       );
     }
@@ -793,8 +780,8 @@ export function drawPhase1EventShowcaseModal({
     drawPlacedSprite(
       context,
       mudImage,
-      stageCenterX,
-      stageBaseY + 8,
+      stageCenterX + 10,
+      stageBaseY + 6 + 108,
       MUD_DRAW_HEIGHT + 60,
     );
   }
@@ -1010,7 +997,6 @@ function drawBackground(
       context.fill();
     }
   }
-
 }
 
 function drawBackgroundCarnaubas(
@@ -1271,16 +1257,13 @@ function drawProceduralGround(
 ) {
   // context.fillStyle = "#a77943";
   // context.fillRect(0, GROUND_Y - 8, CANVAS_WIDTH, 90);
-
   // context.fillStyle = "#6e4b2a";
   // context.fillRect(0, GROUND_Y + 46, CANVAS_WIDTH, 90);
-
   // context.fillStyle = "#d8b16c";
   // const laneOffset = distance % 120;
   // for (let x = laneOffset - 120; x < CANVAS_WIDTH + 120; x += 120) {
   //   context.fillRect(x, GROUND_Y + 12, 70, 8);
   // }
-
   // context.fillStyle = "rgba(40, 23, 10, 0.28)";
   // const dirtOffset = (distance * 1.4) % 90;
   // for (let x = dirtOffset - 90; x < CANVAS_WIDTH + 90; x += 90) {
@@ -1296,6 +1279,7 @@ function drawHudCard(
   y: number,
   label: string,
   value: string,
+  icon: "score" | "hourmeter",
 ) {
   context.save();
   context.fillStyle = "rgba(18, 14, 10, 0.72)";
@@ -1319,11 +1303,78 @@ function drawHudCard(
   context.roundRect(x + 188, y + 16, 56, 52, 14);
   context.fill();
 
-  context.fillStyle = "rgba(255, 243, 215, 0.14)";
+  if (icon === "score") {
+    drawScoreHudIcon(context, x + 216, y + 42);
+  } else {
+    drawHourmeterHudIcon(context, x + 216, y + 42);
+  }
+
+  context.restore();
+}
+
+function drawScoreHudIcon(
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+) {
+  context.save();
+  context.fillStyle = "rgba(255, 243, 215, 0.2)";
   context.beginPath();
-  context.arc(x + 216, y + 42, 12, 0, Math.PI * 2);
+
+  for (let pointIndex = 0; pointIndex < 10; pointIndex += 1) {
+    const angle = -Math.PI / 2 + pointIndex * (Math.PI / 5);
+    const radius = pointIndex % 2 === 0 ? 14 : 6;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    if (pointIndex === 0) {
+      context.moveTo(x, y);
+    } else {
+      context.lineTo(x, y);
+    }
+  }
+
+  context.closePath();
+  context.fill();
+  context.restore();
+}
+
+function drawHourmeterHudIcon(
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+) {
+  context.save();
+  context.strokeStyle = "rgba(255, 243, 215, 0.2)";
+  context.lineWidth = 3;
+  context.lineCap = "round";
+
+  context.beginPath();
+  context.moveTo(centerX - 12, centerY - 15);
+  context.lineTo(centerX + 12, centerY - 15);
+  context.lineTo(centerX + 4, centerY - 3);
+  context.lineTo(centerX + 4, centerY + 3);
+  context.lineTo(centerX + 12, centerY + 15);
+  context.lineTo(centerX - 12, centerY + 15);
+  context.lineTo(centerX - 4, centerY + 3);
+  context.lineTo(centerX - 4, centerY - 3);
+  context.closePath();
+  context.stroke();
+
+  context.fillStyle = "rgba(255, 243, 215, 0.2)";
+  context.beginPath();
+  context.moveTo(centerX - 6, centerY - 10);
+  context.lineTo(centerX + 6, centerY - 10);
+  context.lineTo(centerX, centerY - 2);
+  context.closePath();
   context.fill();
 
+  context.beginPath();
+  context.moveTo(centerX - 6, centerY + 10);
+  context.lineTo(centerX + 6, centerY + 10);
+  context.lineTo(centerX, centerY + 2);
+  context.closePath();
+  context.fill();
   context.restore();
 }
 
@@ -1354,7 +1405,14 @@ function drawDifferentialLockCard(
   context.font = '700 28px "Segoe UI", sans-serif';
   context.fillText(enabled ? "LIGADO" : "DESLIGADO", x + 22, y + 60);
 
-  drawFourByFourHudIcon(context, x + 202, y + 16, enabled);
+  context.fillStyle = enabled
+    ? "rgba(255, 240, 168, 0.14)"
+    : "rgba(255, 243, 215, 0.08)";
+  context.beginPath();
+  context.roundRect(x + 206, y + 16, 52, 52, 14);
+  context.fill();
+
+  drawFourByFourHudIcon(context, x + 232, y + 42, enabled);
   context.restore();
 }
 
@@ -1594,42 +1652,40 @@ function drawPickupDirtBackdrop(
 
 function drawFourByFourHudIcon(
   context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
+  centerX: number,
+  centerY: number,
   enabled: boolean,
 ) {
   context.save();
-  const accentFill = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.18)";
-  const accentStroke = enabled ? "#fff2a8" : "rgba(255, 243, 215, 0.28)";
+  const accentFill = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.26)";
+  const accentStroke = enabled ? "#fff2a8" : "rgba(255, 243, 215, 0.4)";
 
   context.strokeStyle = accentStroke;
-  context.lineWidth = 3;
+  context.lineWidth = 2.5;
   context.beginPath();
-  context.moveTo(x + 12, y + 42);
-  context.lineTo(x + 62, y + 42);
-  context.moveTo(x + 37, y + 24);
-  context.lineTo(x + 37, y + 60);
+  context.moveTo(centerX - 12, centerY + 9);
+  context.lineTo(centerX + 12, centerY + 9);
+  context.moveTo(centerX, centerY - 10);
+  context.lineTo(centerX, centerY + 5);
   context.stroke();
 
   for (const wheelCenter of [
-    [12, 18],
-    [62, 18],
-    [12, 66],
-    [62, 66],
+    [-12, -9],
+    [12, -9],
+    [-12, 9],
+    [12, 9],
   ] as const) {
     context.fillStyle = accentFill;
     context.beginPath();
-    context.arc(x + wheelCenter[0], y + wheelCenter[1], 7, 0, Math.PI * 2);
+    context.arc(
+      centerX + wheelCenter[0],
+      centerY + wheelCenter[1],
+      4,
+      0,
+      Math.PI * 2,
+    );
     context.fill();
   }
-
-  context.fillStyle = accentFill;
-  context.font = '700 16px "Segoe UI", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText("4x4", x + 37, y + 42);
-  context.textAlign = "start";
-  context.textBaseline = "alphabetic";
   context.restore();
 }
 
@@ -1666,6 +1722,35 @@ function drawQuestionChoiceCard(
   context.textAlign = "start";
   context.textBaseline = "alphabetic";
   drawWrappedText(context, label, x + 78, y + 40, width - 100, 24);
+  context.restore();
+}
+
+function drawSpeechBubble(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  text: string,
+) {
+  context.save();
+  context.fillStyle = "rgba(255, 245, 220, 0.95)";
+  context.strokeStyle = "rgba(111, 76, 40, 0.28)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, width, 112, 24);
+  context.fill();
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(x + 70, y + 112);
+  context.lineTo(x + 94, y + 112);
+  context.lineTo(x + 82, y + 132);
+  context.closePath();
+  context.fill();
+
+  context.fillStyle = "#4e3218";
+  context.font = '700 22px "Segoe UI", sans-serif';
+  drawWrappedText(context, text, x + 24, y + 40, width - 48, 28);
   context.restore();
 }
 
@@ -1708,35 +1793,6 @@ function drawInstructionCard(
   context.fillStyle = "#fff3d7";
   context.font = '600 15px "Segoe UI", sans-serif';
   drawWrappedText(context, description, x + 74, y + 56, width - 92, 20);
-  context.restore();
-}
-
-function drawSpeechBubble(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  text: string,
-) {
-  context.save();
-  context.fillStyle = "rgba(255, 245, 220, 0.95)";
-  context.strokeStyle = "rgba(111, 76, 40, 0.28)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.roundRect(x, y, width, 112, 24);
-  context.fill();
-  context.stroke();
-
-  context.beginPath();
-  context.moveTo(x + 70, y + 112);
-  context.lineTo(x + 94, y + 112);
-  context.lineTo(x + 82, y + 132);
-  context.closePath();
-  context.fill();
-
-  context.fillStyle = "#4e3218";
-  context.font = '700 22px "Segoe UI", sans-serif';
-  drawWrappedText(context, text, x + 24, y + 40, width - 48, 28);
   context.restore();
 }
 

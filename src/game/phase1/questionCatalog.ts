@@ -12,6 +12,8 @@ export const QUESTION_CATALOG: Phase1Question[] = [
       down: { label: 'Desligar o motor e descer embalado' },
     },
     correctDirection: 'right',
+    explanation:
+      'o 4x4 ajuda a distribuir a tracao entre as rodas e reduz a chance de a maquina patinar no trecho escorregadio.',
     successMessage: 'Resposta correta. O instrutor liberou a passagem.',
     failureMessage: 'Resposta errada. O instrutor travou a pontuacao do evento.',
     reward: 220,
@@ -28,6 +30,8 @@ export const QUESTION_CATALOG: Phase1Question[] = [
       down: { label: 'Andar de re para aliviar o eixo dianteiro' },
     },
     correctDirection: 'up',
+    explanation:
+      'manter a cacamba baixa e estavel melhora o equilibrio da maquina e deixa o deslocamento mais seguro.',
     successMessage: 'Resposta correta. A operacao continua.',
     failureMessage: 'Resposta errada. A avaliacao do operador caiu.',
     reward: 220,
@@ -44,6 +48,8 @@ export const QUESTION_CATALOG: Phase1Question[] = [
       down: { label: 'Abrir a vala sem observar a area ao redor' },
     },
     correctDirection: 'left',
+    explanation:
+      'confirmar a estabilidade antes de descarregar reduz o risco de deslocamento da maquina e de manobras inseguras na vala.',
     successMessage: 'Resposta correta. A area foi liberada.',
     failureMessage: 'Resposta errada. O fiscal marcou a manobra como falha.',
     reward: 220,

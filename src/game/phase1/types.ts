@@ -132,6 +132,7 @@ export type Phase1Question = {
   prompt: string
   choices: DirectionalChoiceMap<Phase1QuestionChoice>
   correctDirection: QuestionChoiceDirection
+  explanation: string
   successMessage: string
   failureMessage: string
   reward: number

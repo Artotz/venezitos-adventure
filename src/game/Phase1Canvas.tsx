@@ -18,13 +18,11 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
-  PLAYER_HIT_LINE_X,
   PLAYER_SCREEN_X,
 } from "./phase1/config";
 import { PHASE1_MANIFESTO_MODAL } from "./phase1/dialogue";
 import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
-  drawCenterGuide,
   drawPhase1EventShowcaseModal,
   drawPhase1Backdrop,
   drawPhase1Environment,

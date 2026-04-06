@@ -179,7 +179,7 @@ export function Phase1Canvas({
       return;
     }
 
-    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 120;
+    const machineY = GROUND_Y - game.excavatorScene.contentHeight + 150;
     const machineRootMatrix = createTranslationMatrix(
       PLAYER_SCREEN_X - game.excavatorScene.contentWidth / 2,
       machineY,
@@ -225,13 +225,13 @@ export function Phase1Canvas({
       pickupUnloadTruckImage,
       workSignImage: eventSprites.workSignImage,
     });
-    drawCenterGuide(
-      context,
-      PLAYER_HIT_LINE_X,
-      machineY + 70,
-      machineY + game.excavatorScene.contentHeight - 20,
-      game.activeEventId !== null,
-    );
+    // drawCenterGuide(
+    //   context,
+    //   PLAYER_HIT_LINE_X,
+    //   machineY + 70,
+    //   machineY + game.excavatorScene.contentHeight - 20,
+    //   game.activeEventId !== null,
+    // );
     drawPhase1Hud({
       context,
       score: game.score,

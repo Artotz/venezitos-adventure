@@ -149,7 +149,12 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
     keyframes: [
       { at: 0, changes: {} },
       {
-        at: 1200,
+        at: 1000,
+        changes: {},
+        sprites: { "Camada 3.png": "Camada 3_alt.png" },
+      },
+      {
+        at: 1200 + 1500,
         changes: {
           "Camada 6.png": 47,
           "Camada 7.png": -78,
@@ -157,7 +162,7 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
         },
       },
       {
-        at: 2000,
+        at: 2000 + 1500,
         changes: {
           "Camada 6.png": 38,
           "Camada 7.png": -45,
@@ -166,12 +171,13 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
         sprites: { "Camada 8.png": "Camada 8_alt.png" },
       },
       {
-        at: 3600,
+        at: 3600 + 1500,
         changes: { "Camada 6.png": 25, "Camada 7.png": 7, "Camada 8.png": -38 },
       },
       {
-        at: 4200,
+        at: 4200 + 1500,
         changes: { "Camada 6.png": 15, "Camada 7.png": 7, "Camada 8.png": -38 },
+        sprites: { "Camada 3.png": "Camada 3.png" },
       },
     ],
   },

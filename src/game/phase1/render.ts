@@ -1399,7 +1399,7 @@ function drawDifferentialLockCard(
 
   context.fillStyle = "#e1bf75";
   context.font = '700 14px "Segoe UI", sans-serif';
-  context.fillText("tração 4X4", x + 22, y + 24);
+  context.fillText("TRAÇÃO 4X4", x + 22, y + 24);
 
   context.fillStyle = enabled ? "#fff0a8" : "#fff3d7";
   context.font = '700 28px "Segoe UI", sans-serif';
@@ -2208,8 +2208,8 @@ function drawEventHitboxOutline(
   context.strokeRect(
     hitboxX - hitboxHalfWidth,
     topY,
-    hitboxHalfWidth * 2,
-    height,
+    hitboxHalfWidth * 2 * 0,
+    height * 0,
   );
 }
 

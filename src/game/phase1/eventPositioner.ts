@@ -33,13 +33,13 @@ type EventSpawnSlot = {
 // ];
 
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: "question", hitboxX: 1500 },
+  { group: "dig", hitboxX: 1500 },
   { group: "pickup", hitboxX: 1500 * 2 },
   { group: "traction", hitboxX: 1500 * 3 },
   { group: "dig", hitboxX: 1500 * 4 },
-  { group: "question", hitboxX: 1500 * 5 },
+  { group: "pickup", hitboxX: 1500 * 5 },
   { group: "grease", hitboxX: 1500 * 6 },
-  { group: "dig", hitboxX: 1500 * 7 },
+  { group: "question", hitboxX: 1500 * 7 },
   { group: "traction", hitboxX: 1500 * 8 },
   { group: "pickup", hitboxX: 1500 * 9 },
   { group: "question", hitboxX: 1500 * 10 },

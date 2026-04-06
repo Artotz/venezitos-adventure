@@ -87,7 +87,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
       presetId: "arm-extended",
       label: "Braco estendido",
       lockMovement: true,
-      spriteSwapAtMs: 2000,
+      spriteSwapAtMs: 2000 + 1500,
       loadStateOnComplete: {
         rearLoaded: true,
       },

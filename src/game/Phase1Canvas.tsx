@@ -55,8 +55,8 @@ const START_OVERLAY_SEQUENCE = [
 type StartOverlayStep = (typeof START_OVERLAY_SEQUENCE)[number];
 
 type Phase1CanvasProps = {
-  activeView: "phase1" | "editor";
-  onChangeView: (view: "phase1" | "editor") => void;
+  activeView: "phase1" | "phase2" | "editor";
+  onChangeView: (view: "phase1" | "phase2" | "editor") => void;
 };
 
 export function Phase1Canvas({
@@ -314,20 +314,45 @@ export function Phase1Canvas({
   return (
     <div className="phase-layout">
       {isPlaying ? (
-        <div
-          className="phase-canvas-frame"
-          style={
-            {
-              "--phase-canvas-width": `${scaledCanvasWidth}px`,
-              "--phase-canvas-height": `${scaledCanvasHeight}px`,
-            } as CSSProperties
-          }
-        >
-          <canvas
-            ref={canvasRef}
-            className="phase-canvas"
-            aria-label="Fase 1 com a retroescavadeira andando infinitamente para a esquerda"
-          />
+        <div className="phase-canvas-shell">
+          <div className="phase-overlay-actions">
+            <button
+              type="button"
+              className="phase-secondary-button"
+              onClick={() => {
+                setPhaseStep("menu");
+                setOverlayStep(null);
+              }}
+            >
+              Menu principal
+            </button>
+            <button
+              type="button"
+              className="phase-secondary-button"
+              onClick={() => {
+                setPhaseStep("menu");
+                setOverlayStep(null);
+                onChangeView("editor");
+              }}
+            >
+              Editor
+            </button>
+          </div>
+          <div
+            className="phase-canvas-frame"
+            style={
+              {
+                "--phase-canvas-width": `${scaledCanvasWidth}px`,
+                "--phase-canvas-height": `${scaledCanvasHeight}px`,
+              } as CSSProperties
+            }
+          >
+            <canvas
+              ref={canvasRef}
+              className="phase-canvas"
+              aria-label="Fase 1 com a retroescavadeira andando infinitamente para a esquerda"
+            />
+          </div>
         </div>
       ) : (
         <div
@@ -344,6 +369,7 @@ export function Phase1Canvas({
               setPhaseStep("playing");
               setOverlayStep(START_OVERLAY_SEQUENCE[0]);
             }}
+            onPlayPhase2={() => onChangeView("phase2")}
             onOpenEditor={() => onChangeView("editor")}
           />
         </div>

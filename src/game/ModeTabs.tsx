@@ -1,6 +1,6 @@
 type ModeTabsProps = {
-  activeView: 'phase1' | 'editor'
-  onChange: (view: 'phase1' | 'editor') => void
+  activeView: 'phase1' | 'phase2' | 'editor'
+  onChange: (view: 'phase1' | 'phase2' | 'editor') => void
 }
 
 export function ModeTabs({ activeView, onChange }: ModeTabsProps) {
@@ -14,6 +14,15 @@ export function ModeTabs({ activeView, onChange }: ModeTabsProps) {
         onClick={() => onChange('phase1')}
       >
         Fase 1
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeView === 'phase2'}
+        className={`tab-button${activeView === 'phase2' ? ' is-active' : ''}`}
+        onClick={() => onChange('phase2')}
+      >
+        Fase 2
       </button>
       <button
         type="button"

@@ -35,8 +35,8 @@ const EDITOR_CANVAS_HEIGHT = CANVAS_HEIGHT;
 const EDITOR_MACHINE_SCALE = 1.3;
 
 type GameCanvasProps = {
-  activeView: "phase1" | "editor";
-  onChangeView: (view: "phase1" | "editor") => void;
+  activeView: "phase1" | "phase2" | "editor";
+  onChangeView: (view: "phase1" | "phase2" | "editor") => void;
 };
 
 export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {

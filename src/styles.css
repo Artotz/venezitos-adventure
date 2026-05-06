@@ -118,7 +118,7 @@ h1 {
 
 .view-switcher {
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   padding: 8px;
   margin-bottom: 16px;
@@ -590,6 +590,23 @@ h1 {
   background: rgba(0, 0, 0, 0.18);
 }
 
+.phase-canvas-shell {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 100vh;
+}
+
+.phase-overlay-actions {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .phase-canvas {
   display: block;
   width: var(--phase-canvas-width, 100%);
@@ -601,6 +618,10 @@ h1 {
 @media (max-width: 900px) {
   .app-shell {
     padding: 16px;
+  }
+
+  .app-shell.is-phase1 {
+    padding: 0;
   }
 
   .game-panel {

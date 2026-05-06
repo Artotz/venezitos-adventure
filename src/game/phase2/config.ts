@@ -1,0 +1,21 @@
+export const CANVAS_WIDTH = 1560;
+export const CANVAS_HEIGHT = 720;
+
+export const ROAD_WIDTH = 620;
+export const SHOULDER_WIDTH = 130;
+export const TRACTOR_WIDTH = 110;
+export const TRACTOR_HEIGHT = 164;
+export const TRACTOR_START_X = CANVAS_WIDTH / 2;
+export const TRACTOR_START_Y = CANVAS_HEIGHT - 170;
+export const TRACTOR_SPEED = 420;
+export const FORWARD_SCROLL_SPEED = 290;
+export const MIN_SCROLL_SPEED = 180;
+export const MAX_SCROLL_SPEED = 430;
+export const OBSTACLE_MIN_SIZE = 44;
+export const OBSTACLE_MAX_SIZE = 92;
+export const OBSTACLE_SPAWN_INTERVAL = 0.72;
+export const OBSTACLE_SPAWN_VARIANCE = 0.38;
+export const OBSTACLE_DESPAWN_Y = CANVAS_HEIGHT + 160;
+export const ROAD_LEFT = (CANVAS_WIDTH - ROAD_WIDTH) / 2;
+export const ROAD_RIGHT = ROAD_LEFT + ROAD_WIDTH;
+export const ROAD_CENTER_X = CANVAS_WIDTH / 2;

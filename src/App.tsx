@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { GameCanvas } from "./game/GameCanvas";
 import { Phase1Canvas } from "./game/Phase1Canvas";
+import { Phase2Canvas } from "./game/Phase2Canvas";
 import "./styles.css";
 
 function App() {
-  const [activeView, setActiveView] = useState<"phase1" | "editor">("phase1");
-  const isPhase1View = activeView === "phase1";
+  const [activeView, setActiveView] = useState<
+    "phase1" | "phase2" | "editor"
+  >("phase1");
+  const isPhaseView = activeView !== "editor";
 
   return (
-    <main className={`app-shell${isPhase1View ? " is-phase1" : ""}`}>
+    <main className={`app-shell${isPhaseView ? " is-phase1" : ""}`}>
       {/* <section className="game-panel"> */}
       {/* <div className="panel-header">
           <div>
@@ -16,13 +19,15 @@ function App() {
           </div>
         </div> */}
 
-      <div className={`game-stage${isPhase1View ? " is-phase1" : ""}`}>
-        <div className={`view-content${isPhase1View ? " is-phase1" : ""}`}>
+      <div className={`game-stage${isPhaseView ? " is-phase1" : ""}`}>
+        <div className={`view-content${isPhaseView ? " is-phase1" : ""}`}>
           {activeView === "phase1" ? (
             <Phase1Canvas
               activeView={activeView}
               onChangeView={setActiveView}
             />
+          ) : activeView === "phase2" ? (
+            <Phase2Canvas onChangeView={setActiveView} />
           ) : (
             <GameCanvas activeView={activeView} onChangeView={setActiveView} />
           )}

@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { buildPhase1Pose } from "./retro/animations";
+import { PauseMenu } from "./PauseMenu";
 import {
   applyToPoint,
   computeWorldMatrices,
@@ -68,8 +69,12 @@ export function Phase1Canvas({
   const [canvasScale, setCanvasScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [overlayStep, setOverlayStep] = useState<StartOverlayStep | null>(null);
+  const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const isPlaying = phaseStep === "playing";
-  const game = usePhase1Game(isPlaying && overlayStep === null);
+  const game = usePhase1Game(
+    isPlaying,
+    overlayStep !== null || isPauseMenuOpen,
+  );
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
   const eventSprites = usePhase1EventSprites();
@@ -136,7 +141,7 @@ export function Phase1Canvas({
   }, []);
 
   useEffect(() => {
-    if (!overlayStep) {
+    if (!overlayStep || isPauseMenuOpen) {
       return;
     }
 
@@ -163,7 +168,29 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [overlayStep]);
+  }, [isPauseMenuOpen, overlayStep]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      setIsPauseMenuOpen(false);
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Escape" || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsPauseMenuOpen((current) => !current);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -326,29 +353,6 @@ export function Phase1Canvas({
     <div className="phase-layout">
       {isPlaying ? (
         <div className="phase-canvas-shell">
-          <div className="phase-overlay-actions">
-            <button
-              type="button"
-              className="phase-secondary-button"
-              onClick={() => {
-                setPhaseStep("menu");
-                setOverlayStep(null);
-              }}
-            >
-              Menu principal
-            </button>
-            <button
-              type="button"
-              className="phase-secondary-button"
-              onClick={() => {
-                setPhaseStep("menu");
-                setOverlayStep(null);
-                onChangeView("editor");
-              }}
-            >
-              Editor
-            </button>
-          </div>
           <div
             className="phase-canvas-frame"
             style={
@@ -364,6 +368,22 @@ export function Phase1Canvas({
               aria-label="Fase 1 com a retroescavadeira controlada por FNR e marchas"
             />
           </div>
+          {isPauseMenuOpen ? (
+            <PauseMenu
+              onResume={() => setIsPauseMenuOpen(false)}
+              onOpenMainMenu={() => {
+                setIsPauseMenuOpen(false);
+                setPhaseStep("menu");
+                setOverlayStep(null);
+              }}
+              onOpenEditor={() => {
+                setIsPauseMenuOpen(false);
+                setPhaseStep("menu");
+                setOverlayStep(null);
+                onChangeView("editor");
+              }}
+            />
+          ) : null}
         </div>
       ) : (
         <div

@@ -37,7 +37,7 @@ const INITIAL_SNAPSHOT: Phase2GameSnapshot = {
   obstacles: [],
 };
 
-export function usePhase2Game(enabled = true) {
+export function usePhase2Game(enabled = true, paused = false) {
   const inputRef = useRef<InputManager | null>(null);
   const nextObstacleIdRef = useRef(1);
   const obstacleTimerRef = useRef(0);
@@ -47,6 +47,10 @@ export function usePhase2Game(enabled = true) {
   useEffect(() => {
     if (!enabled) {
       setSnapshot(INITIAL_SNAPSHOT);
+      return;
+    }
+
+    if (paused) {
       return;
     }
 
@@ -60,7 +64,7 @@ export function usePhase2Game(enabled = true) {
         inputRef.current = null;
       }
     };
-  }, [enabled]);
+  }, [enabled, paused]);
 
   useEffect(() => {
     if (!enabled) {
@@ -72,7 +76,7 @@ export function usePhase2Game(enabled = true) {
 
   useGameLoop(
     (dt) => {
-      if (!enabled) {
+      if (!enabled || paused) {
         return;
       }
 
@@ -194,7 +198,7 @@ export function usePhase2Game(enabled = true) {
         };
       });
     },
-    enabled,
+    enabled && !paused,
   );
 
   return snapshot;

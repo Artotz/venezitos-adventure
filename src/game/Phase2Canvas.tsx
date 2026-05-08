@@ -5,6 +5,7 @@ import {
   type CSSProperties,
 } from "react";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
+import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
 import { usePhase2Game } from "./phase2/usePhase2Game";
 
@@ -15,7 +16,8 @@ type Phase2CanvasProps = {
 export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
-  const game = usePhase2Game(true);
+  const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const game = usePhase2Game(true, isPauseMenuOpen);
 
   useEffect(() => {
     const updateCanvasScale = () => {
@@ -61,29 +63,29 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     drawPhase2Scene(context, game);
   }, [game]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Escape" || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsPauseMenuOpen((current) => !current);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
 
   return (
     <div className="phase-layout">
       <div className="phase-canvas-shell">
-        <div className="phase-overlay-actions">
-          <button
-            type="button"
-            className="phase-secondary-button"
-            onClick={() => onChangeView("phase1")}
-          >
-            Menu principal
-          </button>
-          <button
-            type="button"
-            className="phase-secondary-button"
-            onClick={() => onChangeView("editor")}
-          >
-            Editor
-          </button>
-        </div>
-
         <div
           className="phase-canvas-frame"
           style={
@@ -99,6 +101,19 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
             aria-label="Fase 2 com um trator em visao de cima desviando de pedras"
           />
         </div>
+        {isPauseMenuOpen ? (
+          <PauseMenu
+            onResume={() => setIsPauseMenuOpen(false)}
+            onOpenMainMenu={() => {
+              setIsPauseMenuOpen(false);
+              onChangeView("phase1");
+            }}
+            onOpenEditor={() => {
+              setIsPauseMenuOpen(false);
+              onChangeView("editor");
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

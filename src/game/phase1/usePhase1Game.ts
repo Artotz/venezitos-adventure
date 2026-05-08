@@ -139,7 +139,7 @@ function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
   return Math.sign(targetSpeed) * Math.min(Math.abs(targetSpeed), maxAbsSpeed);
 }
 
-export function usePhase1Game(enabled = true) {
+export function usePhase1Game(enabled = true, paused = false) {
   const sprites = useRetroSprites();
   const [distance, setDistance] = useState(0);
   const [speed, setSpeed] = useState(0);
@@ -183,6 +183,7 @@ export function usePhase1Game(enabled = true) {
   const animationSoundPlayerRef = useRef<AnimationSoundPlayer | null>(null);
   const phase1SoundPlayerRef = useRef<Phase1SoundPlayer | null>(null);
   const startupLockedRef = useRef(true);
+  const startupPlaybackStartedRef = useRef(false);
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -438,9 +439,15 @@ export function usePhase1Game(enabled = true) {
 
   useEffect(() => {
     if (!enabled) {
+      startupPlaybackStartedRef.current = false;
       return;
     }
 
+    if (paused || startupPlaybackStartedRef.current) {
+      return;
+    }
+
+    startupPlaybackStartedRef.current = true;
     startupLockedRef.current = true;
     clearBrakeInput();
     currentSpeedRef.current = 0;
@@ -463,10 +470,10 @@ export function usePhase1Game(enabled = true) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, paused]);
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (!enabled) {
+    if (!enabled || paused) {
       return;
     }
 
@@ -675,7 +682,7 @@ export function usePhase1Game(enabled = true) {
   });
 
   const handleKeyUp = useEffectEvent((event: KeyboardEvent) => {
-    if (!enabled) {
+    if (!enabled || paused) {
       return;
     }
 
@@ -692,7 +699,7 @@ export function usePhase1Game(enabled = true) {
   });
 
   useEffect(() => {
-    if (!sprites || !enabled) {
+    if (!sprites || !enabled || paused) {
       return;
     }
 
@@ -705,7 +712,7 @@ export function usePhase1Game(enabled = true) {
       window.removeEventListener("blur", handleWindowBlur);
       brakePressedRef.current = false;
     };
-  }, [enabled, sprites]);
+  }, [enabled, paused, sprites]);
 
   const updateFrame = (dt: number) => {
     const activeEvent = eventsRef.current.find(
@@ -1022,7 +1029,7 @@ export function usePhase1Game(enabled = true) {
     }
   };
 
-  useGameLoop((dt) => updateFrame(dt), Boolean(sprites) && enabled);
+  useGameLoop((dt) => updateFrame(dt), Boolean(sprites) && enabled && !paused);
 
   return {
     sprites,

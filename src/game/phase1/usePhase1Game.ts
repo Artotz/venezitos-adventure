@@ -61,17 +61,17 @@ import type {
   GreaseAnimationState,
   MapEvent,
   Phase1SpeechModalState,
+  Phase1DriveMode,
   QuestionModalState,
 } from "./types";
 import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
 const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
-type Phase1DriveMode = "reverse" | "neutral" | "forward";
-const PHASE1_FNR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyW";
-const PHASE1_FNR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyS";
-const PHASE1_GEAR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyA";
-const PHASE1_GEAR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyD";
+const PHASE1_FNR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyA";
+const PHASE1_FNR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyD";
+const PHASE1_GEAR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyW";
+const PHASE1_GEAR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyS";
 const PHASE1_BRAKE_KEY_CODE: KeyboardEvent["code"] = "ArrowDown";
 const PHASE1_DRIVE_CONTROL_KEY_CODES = new Set<KeyboardEvent["code"]>([
   PHASE1_FNR_UP_KEY_CODE,
@@ -89,24 +89,21 @@ const DRIVE_MODE_DOWN: Record<Phase1DriveMode, Phase1DriveMode> = {
   neutral: "reverse",
   forward: "neutral",
 };
-const FORWARD_GEAR_SPEEDS = [82, 128, 176, BASE_SPEED] as const;
-const REVERSE_GEAR_SPEEDS = [-72, -112] as const;
+const FORWARD_GEAR_SPEEDS = [112, 164, 218, BASE_SPEED] as const;
+const REVERSE_GEAR_SPEEDS = [-96, -142] as const;
 const MAX_FORWARD_GEAR = FORWARD_GEAR_SPEEDS.length;
 const MAX_REVERSE_GEAR = REVERSE_GEAR_SPEEDS.length;
 const BRAKE_RESPONSE = 10;
 const DRIVE_RESPONSE = 4;
+const NEUTRAL_RESPONSE = 1.4;
 const MANUAL_EVENT_KEY_CODES = new Set<string>([
   "ArrowLeft",
   "ArrowRight",
   "ArrowUp",
 ]);
 
-function getMaxGearForMode(mode: Phase1DriveMode) {
-  return mode === "reverse" ? MAX_REVERSE_GEAR : MAX_FORWARD_GEAR;
-}
-
-function clampGear(gear: number, mode: Phase1DriveMode) {
-  return Math.max(1, Math.min(getMaxGearForMode(mode), gear));
+function clampSelectedGear(gear: number) {
+  return Math.max(1, Math.min(MAX_FORWARD_GEAR, gear));
 }
 
 function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
@@ -115,10 +112,15 @@ function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
   }
 
   if (mode === "reverse") {
-    return REVERSE_GEAR_SPEEDS[clampGear(gear, mode) - 1];
+    const effectiveReverseGear = Math.min(
+      clampSelectedGear(gear),
+      MAX_REVERSE_GEAR,
+    );
+
+    return REVERSE_GEAR_SPEEDS[effectiveReverseGear - 1];
   }
 
-  return FORWARD_GEAR_SPEEDS[clampGear(gear, mode) - 1];
+  return FORWARD_GEAR_SPEEDS[clampSelectedGear(gear) - 1];
 }
 
 function getDriveModeLabel(mode: Phase1DriveMode) {
@@ -206,9 +208,8 @@ export function usePhase1Game(enabled = true) {
     nextGear = selectedGearRef.current,
   ) => {
     setMessage(
-      `FNR em ${getDriveModeLabel(nextMode)}. Marcha ${clampGear(
+      `FNR em ${getDriveModeLabel(nextMode)}. Marcha ${clampSelectedGear(
         nextGear,
-        nextMode,
       )}.`,
     );
   };
@@ -242,18 +243,15 @@ export function usePhase1Game(enabled = true) {
       direction === "up"
         ? DRIVE_MODE_UP[currentMode]
         : DRIVE_MODE_DOWN[currentMode];
-    const nextGear = clampGear(selectedGearRef.current, nextMode);
 
     driveModeRef.current = nextMode;
-    selectedGearRef.current = nextGear;
     setDriveMode(nextMode);
-    setSelectedGear(nextGear);
-    syncDriveMessage(nextMode, nextGear);
+    syncDriveMessage(nextMode);
   };
 
   const shiftSelectedGear = (delta: 1 | -1) => {
     const currentMode = driveModeRef.current;
-    const nextGear = clampGear(selectedGearRef.current + delta, currentMode);
+    const nextGear = clampSelectedGear(selectedGearRef.current + delta);
 
     selectedGearRef.current = nextGear;
     setSelectedGear(nextGear);
@@ -856,7 +854,9 @@ export function usePhase1Game(enabled = true) {
 
     const speedResponse = brakePressedRef.current
       ? BRAKE_RESPONSE
-      : DRIVE_RESPONSE;
+      : driveModeRef.current === "neutral"
+        ? NEUTRAL_RESPONSE
+        : DRIVE_RESPONSE;
     let nextSpeed =
       currentSpeedRef.current +
       (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * speedResponse);

@@ -27,6 +27,7 @@ import {
   drawPhase1Backdrop,
   drawPhase1Environment,
   drawPhase1Foreground,
+  drawPhase1FnrControl,
   drawPhase1GreaseAnimation,
   drawPhase1Hud,
   drawPhase1StartModal,
@@ -36,6 +37,7 @@ import {
 import { usePhase1CarnaubaImage } from "./phase1/usePhase1CarnaubaImage";
 import { usePhase1ForegroundImage } from "./phase1/usePhase1ForegroundImage";
 import { usePhase1EventSprites } from "./phase1/usePhase1EventSprites";
+import { usePhase1FnrImages } from "./phase1/usePhase1FnrImages";
 import { usePhase1GreaseImage } from "./phase1/usePhase1GreaseImage";
 import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
@@ -71,6 +73,7 @@ export function Phase1Canvas({
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
   const eventSprites = usePhase1EventSprites();
+  const fnrImages = usePhase1FnrImages();
   const greaseImage = usePhase1GreaseImage();
   const venezitoImages = usePhase1VenezitoImages();
   const groundImage = usePhase1GroundImage();
@@ -90,6 +93,8 @@ export function Phase1Canvas({
     "full",
     game.speechModal?.mood ?? "neutral",
   );
+  const selectedLeverImage =
+    fnrImages.leverImages[game.selectedGear - 1] ?? null;
 
   const pose = buildPhase1Pose({
     distance: game.distance,
@@ -236,6 +241,12 @@ export function Phase1Canvas({
       message: game.message,
       instructorImage: hudVenezitoImage,
     });
+    drawPhase1FnrControl({
+      context,
+      driveMode: game.driveMode,
+      fnrImage: fnrImages.fnrImage,
+      leverImage: selectedLeverImage,
+    });
     if (overlayStep === "manifesto") {
       drawPhase1SpeechModal(context, PHASE1_MANIFESTO_MODAL, instructorImage);
     } else if (overlayStep === "controls") {
@@ -274,11 +285,15 @@ export function Phase1Canvas({
     game.excavatorScene,
     foregroundImage,
     eventSprites.dirtPileImage,
+    fnrImages.fnrImage,
     eventSprites.greaseSignImage,
     eventSprites.maintenanceSignImage,
     greaseImage,
     game.loadedDirt,
     game.rearLoaded,
+    game.driveMode,
+    game.selectedGear,
+    selectedLeverImage,
     eventSprites.holeEmptyImage,
     eventSprites.holeFullImage,
     eventSprites.mudImage,

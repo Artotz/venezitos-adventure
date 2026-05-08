@@ -1,6 +1,8 @@
 import type { AnimationPresetId } from '../retro/types'
 import type { VenezitoMood } from './venezito'
 
+export type Phase1DriveMode = 'reverse' | 'neutral' | 'forward'
+
 export type ManualEventType =
   | 'pickup-load'
   | 'pickup-unload'

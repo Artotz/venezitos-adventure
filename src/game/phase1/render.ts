@@ -28,6 +28,7 @@ import {
 } from "./eventPositioner";
 import type {
   MapEvent,
+  Phase1DriveMode,
   Phase1SpeechModalState,
   QuestionModalState,
 } from "./types";
@@ -77,6 +78,13 @@ type Phase1GreaseAnimationParams = {
   greaseImage?: LoadedImageSource | null;
   machineRootMatrix: Matrix2D;
   pointProjector?: (matrix: Matrix2D, point: Point) => Point;
+};
+
+type Phase1FnrControlParams = {
+  context: CanvasRenderingContext2D;
+  driveMode: Phase1DriveMode;
+  fnrImage?: LoadedImageSource | null;
+  leverImage?: LoadedImageSource | null;
 };
 
 type Phase1ModalLayout = {
@@ -150,6 +158,16 @@ const MUD_OFFSET_X = 0;
 const WORK_SIGN_DRAW_HEIGHT = 184;
 const WORK_SIGN_BASE_Y = GROUND_Y + 12 + 120;
 const WORK_SIGN_OFFSET_X = 150 + 30;
+const FNR_PANEL_DRAW_WIDTH = 300;
+const FNR_PANEL_RIGHT_OVERFLOW = 45;
+const FNR_LEVER_DRAW_WIDTH = 330;
+const FNR_LEVER_PIVOT_X = CANVAS_WIDTH + 8;
+const FNR_LEVER_PIVOT_INSET = 10;
+const FNR_LEVER_ANGLE_BY_MODE: Record<Phase1DriveMode, number> = {
+  forward: 24,
+  neutral: 0,
+  reverse: -24,
+};
 
 export function drawPhase1Backdrop(context: CanvasRenderingContext2D) {
   const skyGradient = context.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -280,6 +298,50 @@ export function drawPhase1GreaseAnimation({
     config: DEFAULT_GREASE_ANIMATION_CONFIG,
     pointProjector,
   });
+}
+
+export function drawPhase1FnrControl({
+  context,
+  driveMode,
+  fnrImage,
+  leverImage,
+}: Phase1FnrControlParams) {
+  if (!fnrImage || !leverImage) {
+    return;
+  }
+
+  const panelSize = getImageSourceSize(fnrImage);
+  const panelHeight =
+    FNR_PANEL_DRAW_WIDTH * (panelSize.height / panelSize.width);
+  const centerY = CANVAS_HEIGHT / 2;
+  const panelX = CANVAS_WIDTH - FNR_PANEL_DRAW_WIDTH + FNR_PANEL_RIGHT_OVERFLOW;
+  const panelY = centerY - panelHeight / 2 - 7;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(
+    fnrImage,
+    panelX,
+    panelY,
+    FNR_PANEL_DRAW_WIDTH,
+    panelHeight,
+  );
+
+  const leverSize = getImageSourceSize(leverImage);
+  const leverHeight =
+    FNR_LEVER_DRAW_WIDTH * (leverSize.height / leverSize.width);
+
+  context.translate(FNR_LEVER_PIVOT_X, centerY);
+  context.rotate((FNR_LEVER_ANGLE_BY_MODE[driveMode] * Math.PI) / 180);
+  context.drawImage(
+    leverImage,
+    -FNR_LEVER_DRAW_WIDTH + FNR_LEVER_PIVOT_INSET,
+    -leverHeight / 2,
+    FNR_LEVER_DRAW_WIDTH,
+    leverHeight,
+  );
+  context.restore();
 }
 
 export function drawPhase1Hud({

@@ -98,7 +98,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
           <canvas
             ref={canvasRef}
             className="phase-canvas"
-            aria-label="Fase 2 com um trator em visao de cima desviando de pedras"
+            aria-label="Fase 2 com um trator em visao de cima cortando grama"
           />
         </div>
         {isPauseMenuOpen ? (

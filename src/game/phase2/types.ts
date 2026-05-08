@@ -1,9 +1,8 @@
-export type Phase2Obstacle = {
+export type Phase2Cell = {
   id: number;
-  x: number;
-  y: number;
-  size: number;
-  rotation: number;
+  column: number;
+  row: number;
+  cut: boolean;
 };
 
 export type Phase2Tractor = {
@@ -11,15 +10,18 @@ export type Phase2Tractor = {
   y: number;
   width: number;
   height: number;
+  angle: number;
+  moving: boolean;
 };
 
 export type Phase2GameSnapshot = {
-  distance: number;
   score: number;
-  speed: number;
+  cutCells: number;
+  totalCells: number;
+  progress: number;
+  elapsedTime: number;
   message: string;
-  collisionFlash: number;
-  roadOffset: number;
+  isComplete: boolean;
   tractor: Phase2Tractor;
-  obstacles: Phase2Obstacle[];
+  cells: Phase2Cell[];
 };

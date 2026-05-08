@@ -1,21 +1,21 @@
 export const CANVAS_WIDTH = 1560;
 export const CANVAS_HEIGHT = 720;
 
-export const ROAD_WIDTH = 620;
-export const SHOULDER_WIDTH = 130;
-export const TRACTOR_WIDTH = 110;
-export const TRACTOR_HEIGHT = 164;
-export const TRACTOR_START_X = CANVAS_WIDTH / 2;
-export const TRACTOR_START_Y = CANVAS_HEIGHT - 170;
-export const TRACTOR_SPEED = 420;
-export const FORWARD_SCROLL_SPEED = 290;
-export const MIN_SCROLL_SPEED = 180;
-export const MAX_SCROLL_SPEED = 430;
-export const OBSTACLE_MIN_SIZE = 44;
-export const OBSTACLE_MAX_SIZE = 92;
-export const OBSTACLE_SPAWN_INTERVAL = 0.72;
-export const OBSTACLE_SPAWN_VARIANCE = 0.38;
-export const OBSTACLE_DESPAWN_Y = CANVAS_HEIGHT + 160;
-export const ROAD_LEFT = (CANVAS_WIDTH - ROAD_WIDTH) / 2;
-export const ROAD_RIGHT = ROAD_LEFT + ROAD_WIDTH;
-export const ROAD_CENTER_X = CANVAS_WIDTH / 2;
+export const FIELD_COLUMNS = 24;
+export const FIELD_ROWS = 14;
+export const CELL_SIZE = 48;
+export const CELL_GAP = 2;
+export const FIELD_WIDTH = FIELD_COLUMNS * CELL_SIZE;
+export const FIELD_HEIGHT = FIELD_ROWS * CELL_SIZE;
+export const FIELD_LEFT = (CANVAS_WIDTH - FIELD_WIDTH) / 2;
+export const FIELD_TOP = (CANVAS_HEIGHT - FIELD_HEIGHT) / 2 + 8;
+
+export const TRACTOR_WIDTH = 62;
+export const TRACTOR_HEIGHT = 88;
+export const TRACTOR_START_X = FIELD_LEFT + CELL_SIZE * 1.5;
+export const TRACTOR_START_Y = FIELD_TOP + FIELD_HEIGHT - CELL_SIZE * 1.5;
+export const TRACTOR_SPEED = 285;
+export const TRACTOR_TURN_RESPONSE = 14;
+
+export const INITIAL_MESSAGE = "Corte toda a grama passando por cima das celulas.";
+export const COMPLETE_MESSAGE = "Campo limpo. Todas as celulas foram cortadas.";

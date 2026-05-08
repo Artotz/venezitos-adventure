@@ -591,7 +591,7 @@ export function drawPhase1StartModal({
     92,
     "↑",
     "Engraxar",
-    "Use ↑ / W para aplicar graxa.",
+    "Use ↑ para aplicar graxa.",
   );
   drawInstructionCard(
     context,
@@ -601,7 +601,7 @@ export function drawPhase1StartModal({
     92,
     "←",
     "Carregar",
-    "Use ← / A para carregar.",
+    "Use ← para carregar.",
   );
   drawInstructionCard(
     context,
@@ -611,7 +611,7 @@ export function drawPhase1StartModal({
     92,
     "→",
     "Cavar",
-    "Use → / D para cavar.",
+    "Use → para cavar.",
   );
   drawInstructionCard(
     context,
@@ -621,7 +621,7 @@ export function drawPhase1StartModal({
     92,
     "↓",
     "tração",
-    "Use ↓ / S para ativar o 4x4.",
+    "Use ↓ para ativar o 4x4.",
   );
 
   context.fillStyle = "#d5b178";
@@ -662,22 +662,22 @@ export function drawPhase1EventShowcaseModal({
   > = {
     pickup: {
       title: "Carregar",
-      body: "Aproxime da pilha e use ← / A para operar a carregadeira na dianteira.",
+      body: "Aproxime da pilha e use ← para operar a carregadeira na dianteira.",
       keyLabel: "←",
     },
     dig: {
       title: "Cavar",
-      body: "Use → / D para operar a escavadeira na traseira e cavar ou preencher buracos.",
+      body: "Use → para operar a escavadeira na traseira e cavar ou preencher buracos.",
       keyLabel: "→",
     },
     grease: {
       title: "Engraxar",
-      body: "Pare no ponto de manutenção e use ↑ / W para iniciar a graxa.",
+      body: "Pare no ponto de manutenção e use ↑ para iniciar a graxa.",
       keyLabel: "↑",
     },
     traction: {
       title: "tração",
-      body: "No trecho de lama, use ↓ / S para ativar o 4x4. Lembre de desativar depois!",
+      body: "No trecho de lama, use ↓ para ativar o 4x4. Lembre de desativar depois!",
       keyLabel: "↓",
     },
   };

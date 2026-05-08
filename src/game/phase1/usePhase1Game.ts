@@ -70,14 +70,28 @@ import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
 const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
-const MANUAL_EVENT_KEY_CODES = new Set<string>([
+const PHASE1_MOVEMENT_KEY_CODES = new Set<KeyboardEvent["code"]>([
   "KeyA",
-  "ArrowLeft",
   "KeyD",
+]);
+const PHASE1_REVERSE_KEY_CODE: KeyboardEvent["code"] = "KeyA";
+const PHASE1_FORWARD_KEY_CODE: KeyboardEvent["code"] = "KeyD";
+const MANUAL_EVENT_KEY_CODES = new Set<string>([
+  "ArrowLeft",
   "ArrowRight",
-  "KeyW",
   "ArrowUp",
 ]);
+
+function getDriveInput(pressedKeys: ReadonlySet<KeyboardEvent["code"]>) {
+  return (
+    Number(pressedKeys.has(PHASE1_FORWARD_KEY_CODE)) -
+    Number(pressedKeys.has(PHASE1_REVERSE_KEY_CODE))
+  );
+}
+
+function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
+  return Math.sign(targetSpeed) * Math.min(Math.abs(targetSpeed), maxAbsSpeed);
+}
 
 export function usePhase1Game(enabled = true) {
   const sprites = useRetroSprites();
@@ -118,6 +132,7 @@ export function usePhase1Game(enabled = true) {
   const speechModalRef = useRef<Phase1SpeechModalState | null>(null);
   const questionCursorRef = useRef(0);
   const tractionBoostFrameCountRef = useRef(0);
+  const movementKeyCodesRef = useRef<Set<KeyboardEvent["code"]>>(new Set());
   const animationSoundPlayerRef = useRef<AnimationSoundPlayer | null>(null);
   const phase1SoundPlayerRef = useRef<Phase1SoundPlayer | null>(null);
   const startupLockedRef = useRef(true);
@@ -137,12 +152,24 @@ export function usePhase1Game(enabled = true) {
     setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
   };
 
+  const clearMovementInput = () => {
+    movementKeyCodesRef.current.clear();
+  };
+
   const setQuestionModalState = (nextModal: QuestionModalState | null) => {
+    if (nextModal) {
+      clearMovementInput();
+    }
+
     questionModalRef.current = nextModal;
     setQuestionModal(nextModal);
   };
 
   const setSpeechModalState = (nextModal: Phase1SpeechModalState | null) => {
+    if (nextModal) {
+      clearMovementInput();
+    }
+
     speechModalRef.current = nextModal;
     setSpeechModal(nextModal);
 
@@ -342,6 +369,7 @@ export function usePhase1Game(enabled = true) {
     }
 
     startupLockedRef.current = true;
+    movementKeyCodesRef.current.clear();
     currentSpeedRef.current = 0;
     setSpeed(0);
 
@@ -432,6 +460,12 @@ export function usePhase1Game(enabled = true) {
       setSpeechModalState(
         createQuestionFeedbackModal(openQuestionModal.question, "failure"),
       );
+      return;
+    }
+
+    if (PHASE1_MOVEMENT_KEY_CODES.has(event.code)) {
+      event.preventDefault();
+      movementKeyCodesRef.current.add(event.code);
       return;
     }
 
@@ -558,14 +592,38 @@ export function usePhase1Game(enabled = true) {
     );
   });
 
+  const handleKeyUp = useEffectEvent((event: KeyboardEvent) => {
+    if (!enabled) {
+      return;
+    }
+
+    if (!PHASE1_MOVEMENT_KEY_CODES.has(event.code)) {
+      return;
+    }
+
+    event.preventDefault();
+    movementKeyCodesRef.current.delete(event.code);
+  });
+
+  const handleWindowBlur = useEffectEvent(() => {
+    clearMovementInput();
+  });
+
   useEffect(() => {
     if (!sprites || !enabled) {
       return;
     }
 
+    const movementKeyCodes = movementKeyCodesRef.current;
+
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleWindowBlur);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleWindowBlur);
+      movementKeyCodes.clear();
     };
   }, [enabled, sprites]);
 
@@ -638,7 +696,7 @@ export function usePhase1Game(enabled = true) {
       setAnimationTick((current) => current + 1);
     }
 
-    let targetSpeed = BASE_SPEED;
+    let targetSpeed = getDriveInput(movementKeyCodesRef.current) * BASE_SPEED;
 
     if (startupLockedRef.current) {
       targetSpeed = 0;
@@ -649,11 +707,14 @@ export function usePhase1Game(enabled = true) {
       isTractionEventDefinition(activeEventDefinition) &&
       !differentialLockEnabledRef.current
     ) {
-      targetSpeed = activeEventDefinition.activeSpeed;
+      targetSpeed = capTargetSpeed(
+        targetSpeed,
+        activeEventDefinition.activeSpeed,
+      );
     }
 
     if (frontAnimationRef.current?.presetId === "idle") {
-      targetSpeed = Math.min(targetSpeed, FRONT_LOAD_SPEED);
+      targetSpeed = capTargetSpeed(targetSpeed, FRONT_LOAD_SPEED);
     }
 
     if (
@@ -680,7 +741,9 @@ export function usePhase1Game(enabled = true) {
           (nextUpcomingEventDefinition.approachTargetSpeed - BASE_SPEED) *
             slowdownProgress;
 
-        targetSpeed = Math.min(targetSpeed, approachSpeed);
+        if (targetSpeed > 0) {
+          targetSpeed = Math.min(targetSpeed, approachSpeed);
+        }
       }
     }
 
@@ -708,9 +771,15 @@ export function usePhase1Game(enabled = true) {
       targetSpeed = 0;
     }
 
-    const nextSpeed =
+    let nextSpeed =
       currentSpeedRef.current +
       (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * 4);
+    let nextDistance = distanceRef.current + nextSpeed * dt;
+
+    if (nextDistance < 0) {
+      nextDistance = 0;
+      nextSpeed = 0;
+    }
 
     currentSpeedRef.current = nextSpeed;
     setSpeed(nextSpeed);
@@ -775,10 +844,11 @@ export function usePhase1Game(enabled = true) {
       }
     }
 
-    const nextDistance = distanceRef.current + nextSpeed * dt;
     distanceRef.current = nextDistance;
     setDistance(nextDistance);
-    setScore((current) => current + Math.round(nextSpeed * dt * 0.08));
+    setScore(
+      (current) => current + Math.round(Math.max(0, nextSpeed) * dt * 0.08),
+    );
 
     const spawnedEvents = syncInfiniteEventStream(
       eventsRef.current,

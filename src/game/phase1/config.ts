@@ -8,18 +8,14 @@ export const LOW_TRACTION_SPEED = 72;
 export const FRONT_LOAD_SPEED = 118;
 export const EVENT_SPAWN_MARGIN = 500;
 export const EVENT_DESPAWN_MARGIN = 1200;
-export const PICKUP_EVENT_KEYS_LABEL = "← / A";
-export const DIG_EVENT_KEYS_LABEL = "→ / D";
-export const GREASE_EVENT_KEYS_LABEL = "↑ / W";
-export const TRACTION_TOGGLE_KEY_LABEL = "↓ / S";
+export const PICKUP_EVENT_KEYS_LABEL = "←";
+export const DIG_EVENT_KEYS_LABEL = "→";
+export const GREASE_EVENT_KEYS_LABEL = "↑";
+export const TRACTION_TOGGLE_KEY_LABEL = "↓";
 export const TRACTION_SCORE_LENIENCY_MARGIN = 140;
 export const QUESTION_OPTION_KEYS_LABEL = "↑ ← ↓ →";
 export const QUESTION_OPTION_DISPLAY_LABEL = "↑ ← ↓ →";
 export const PHASE1_CONTINUE_CODES = [
-  "KeyW",
-  "KeyA",
-  "KeyS",
-  "KeyD",
   "ArrowUp",
   "ArrowLeft",
   "ArrowDown",
@@ -29,12 +25,12 @@ export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
 export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
 export const INITIAL_MESSAGE =
-  "Hora de dar partida! Aperte o cinto e vamos lá!";
+  "Segure D para avançar. Use A para recuar e as setas para operar.";
 export const PHASE1_MENU_TITLE = "Treinando com o Venezito";
 export const PHASE1_MENU_DESCRIPTION =
   "Entre na retroescavadeira e aprenda tudo sobre a operação!";
 export const PHASE1_START_MODAL_TITLE = "Controles da fase";
-export const PHASE1_START_MODAL_DESCRIPTION = `Este jogo usa as setas ou WASD.
-Aprenda a posição de cada comando na maquina antes de sair.`;
+export const PHASE1_START_MODAL_DESCRIPTION = `Use A e D para mover a maquina.
+Use as setas para operar cada comando no momento certo.`;
 export const PHASE1_START_MODAL_HINT =
-  "Pressione as setas ou WASD para continuar";
+  "Pressione uma seta para continuar";

@@ -350,7 +350,7 @@ export function Phase1Canvas({
             <canvas
               ref={canvasRef}
               className="phase-canvas"
-              aria-label="Fase 1 com a retroescavadeira andando infinitamente para a esquerda"
+              aria-label="Fase 1 com a retroescavadeira controlada por A e D"
             />
           </div>
         </div>

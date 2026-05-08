@@ -8,13 +8,9 @@ import type {
 const QUESTION_DIRECTION_BY_CODE: Partial<
   Record<KeyboardEvent['code'], QuestionChoiceDirection>
 > = {
-  KeyW: 'up',
   ArrowUp: 'up',
-  KeyA: 'left',
   ArrowLeft: 'left',
-  KeyD: 'right',
   ArrowRight: 'right',
-  KeyS: 'down',
   ArrowDown: 'down',
 }
 

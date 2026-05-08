@@ -67,7 +67,6 @@ type Phase1HudParams = {
   context: CanvasRenderingContext2D;
   score: number;
   distance: number;
-  differentialLockEnabled: boolean;
   message: string;
   instructorImage?: LoadedImageSource | null;
 };
@@ -287,7 +286,6 @@ export function drawPhase1Hud({
   context,
   score,
   distance,
-  differentialLockEnabled,
   message,
   instructorImage,
 }: Phase1HudParams) {
@@ -295,8 +293,6 @@ export function drawPhase1Hud({
   const leftX = 28;
   const rightX = CANVAS_WIDTH - 292;
   const speechX = CANVAS_WIDTH / 2 - 260;
-  const bottomCardX = CANVAS_WIDTH / 2 - 180;
-  const bottomCardY = CANVAS_HEIGHT - 102;
 
   drawHudCard(context, leftX, hudY, "pontuação", String(score), "score");
   drawHudCard(
@@ -315,12 +311,6 @@ export function drawPhase1Hud({
     84,
     message,
     instructorImage,
-  );
-  drawDifferentialLockCard(
-    context,
-    bottomCardX,
-    bottomCardY,
-    differentialLockEnabled,
   );
 }
 
@@ -620,8 +610,8 @@ export function drawPhase1StartModal({
     260,
     92,
     "↓",
-    "tração",
-    "Use ↓ para ativar o 4x4.",
+    "Freio",
+    "Use ↓ para frear a maquina.",
   );
 
   context.fillStyle = "#d5b178";
@@ -676,8 +666,8 @@ export function drawPhase1EventShowcaseModal({
       keyLabel: "↑",
     },
     traction: {
-      title: "tração",
-      body: "No trecho de lama, use ↓ para ativar o 4x4. Lembre de desativar depois!",
+      title: "Freio",
+      body: "Use ↓ para frear e controlar a aproximacao da maquina.",
       keyLabel: "↓",
     },
   };
@@ -1378,44 +1368,6 @@ function drawHourmeterHudIcon(
   context.restore();
 }
 
-function drawDifferentialLockCard(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  enabled: boolean,
-) {
-  context.save();
-  context.fillStyle = enabled
-    ? "rgba(50, 58, 24, 0.92)"
-    : "rgba(18, 14, 10, 0.72)";
-  context.strokeStyle = enabled
-    ? "rgba(255, 232, 186, 0.42)"
-    : "rgba(255, 232, 186, 0.2)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.roundRect(x, y, 280, 84, 18);
-  context.fill();
-  context.stroke();
-
-  context.fillStyle = "#e1bf75";
-  context.font = '700 14px "Segoe UI", sans-serif';
-  context.fillText("TRAÇÃO 4X4", x + 22, y + 24);
-
-  context.fillStyle = enabled ? "#fff0a8" : "#fff3d7";
-  context.font = '700 28px "Segoe UI", sans-serif';
-  context.fillText(enabled ? "LIGADO" : "DESLIGADO", x + 22, y + 60);
-
-  context.fillStyle = enabled
-    ? "rgba(255, 240, 168, 0.14)"
-    : "rgba(255, 243, 215, 0.08)";
-  context.beginPath();
-  context.roundRect(x + 206, y + 16, 52, 52, 14);
-  context.fill();
-
-  drawFourByFourHudIcon(context, x + 232, y + 42, enabled);
-  context.restore();
-}
-
 function drawVenezitoSpeechHud(
   context: CanvasRenderingContext2D,
   x: number,
@@ -1648,45 +1600,6 @@ function drawPickupDirtBackdrop(
   }
 
   drawPickupDirt(context, visualX, hitboxX, hitboxHalfWidth, isActive);
-}
-
-function drawFourByFourHudIcon(
-  context: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  enabled: boolean,
-) {
-  context.save();
-  const accentFill = enabled ? "#fff0a8" : "rgba(255, 243, 215, 0.26)";
-  const accentStroke = enabled ? "#fff2a8" : "rgba(255, 243, 215, 0.4)";
-
-  context.strokeStyle = accentStroke;
-  context.lineWidth = 2.5;
-  context.beginPath();
-  context.moveTo(centerX - 12, centerY + 9);
-  context.lineTo(centerX + 12, centerY + 9);
-  context.moveTo(centerX, centerY - 10);
-  context.lineTo(centerX, centerY + 5);
-  context.stroke();
-
-  for (const wheelCenter of [
-    [-12, -9],
-    [12, -9],
-    [-12, 9],
-    [12, 9],
-  ] as const) {
-    context.fillStyle = accentFill;
-    context.beginPath();
-    context.arc(
-      centerX + wheelCenter[0],
-      centerY + wheelCenter[1],
-      4,
-      0,
-      Math.PI * 2,
-    );
-    context.fill();
-  }
-  context.restore();
 }
 
 function drawQuestionChoiceCard(

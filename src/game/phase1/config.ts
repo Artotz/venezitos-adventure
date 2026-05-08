@@ -25,12 +25,12 @@ export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
 export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
 export const INITIAL_MESSAGE =
-  "Segure D para avançar. Use A para recuar e as setas para operar.";
+  "Use W/S no FNR, A/D para marcha e ↓ para frear.";
 export const PHASE1_MENU_TITLE = "Treinando com o Venezito";
 export const PHASE1_MENU_DESCRIPTION =
   "Entre na retroescavadeira e aprenda tudo sobre a operação!";
 export const PHASE1_START_MODAL_TITLE = "Controles da fase";
-export const PHASE1_START_MODAL_DESCRIPTION = `Use A e D para mover a maquina.
-Use as setas para operar cada comando no momento certo.`;
+export const PHASE1_START_MODAL_DESCRIPTION = `Use W/S para alternar F, N e R.
+Use A/D para trocar marcha e as setas para operar.`;
 export const PHASE1_START_MODAL_HINT =
   "Pressione uma seta para continuar";

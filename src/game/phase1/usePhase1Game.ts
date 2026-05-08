@@ -25,12 +25,10 @@ import {
   INITIAL_MESSAGE,
   PLAYER_HIT_LINE_X,
   QUESTION_MODAL_OPEN_SPEED_THRESHOLD,
-  TRACTION_SCORE_LENIENCY_MARGIN,
 } from "./config";
 import {
   getEventActivationMessage,
   getEventDefinition,
-  getTractionEventDefinition,
   isManualEventDefinition,
   isQuestionEventDefinition,
   isTractionEventDefinition,
@@ -39,7 +37,6 @@ import {
   createInitialPhase1Events,
   describeMapEvent,
   getEventHitboxScreenX,
-  isWithinTractionScoreLeniencyZone,
   syncInfiniteEventStream,
   updateEventType,
   updateEventStatus,
@@ -70,23 +67,70 @@ import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
 const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
-const PHASE1_MOVEMENT_KEY_CODES = new Set<KeyboardEvent["code"]>([
-  "KeyA",
-  "KeyD",
+type Phase1DriveMode = "reverse" | "neutral" | "forward";
+const PHASE1_FNR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyW";
+const PHASE1_FNR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyS";
+const PHASE1_GEAR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyA";
+const PHASE1_GEAR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyD";
+const PHASE1_BRAKE_KEY_CODE: KeyboardEvent["code"] = "ArrowDown";
+const PHASE1_DRIVE_CONTROL_KEY_CODES = new Set<KeyboardEvent["code"]>([
+  PHASE1_FNR_UP_KEY_CODE,
+  PHASE1_FNR_DOWN_KEY_CODE,
+  PHASE1_GEAR_UP_KEY_CODE,
+  PHASE1_GEAR_DOWN_KEY_CODE,
 ]);
-const PHASE1_REVERSE_KEY_CODE: KeyboardEvent["code"] = "KeyA";
-const PHASE1_FORWARD_KEY_CODE: KeyboardEvent["code"] = "KeyD";
+const DRIVE_MODE_UP: Record<Phase1DriveMode, Phase1DriveMode> = {
+  reverse: "neutral",
+  neutral: "forward",
+  forward: "forward",
+};
+const DRIVE_MODE_DOWN: Record<Phase1DriveMode, Phase1DriveMode> = {
+  reverse: "reverse",
+  neutral: "reverse",
+  forward: "neutral",
+};
+const FORWARD_GEAR_SPEEDS = [82, 128, 176, BASE_SPEED] as const;
+const REVERSE_GEAR_SPEEDS = [-72, -112] as const;
+const MAX_FORWARD_GEAR = FORWARD_GEAR_SPEEDS.length;
+const MAX_REVERSE_GEAR = REVERSE_GEAR_SPEEDS.length;
+const BRAKE_RESPONSE = 10;
+const DRIVE_RESPONSE = 4;
 const MANUAL_EVENT_KEY_CODES = new Set<string>([
   "ArrowLeft",
   "ArrowRight",
   "ArrowUp",
 ]);
 
-function getDriveInput(pressedKeys: ReadonlySet<KeyboardEvent["code"]>) {
-  return (
-    Number(pressedKeys.has(PHASE1_FORWARD_KEY_CODE)) -
-    Number(pressedKeys.has(PHASE1_REVERSE_KEY_CODE))
-  );
+function getMaxGearForMode(mode: Phase1DriveMode) {
+  return mode === "reverse" ? MAX_REVERSE_GEAR : MAX_FORWARD_GEAR;
+}
+
+function clampGear(gear: number, mode: Phase1DriveMode) {
+  return Math.max(1, Math.min(getMaxGearForMode(mode), gear));
+}
+
+function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
+  if (mode === "neutral") {
+    return 0;
+  }
+
+  if (mode === "reverse") {
+    return REVERSE_GEAR_SPEEDS[clampGear(gear, mode) - 1];
+  }
+
+  return FORWARD_GEAR_SPEEDS[clampGear(gear, mode) - 1];
+}
+
+function getDriveModeLabel(mode: Phase1DriveMode) {
+  if (mode === "forward") {
+    return "F";
+  }
+
+  if (mode === "reverse") {
+    return "R";
+  }
+
+  return "N";
 }
 
 function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
@@ -105,7 +149,8 @@ export function usePhase1Game(enabled = true) {
   const [message, setMessage] = useState(INITIAL_MESSAGE);
   const [events, setEvents] = useState<MapEvent[]>(INITIAL_PHASE1_EVENTS);
   const [activeEventId, setActiveEventId] = useState<number | null>(null);
-  const [differentialLockEnabled, setDifferentialLockEnabled] = useState(false);
+  const [driveMode, setDriveMode] = useState<Phase1DriveMode>("neutral");
+  const [selectedGear, setSelectedGear] = useState(1);
   const [questionModal, setQuestionModal] = useState<QuestionModalState | null>(
     null,
   );
@@ -126,13 +171,13 @@ export function usePhase1Game(enabled = true) {
   const greaseAnimationRef = useRef<GreaseAnimationState | null>(null);
   const currentSpeedRef = useRef(0);
   const distanceRef = useRef(0);
-  const differentialLockEnabledRef = useRef(false);
+  const driveModeRef = useRef<Phase1DriveMode>("neutral");
+  const selectedGearRef = useRef(1);
   const questionModalRef = useRef<QuestionModalState | null>(null);
   const pendingQuestionModalRef = useRef<QuestionModalState | null>(null);
   const speechModalRef = useRef<Phase1SpeechModalState | null>(null);
   const questionCursorRef = useRef(0);
-  const tractionBoostFrameCountRef = useRef(0);
-  const movementKeyCodesRef = useRef<Set<KeyboardEvent["code"]>>(new Set());
+  const brakePressedRef = useRef(false);
   const animationSoundPlayerRef = useRef<AnimationSoundPlayer | null>(null);
   const phase1SoundPlayerRef = useRef<Phase1SoundPlayer | null>(null);
   const startupLockedRef = useRef(true);
@@ -152,13 +197,25 @@ export function usePhase1Game(enabled = true) {
     setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
   };
 
-  const clearMovementInput = () => {
-    movementKeyCodesRef.current.clear();
+  const clearBrakeInput = () => {
+    brakePressedRef.current = false;
+  };
+
+  const syncDriveMessage = (
+    nextMode = driveModeRef.current,
+    nextGear = selectedGearRef.current,
+  ) => {
+    setMessage(
+      `FNR em ${getDriveModeLabel(nextMode)}. Marcha ${clampGear(
+        nextGear,
+        nextMode,
+      )}.`,
+    );
   };
 
   const setQuestionModalState = (nextModal: QuestionModalState | null) => {
     if (nextModal) {
-      clearMovementInput();
+      clearBrakeInput();
     }
 
     questionModalRef.current = nextModal;
@@ -167,7 +224,7 @@ export function usePhase1Game(enabled = true) {
 
   const setSpeechModalState = (nextModal: Phase1SpeechModalState | null) => {
     if (nextModal) {
-      clearMovementInput();
+      clearBrakeInput();
     }
 
     speechModalRef.current = nextModal;
@@ -179,15 +236,33 @@ export function usePhase1Game(enabled = true) {
     }
   };
 
-  const setDifferentialLockState = (enabled: boolean) => {
-    differentialLockEnabledRef.current = enabled;
-    setDifferentialLockEnabled(enabled);
+  const shiftDriveMode = (direction: "up" | "down") => {
+    const currentMode = driveModeRef.current;
+    const nextMode =
+      direction === "up"
+        ? DRIVE_MODE_UP[currentMode]
+        : DRIVE_MODE_DOWN[currentMode];
+    const nextGear = clampGear(selectedGearRef.current, nextMode);
+
+    driveModeRef.current = nextMode;
+    selectedGearRef.current = nextGear;
+    setDriveMode(nextMode);
+    setSelectedGear(nextGear);
+    syncDriveMessage(nextMode, nextGear);
+  };
+
+  const shiftSelectedGear = (delta: 1 | -1) => {
+    const currentMode = driveModeRef.current;
+    const nextGear = clampGear(selectedGearRef.current + delta, currentMode);
+
+    selectedGearRef.current = nextGear;
+    setSelectedGear(nextGear);
+    syncDriveMessage(currentMode, nextGear);
   };
 
   const clearActiveEvent = () => {
     setActiveEventId(null);
     activeEventIdRef.current = null;
-    tractionBoostFrameCountRef.current = 0;
     setQuestionModalState(null);
     pendingQuestionModalRef.current = null;
   };
@@ -369,7 +444,7 @@ export function usePhase1Game(enabled = true) {
     }
 
     startupLockedRef.current = true;
-    movementKeyCodesRef.current.clear();
+    clearBrakeInput();
     currentSpeedRef.current = 0;
     setSpeed(0);
 
@@ -463,20 +538,29 @@ export function usePhase1Game(enabled = true) {
       return;
     }
 
-    if (PHASE1_MOVEMENT_KEY_CODES.has(event.code)) {
+    if (PHASE1_DRIVE_CONTROL_KEY_CODES.has(event.code)) {
       event.preventDefault();
-      movementKeyCodesRef.current.add(event.code);
+
+      if (event.repeat) {
+        return;
+      }
+
+      if (event.code === PHASE1_FNR_UP_KEY_CODE) {
+        shiftDriveMode("up");
+      } else if (event.code === PHASE1_FNR_DOWN_KEY_CODE) {
+        shiftDriveMode("down");
+      } else if (event.code === PHASE1_GEAR_UP_KEY_CODE) {
+        shiftSelectedGear(1);
+      } else if (event.code === PHASE1_GEAR_DOWN_KEY_CODE) {
+        shiftSelectedGear(-1);
+      }
+
       return;
     }
 
-    const tractionDefinition = getTractionEventDefinition();
-
-    if (tractionDefinition.toggleCodes.includes(event.code) && !event.repeat) {
+    if (event.code === PHASE1_BRAKE_KEY_CODE) {
       event.preventDefault();
-      const nextEnabled = !differentialLockEnabledRef.current;
-      setDifferentialLockState(nextEnabled);
-      setMessage(nextEnabled ? "4x4 ativado." : "4x4 desativado.");
-      setVenezitoMood("neutral");
+      brakePressedRef.current = true;
       return;
     }
 
@@ -597,24 +681,22 @@ export function usePhase1Game(enabled = true) {
       return;
     }
 
-    if (!PHASE1_MOVEMENT_KEY_CODES.has(event.code)) {
+    if (event.code !== PHASE1_BRAKE_KEY_CODE) {
       return;
     }
 
     event.preventDefault();
-    movementKeyCodesRef.current.delete(event.code);
+    brakePressedRef.current = false;
   });
 
   const handleWindowBlur = useEffectEvent(() => {
-    clearMovementInput();
+    clearBrakeInput();
   });
 
   useEffect(() => {
     if (!sprites || !enabled) {
       return;
     }
-
-    const movementKeyCodes = movementKeyCodesRef.current;
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
@@ -623,7 +705,7 @@ export function usePhase1Game(enabled = true) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleWindowBlur);
-      movementKeyCodes.clear();
+      brakePressedRef.current = false;
     };
   }, [enabled, sprites]);
 
@@ -647,11 +729,6 @@ export function usePhase1Game(enabled = true) {
     const nextUpcomingScreenX = nextUpcomingEvent
       ? getEventHitboxScreenX(nextUpcomingEvent, distanceRef.current)
       : null;
-    const withinTractionScoreLeniencyZone = isWithinTractionScoreLeniencyZone(
-      eventsRef.current,
-      distanceRef.current,
-      TRACTION_SCORE_LENIENCY_MARGIN,
-    );
 
     const updateAnimation = (
       animation: ActiveAnimation | null,
@@ -696,7 +773,10 @@ export function usePhase1Game(enabled = true) {
       setAnimationTick((current) => current + 1);
     }
 
-    let targetSpeed = getDriveInput(movementKeyCodesRef.current) * BASE_SPEED;
+    let targetSpeed = getDriveSpeed(
+      driveModeRef.current,
+      selectedGearRef.current,
+    );
 
     if (startupLockedRef.current) {
       targetSpeed = 0;
@@ -704,8 +784,7 @@ export function usePhase1Game(enabled = true) {
 
     if (
       activeEventDefinition &&
-      isTractionEventDefinition(activeEventDefinition) &&
-      !differentialLockEnabledRef.current
+      isTractionEventDefinition(activeEventDefinition)
     ) {
       targetSpeed = capTargetSpeed(
         targetSpeed,
@@ -771,9 +850,16 @@ export function usePhase1Game(enabled = true) {
       targetSpeed = 0;
     }
 
+    if (brakePressedRef.current) {
+      targetSpeed = 0;
+    }
+
+    const speedResponse = brakePressedRef.current
+      ? BRAKE_RESPONSE
+      : DRIVE_RESPONSE;
     let nextSpeed =
       currentSpeedRef.current +
-      (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * 4);
+      (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * speedResponse);
     let nextDistance = distanceRef.current + nextSpeed * dt;
 
     if (nextDistance < 0) {
@@ -786,7 +872,7 @@ export function usePhase1Game(enabled = true) {
 
     if (greaseAnimationRef.current) {
       if (!greaseAnimationRef.current.hasStarted) {
-        if (nextSpeed <= 2) {
+        if (Math.abs(nextSpeed) <= 2) {
           greaseAnimationRef.current.hasStarted = true;
           greaseAnimationRef.current.elapsed = 0;
           greaseAnimationRef.current.lastSoundPointIndex = -1;
@@ -816,31 +902,6 @@ export function usePhase1Game(enabled = true) {
           greaseAnimationRef.current = null;
           syncAnimationLabel();
         }
-      }
-    }
-
-    if (differentialLockEnabledRef.current) {
-      if (
-        activeEventDefinition &&
-        isTractionEventDefinition(activeEventDefinition)
-      ) {
-        tractionBoostFrameCountRef.current += 1;
-        setScore((current) => current + activeEventDefinition.rewardPerFrame);
-      } else if (!withinTractionScoreLeniencyZone) {
-        const tractionDefinition = getTractionEventDefinition();
-        setScore((current) =>
-          Math.max(0, current - tractionDefinition.drainPerFrame),
-        );
-      }
-    } else {
-      if (
-        activeEventDefinition &&
-        isTractionEventDefinition(activeEventDefinition)
-      ) {
-        const tractionDefinition = getTractionEventDefinition();
-        setScore((current) =>
-          Math.max(0, current - tractionDefinition.drainPerFrame),
-        );
       }
     }
 
@@ -903,7 +964,7 @@ export function usePhase1Game(enabled = true) {
       activeEventDefinition &&
       isQuestionEventDefinition(activeEventDefinition) &&
       !questionModalRef.current &&
-      nextSpeed <= QUESTION_MODAL_OPEN_SPEED_THRESHOLD
+      Math.abs(nextSpeed) <= QUESTION_MODAL_OPEN_SPEED_THRESHOLD
     ) {
       const question = getQuestionFromCatalog(questionCursorRef.current);
       questionCursorRef.current += 1;
@@ -939,20 +1000,13 @@ export function usePhase1Game(enabled = true) {
     if (screenX > PLAYER_HIT_LINE_X + currentEventDefinition.hitboxHalfWidth) {
       if (currentActiveEvent.type) {
         if (isTractionEventDefinition(currentEventDefinition)) {
-          if (tractionBoostFrameCountRef.current > 0) {
-            resolveEvent(
-              currentActiveEvent.id,
-              currentEventDefinition.successMessage,
-            );
-          } else {
-            failEvent(
-              currentActiveEvent.id,
-              currentEventDefinition.failureMessage,
-              {
-                scorePenalty: 0,
-              },
-            );
-          }
+          failEvent(
+            currentActiveEvent.id,
+            currentEventDefinition.failureMessage,
+            {
+              scorePenalty: 0,
+            },
+          );
           return;
         }
 
@@ -978,7 +1032,8 @@ export function usePhase1Game(enabled = true) {
     score,
     hits,
     fails,
-    differentialLockEnabled,
+    driveMode,
+    selectedGear,
     loadedDirt,
     rearLoaded,
     message,

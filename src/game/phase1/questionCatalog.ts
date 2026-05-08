@@ -4,16 +4,16 @@ export const QUESTION_CATALOG: Phase1Question[] = [
   {
     id: "question-safety-lock",
     prompt:
-      "Antes de entrar em um trecho escorregadio, qual acao ajuda a manter a maquina tracionando?",
+      "Ao se aproximar de um ponto de operacao, qual acao ajuda a controlar melhor a maquina?",
     choices: {
-      up: { label: "Reduzir a pressao dos pneus ate o minimo" },
+      up: { label: "Subir marcha e manter velocidade" },
       left: { label: "Virar bruscamente para aliviar a frente" },
-      right: { label: "Ativar o 4x4" },
-      down: { label: "Desligar o motor e descer embalado" },
+      right: { label: "Acelerar para passar mais rapido" },
+      down: { label: "Frear e reduzir a aproximacao" },
     },
-    correctDirection: "right",
+    correctDirection: "down",
     explanation:
-      "o 4x4 ajuda a distribuir a tração entre as rodas e reduz a chance de a maquina patinar no trecho escorregadio.",
+      "frear antes do ponto de operacao reduz a velocidade e facilita acertar o comando dentro da area correta.",
     successMessage: "Resposta correta. O instrutor liberou a passagem.",
     failureMessage:
       "Resposta errada. O instrutor travou a pontuação do evento.",

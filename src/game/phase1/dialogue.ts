@@ -5,8 +5,8 @@ export const PHASE1_MANIFESTO_MODAL: Phase1SpeechModalState = {
   title: "introdução do jogo",
   speech: "Oi, eu sou o Venezito!",
   body: [
-    "Neste jogo, voce vai dirigir a retroescavadeira para a esquerda e reagir aos eventos no momento certo.",
-    "Ao longo do percurso, voce vai usar os comandos da maquina para carregar, cavar, engraxar e ativar o 4x4 quando o terreno pedir mais tração.",
+    "Neste jogo, voce vai dirigir a retroescavadeira para a esquerda usando o FNR e reagir aos eventos no momento certo.",
+    "Ao longo do percurso, voce vai usar os comandos da maquina para carregar, cavar, engraxar e frear quando precisar controlar a aproximacao.",
     "Tambem vao aparecer perguntas rapidas de seguranca e operação. Elas servem para reforcar o que cada situacao exige durante a fase.",
     "Seu objetivo e manter a maquina em movimento, acertar os comandos dentro da area certa e acumular pontos enquanto aprende como cada parte da operação funciona.",
   ].join("\n\n"),

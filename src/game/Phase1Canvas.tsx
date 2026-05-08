@@ -50,7 +50,6 @@ const START_OVERLAY_SEQUENCE = [
   "pickup",
   "dig",
   "grease",
-  "traction",
 ] as const;
 type StartOverlayStep = (typeof START_OVERLAY_SEQUENCE)[number];
 
@@ -234,7 +233,6 @@ export function Phase1Canvas({
       context,
       score: game.score,
       distance: game.distance,
-      differentialLockEnabled: game.differentialLockEnabled,
       message: game.message,
       instructorImage: hudVenezitoImage,
     });
@@ -252,8 +250,7 @@ export function Phase1Canvas({
     } else if (
       overlayStep === "pickup" ||
       overlayStep === "dig" ||
-      overlayStep === "grease" ||
-      overlayStep === "traction"
+      overlayStep === "grease"
     ) {
       drawPhase1EventShowcaseModal({
         context,
@@ -273,7 +270,6 @@ export function Phase1Canvas({
   }, [
     game.activeEventId,
     game.distance,
-    game.differentialLockEnabled,
     game.events,
     game.excavatorScene,
     foregroundImage,
@@ -350,7 +346,7 @@ export function Phase1Canvas({
             <canvas
               ref={canvasRef}
               className="phase-canvas"
-              aria-label="Fase 1 com a retroescavadeira controlada por A e D"
+              aria-label="Fase 1 com a retroescavadeira controlada por FNR e marchas"
             />
           </div>
         </div>

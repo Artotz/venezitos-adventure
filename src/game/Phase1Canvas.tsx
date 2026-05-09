@@ -27,6 +27,7 @@ import {
   drawPhase1EventShowcaseModal,
   drawPhase1Backdrop,
   drawPhase1Environment,
+  drawPhase1FinalModal,
   drawPhase1Foreground,
   drawPhase1FnrControl,
   drawPhase1GreaseAnimation,
@@ -98,6 +99,11 @@ export function Phase1Canvas({
     "full",
     game.speechModal?.mood ?? "neutral",
   );
+  const finalModalImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "full",
+    game.finalModal?.isNewHighScore ? "happy" : "neutral",
+  );
   const selectedLeverImage =
     fnrImages.leverImages[game.selectedGear - 1] ?? null;
 
@@ -124,7 +130,6 @@ export function Phase1Canvas({
         window.innerHeight - viewportPadding,
       );
       const nextScale = Math.min(
-        1,
         availableWidth / CANVAS_WIDTH,
         availableHeight / CANVAS_HEIGHT,
       );
@@ -171,13 +176,35 @@ export function Phase1Canvas({
   }, [isPauseMenuOpen, overlayStep]);
 
   useEffect(() => {
+    if (!game.finalModal || isPauseMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!START_MODAL_CONTINUE_KEYS.has(event.code) || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      setPhaseStep("menu");
+      setOverlayStep(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [game.finalModal, isPauseMenuOpen]);
+
+  useEffect(() => {
     if (!isPlaying) {
       setIsPauseMenuOpen(false);
       return;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Escape" || event.repeat) {
+      if (event.code !== "Escape" || event.repeat || game.isEndingSequence) {
         return;
       }
 
@@ -190,7 +217,7 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isPlaying]);
+  }, [game.isEndingSequence, isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -264,7 +291,7 @@ export function Phase1Canvas({
     drawPhase1Hud({
       context,
       score: game.score,
-      distance: game.distance,
+      hourmeterHours: game.hourmeterHours,
       message: game.message,
       instructorImage: hudVenezitoImage,
     });
@@ -300,6 +327,8 @@ export function Phase1Canvas({
         mudImage: eventSprites.mudImage,
         workSignImage: eventSprites.workSignImage,
       });
+    } else if (game.finalModal) {
+      drawPhase1FinalModal(context, game.finalModal, finalModalImage);
     } else if (game.speechModal) {
       drawPhase1SpeechModal(context, game.speechModal, speechModalImage);
     } else if (game.questionModal) {
@@ -332,11 +361,14 @@ export function Phase1Canvas({
     game.questionModal,
     game.message,
     game.score,
+    game.hourmeterHours,
     game.venezitoMood,
     hudVenezitoImage,
     images,
     instructorImage,
     pose.angles,
+    game.finalModal,
+    finalModalImage,
     game.speechModal,
     speechModalImage,
     overlayStep,

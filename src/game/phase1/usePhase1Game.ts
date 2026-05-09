@@ -22,13 +22,16 @@ import { createPhase1SoundPlayer, type Phase1SoundPlayer } from "./sounds";
 import {
   BASE_SPEED,
   FRONT_LOAD_SPEED,
+  PHASE1_HIGHSCORE_STORAGE_KEY,
+  PHASE1_HOURMETER_HOURS_PER_SECOND,
+  PHASE1_HOURMETER_TARGET_HOURS,
   INITIAL_MESSAGE,
   PLAYER_HIT_LINE_X,
-  QUESTION_MODAL_OPEN_SPEED_THRESHOLD,
 } from "./config";
 import {
   getEventActivationMessage,
   getEventDefinition,
+  getRequiredDriveStateLabel,
   isManualEventDefinition,
   isQuestionEventDefinition,
   isTractionEventDefinition,
@@ -60,8 +63,10 @@ import {
 import type {
   GreaseAnimationState,
   MapEvent,
+  Phase1FinalModalState,
   Phase1SpeechModalState,
   Phase1DriveMode,
+  Phase1RequiredDriveState,
   QuestionModalState,
 } from "./types";
 import type { VenezitoMood } from "./venezito";
@@ -96,11 +101,43 @@ const MAX_REVERSE_GEAR = REVERSE_GEAR_SPEEDS.length;
 const BRAKE_RESPONSE = 10;
 const DRIVE_RESPONSE = 4;
 const NEUTRAL_RESPONSE = 1.4;
+const FINAL_STOP_SPEED_THRESHOLD = 2;
+const FINAL_MODAL_DELAY_SECONDS = 2;
 const MANUAL_EVENT_KEY_CODES = new Set<string>([
   "ArrowLeft",
   "ArrowRight",
   "ArrowUp",
 ]);
+
+function readPhase1HighScore() {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  let storedValue: string | null = null;
+
+  try {
+    storedValue = window.localStorage.getItem(PHASE1_HIGHSCORE_STORAGE_KEY);
+  } catch {
+    return 0;
+  }
+
+  const parsedValue = storedValue ? Number.parseInt(storedValue, 10) : 0;
+
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0;
+}
+
+function writePhase1HighScore(score: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PHASE1_HIGHSCORE_STORAGE_KEY, String(score));
+  } catch {
+    // O jogo continua mesmo se o navegador bloquear armazenamento local.
+  }
+}
 
 function clampSelectedGear(gear: number) {
   return Math.max(1, Math.min(MAX_FORWARD_GEAR, gear));
@@ -135,6 +172,21 @@ function getDriveModeLabel(mode: Phase1DriveMode) {
   return "N";
 }
 
+function isRequiredDriveStateActive(
+  requiredDriveState: Phase1RequiredDriveState,
+  currentMode: Phase1DriveMode,
+  currentGear: number,
+) {
+  if (requiredDriveState.mode === "neutral") {
+    return currentMode === "neutral";
+  }
+
+  return (
+    currentMode === requiredDriveState.mode &&
+    clampSelectedGear(currentGear) === requiredDriveState.gear
+  );
+}
+
 function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
   return Math.sign(targetSpeed) * Math.min(Math.abs(targetSpeed), maxAbsSpeed);
 }
@@ -142,6 +194,7 @@ function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
 export function usePhase1Game(enabled = true, paused = false) {
   const sprites = useRetroSprites();
   const [distance, setDistance] = useState(0);
+  const [hourmeterHours, setHourmeterHours] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [score, setScore] = useState(0);
   const [hits, setHits] = useState(0);
@@ -159,6 +212,10 @@ export function usePhase1Game(enabled = true, paused = false) {
   const [speechModal, setSpeechModal] = useState<Phase1SpeechModalState | null>(
     null,
   );
+  const [finalModal, setFinalModal] = useState<Phase1FinalModalState | null>(
+    null,
+  );
+  const [isEndingSequence, setIsEndingSequence] = useState(false);
   const [venezitoMood, setVenezitoMood] = useState<VenezitoMood>("neutral");
   const [animationTick, setAnimationTick] = useState(0);
   const [activeAnimationLabel, setActiveAnimationLabel] =
@@ -173,6 +230,8 @@ export function usePhase1Game(enabled = true, paused = false) {
   const greaseAnimationRef = useRef<GreaseAnimationState | null>(null);
   const currentSpeedRef = useRef(0);
   const distanceRef = useRef(0);
+  const hourmeterHoursRef = useRef(0);
+  const scoreRef = useRef(0);
   const driveModeRef = useRef<Phase1DriveMode>("neutral");
   const selectedGearRef = useRef(1);
   const questionModalRef = useRef<QuestionModalState | null>(null);
@@ -184,6 +243,10 @@ export function usePhase1Game(enabled = true, paused = false) {
   const phase1SoundPlayerRef = useRef<Phase1SoundPlayer | null>(null);
   const startupLockedRef = useRef(true);
   const startupPlaybackStartedRef = useRef(false);
+  const endingSequenceRef = useRef(false);
+  const finalModalDelayRef = useRef(0);
+  const finalModalRef = useRef<Phase1FinalModalState | null>(null);
+  const wasEnabledRef = useRef(false);
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -202,6 +265,106 @@ export function usePhase1Game(enabled = true, paused = false) {
 
   const clearBrakeInput = () => {
     brakePressedRef.current = false;
+  };
+
+  const resetPhaseState = () => {
+    const initialEvents = createInitialPhase1Events();
+
+    eventsRef.current = initialEvents;
+    activeEventIdRef.current = null;
+    loadedDirtRef.current = false;
+    rearLoadedRef.current = false;
+    frontAnimationRef.current = null;
+    rearAnimationRef.current = null;
+    greaseAnimationRef.current = null;
+    currentSpeedRef.current = 0;
+    distanceRef.current = 0;
+    hourmeterHoursRef.current = 0;
+    scoreRef.current = 0;
+    driveModeRef.current = "neutral";
+    selectedGearRef.current = 1;
+    questionModalRef.current = null;
+    pendingQuestionModalRef.current = null;
+    speechModalRef.current = null;
+    questionCursorRef.current = 0;
+    endingSequenceRef.current = false;
+    finalModalDelayRef.current = 0;
+    finalModalRef.current = null;
+    startupLockedRef.current = true;
+    startupPlaybackStartedRef.current = false;
+    clearBrakeInput();
+
+    setDistance(0);
+    setHourmeterHours(0);
+    setSpeed(0);
+    setScore(0);
+    setHits(0);
+    setFails(0);
+    setLoadedDirt(false);
+    setRearLoaded(false);
+    setMessage(INITIAL_MESSAGE);
+    setEvents(initialEvents);
+    setActiveEventId(null);
+    setDriveMode("neutral");
+    setSelectedGear(1);
+    setQuestionModal(null);
+    setSpeechModal(null);
+    setFinalModal(null);
+    setIsEndingSequence(false);
+    setVenezitoMood("neutral");
+    setAnimationTick((current) => current + 1);
+    setActiveAnimationLabel("Rodagem continua");
+  };
+
+  const beginEndingSequence = () => {
+    if (endingSequenceRef.current) {
+      return;
+    }
+
+    endingSequenceRef.current = true;
+    setIsEndingSequence(true);
+    finalModalDelayRef.current = 0;
+    clearBrakeInput();
+    clearActiveEvent();
+    setSpeechModalState(null);
+    setQuestionModalState(null);
+    pendingQuestionModalRef.current = null;
+    driveModeRef.current = "neutral";
+    setDriveMode("neutral");
+    setVenezitoMood("neutral");
+    setMessage("Horimetro completo. Voltando para neutro e freando.");
+  };
+
+  const finishPhase = (finalHourmeterHours: number) => {
+    const finalScore = scoreRef.current;
+    const previousHighScore = readPhase1HighScore();
+    const nextHighScore = Math.max(previousHighScore, finalScore);
+
+    if (nextHighScore > previousHighScore) {
+      writePhase1HighScore(nextHighScore);
+    }
+
+    const nextFinalModal = {
+      score: finalScore,
+      highScore: nextHighScore,
+      isNewHighScore: finalScore > previousHighScore,
+      hourmeterHours: Math.round(finalHourmeterHours),
+    };
+
+    finalModalRef.current = nextFinalModal;
+    endingSequenceRef.current = false;
+    setIsEndingSequence(false);
+    setFinalModal(nextFinalModal);
+    clearActiveEvent();
+    clearBrakeInput();
+    frontAnimationRef.current = null;
+    rearAnimationRef.current = null;
+    greaseAnimationRef.current = null;
+    currentSpeedRef.current = 0;
+    setSpeed(0);
+    setVenezitoMood("happy");
+    setMessage("Treinamento concluido. Confira seu highscore.");
+    syncAnimationLabel();
   };
 
   const syncDriveMessage = (
@@ -406,6 +569,14 @@ export function usePhase1Game(enabled = true, paused = false) {
   }, [distance]);
 
   useEffect(() => {
+    hourmeterHoursRef.current = hourmeterHours;
+  }, [hourmeterHours]);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
     activeEventIdRef.current = activeEventId;
   }, [activeEventId]);
 
@@ -436,6 +607,18 @@ export function usePhase1Game(enabled = true, paused = false) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (enabled && !wasEnabledRef.current) {
+      resetPhaseState();
+    }
+
+    wasEnabledRef.current = enabled;
+
+    if (!enabled) {
+      startupPlaybackStartedRef.current = false;
+    }
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
@@ -474,6 +657,20 @@ export function usePhase1Game(enabled = true, paused = false) {
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (!enabled || paused) {
+      return;
+    }
+
+    if (endingSequenceRef.current) {
+      event.preventDefault();
+      return;
+    }
+
+    if (finalModalRef.current) {
+      if (!PHASE1_CONTINUE_KEY_SET.has(event.code) || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
       return;
     }
 
@@ -583,6 +780,50 @@ export function usePhase1Game(enabled = true, paused = false) {
 
     const eventDefinition = getEventDefinition(activeEvent.type);
 
+    if (isQuestionEventDefinition(eventDefinition)) {
+      if (!eventDefinition.triggerCodes.includes(event.code)) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+      const isWithinHitbox =
+        Math.abs(screenX - PLAYER_HIT_LINE_X) <=
+        eventDefinition.hitboxHalfWidth;
+
+      if (!isWithinHitbox) {
+        setMessage("Fora da hitbox do evento.");
+        return;
+      }
+
+      if (
+        !isRequiredDriveStateActive(
+          eventDefinition.requiredDriveState,
+          driveModeRef.current,
+          selectedGearRef.current,
+        )
+      ) {
+        setMessage(
+          `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+            eventDefinition.requiredDriveState,
+          )}.`,
+        );
+        return;
+      }
+
+      const question = getQuestionFromCatalog(questionCursorRef.current);
+      questionCursorRef.current += 1;
+      pendingQuestionModalRef.current = createQuestionModalState(
+        activeEvent.id,
+        eventDefinition,
+        question,
+      );
+      setSpeechModalState(createQuestionIntroModal());
+      setMessage(getEventActivationMessage(eventDefinition));
+      return;
+    }
+
     if (!isManualEventDefinition(eventDefinition)) {
       return;
     }
@@ -614,6 +855,21 @@ export function usePhase1Game(enabled = true, paused = false) {
       setScore((current) => Math.max(0, current - 50));
       setMessage("Fora da hitbox do evento.");
       setVenezitoMood("sad");
+      return;
+    }
+
+    if (
+      !isRequiredDriveStateActive(
+        eventDefinition.requiredDriveState,
+        driveModeRef.current,
+        selectedGearRef.current,
+      )
+    ) {
+      setMessage(
+        `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+          eventDefinition.requiredDriveState,
+        )}.`,
+      );
       return;
     }
 
@@ -686,6 +942,11 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
+    if (endingSequenceRef.current) {
+      event.preventDefault();
+      return;
+    }
+
     if (event.code !== PHASE1_BRAKE_KEY_CODE) {
       return;
     }
@@ -715,26 +976,16 @@ export function usePhase1Game(enabled = true, paused = false) {
   }, [enabled, paused, sprites]);
 
   const updateFrame = (dt: number) => {
+    if (finalModalRef.current) {
+      return;
+    }
+
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
     );
     const activeEventDefinition = activeEvent?.type
       ? getEventDefinition(activeEvent.type)
       : null;
-    const nextUpcomingEvent = eventsRef.current.find(
-      (item) => item.status === "upcoming",
-    );
-    const nextUpcomingEventDefinition = nextUpcomingEvent
-      ? describeMapEvent(
-          nextUpcomingEvent,
-          loadedDirtRef.current,
-          rearLoadedRef.current,
-        )
-      : null;
-    const nextUpcomingScreenX = nextUpcomingEvent
-      ? getEventHitboxScreenX(nextUpcomingEvent, distanceRef.current)
-      : null;
-
     const updateAnimation = (
       animation: ActiveAnimation | null,
       clear: () => void,
@@ -778,12 +1029,30 @@ export function usePhase1Game(enabled = true, paused = false) {
       setAnimationTick((current) => current + 1);
     }
 
+    if (!startupLockedRef.current && !endingSequenceRef.current) {
+      const nextHourmeterHours = Math.min(
+        PHASE1_HOURMETER_TARGET_HOURS,
+        hourmeterHoursRef.current + dt * PHASE1_HOURMETER_HOURS_PER_SECOND,
+      );
+
+      hourmeterHoursRef.current = nextHourmeterHours;
+      setHourmeterHours(nextHourmeterHours);
+
+      if (nextHourmeterHours >= PHASE1_HOURMETER_TARGET_HOURS) {
+        beginEndingSequence();
+      }
+    }
+
     let targetSpeed = getDriveSpeed(
       driveModeRef.current,
       selectedGearRef.current,
     );
 
     if (startupLockedRef.current) {
+      targetSpeed = 0;
+    }
+
+    if (endingSequenceRef.current) {
       targetSpeed = 0;
     }
 
@@ -802,44 +1071,6 @@ export function usePhase1Game(enabled = true, paused = false) {
     }
 
     if (
-      !activeEventDefinition &&
-      nextUpcomingEventDefinition &&
-      isQuestionEventDefinition(nextUpcomingEventDefinition) &&
-      typeof nextUpcomingScreenX === "number"
-    ) {
-      const distanceToQuestionHitbox =
-        PLAYER_HIT_LINE_X -
-        (nextUpcomingScreenX + nextUpcomingEventDefinition.hitboxHalfWidth);
-
-      if (
-        distanceToQuestionHitbox > 0 &&
-        distanceToQuestionHitbox <=
-          nextUpcomingEventDefinition.approachSlowdownDistance
-      ) {
-        const slowdownProgress =
-          1 -
-          distanceToQuestionHitbox /
-            nextUpcomingEventDefinition.approachSlowdownDistance;
-        const approachSpeed =
-          BASE_SPEED +
-          (nextUpcomingEventDefinition.approachTargetSpeed - BASE_SPEED) *
-            slowdownProgress;
-
-        if (targetSpeed > 0) {
-          targetSpeed = Math.min(targetSpeed, approachSpeed);
-        }
-      }
-    }
-
-    if (
-      activeEventDefinition &&
-      isQuestionEventDefinition(activeEventDefinition) &&
-      !questionModalRef.current
-    ) {
-      targetSpeed = 0;
-    }
-
-    if (
       frontAnimationRef.current?.lockMovement ||
       rearAnimationRef.current?.lockMovement ||
       greaseAnimationRef.current
@@ -855,15 +1086,16 @@ export function usePhase1Game(enabled = true, paused = false) {
       targetSpeed = 0;
     }
 
-    if (brakePressedRef.current) {
+    if (brakePressedRef.current || endingSequenceRef.current) {
       targetSpeed = 0;
     }
 
-    const speedResponse = brakePressedRef.current
-      ? BRAKE_RESPONSE
-      : driveModeRef.current === "neutral"
-        ? NEUTRAL_RESPONSE
-        : DRIVE_RESPONSE;
+    const speedResponse =
+      brakePressedRef.current || endingSequenceRef.current
+        ? BRAKE_RESPONSE
+        : driveModeRef.current === "neutral"
+          ? NEUTRAL_RESPONSE
+          : DRIVE_RESPONSE;
     let nextSpeed =
       currentSpeedRef.current +
       (targetSpeed - currentSpeedRef.current) * Math.min(1, dt * speedResponse);
@@ -914,9 +1146,32 @@ export function usePhase1Game(enabled = true, paused = false) {
 
     distanceRef.current = nextDistance;
     setDistance(nextDistance);
-    setScore(
-      (current) => current + Math.round(Math.max(0, nextSpeed) * dt * 0.08),
-    );
+
+    if (!endingSequenceRef.current) {
+      setScore(
+        (current) => current + Math.round(Math.max(0, nextSpeed) * dt * 0.08),
+      );
+    }
+
+    if (endingSequenceRef.current) {
+      const isStopped = Math.abs(nextSpeed) <= FINAL_STOP_SPEED_THRESHOLD;
+      const animationsDone =
+        !frontAnimationRef.current &&
+        !rearAnimationRef.current &&
+        !greaseAnimationRef.current;
+
+      if (isStopped && animationsDone) {
+        finalModalDelayRef.current += dt;
+      } else {
+        finalModalDelayRef.current = 0;
+      }
+
+      if (finalModalDelayRef.current >= FINAL_MODAL_DELAY_SECONDS) {
+        finishPhase(hourmeterHoursRef.current);
+      }
+
+      return;
+    }
 
     const spawnedEvents = syncInfiniteEventStream(
       eventsRef.current,
@@ -959,33 +1214,7 @@ export function usePhase1Game(enabled = true, paused = false) {
         if (isTractionEventDefinition(eventInfo)) {
           playPhase1Sound("mud");
         }
-
-        if (isQuestionEventDefinition(eventInfo)) {
-          setMessage("Parando para a pergunta do instrutor...");
-          setVenezitoMood("neutral");
-        }
       }
-    }
-
-    if (
-      activeEventDefinition &&
-      isQuestionEventDefinition(activeEventDefinition) &&
-      !questionModalRef.current &&
-      Math.abs(nextSpeed) <= QUESTION_MODAL_OPEN_SPEED_THRESHOLD
-    ) {
-      const question = getQuestionFromCatalog(questionCursorRef.current);
-      questionCursorRef.current += 1;
-      currentSpeedRef.current = 0;
-      setSpeed(0);
-      setQuestionModalState(null);
-      pendingQuestionModalRef.current = createQuestionModalState(
-        activeEvent!.id,
-        activeEventDefinition,
-        question,
-      );
-      setSpeechModalState(createQuestionIntroModal());
-      setMessage(getEventActivationMessage(activeEventDefinition));
-      return;
     }
 
     const currentActiveEvent = eventsRef.current.find(
@@ -996,45 +1225,21 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
-    const screenX = getEventHitboxScreenX(currentActiveEvent, nextDistance);
-
     if (!currentActiveEvent.type) {
       return;
     }
-
-    const currentEventDefinition = getEventDefinition(currentActiveEvent.type);
-
-    if (screenX > PLAYER_HIT_LINE_X + currentEventDefinition.hitboxHalfWidth) {
-      if (currentActiveEvent.type) {
-        if (isTractionEventDefinition(currentEventDefinition)) {
-          failEvent(
-            currentActiveEvent.id,
-            currentEventDefinition.failureMessage,
-            {
-              scorePenalty: 0,
-            },
-          );
-          return;
-        }
-
-        if (isQuestionEventDefinition(currentEventDefinition)) {
-          return;
-        }
-      }
-
-      failEvent(
-        currentActiveEvent.id,
-        "O evento passou da hitbox sem resposta.",
-      );
-    }
   };
 
-  useGameLoop((dt) => updateFrame(dt), Boolean(sprites) && enabled && !paused);
+  useGameLoop(
+    (dt) => updateFrame(dt),
+    Boolean(sprites) && enabled && !paused && !finalModal,
+  );
 
   return {
     sprites,
     excavatorScene,
     distance,
+    hourmeterHours,
     speed,
     score,
     hits,
@@ -1049,6 +1254,8 @@ export function usePhase1Game(enabled = true, paused = false) {
     activeEventId,
     questionModal,
     speechModal,
+    finalModal,
+    isEndingSequence,
     animationTick,
     activeAnimationLabel,
     frontAnimationRef,

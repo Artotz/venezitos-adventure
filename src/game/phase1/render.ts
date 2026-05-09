@@ -23,11 +23,13 @@ import { drawGreaseAnimation } from "../venezito/render";
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
+  isEventScreenRangeVisible,
   isEventScreenXVisible,
   resolveMapEventType,
 } from "./eventPositioner";
 import type {
   MapEvent,
+  Phase1FinalModalState,
   Phase1DriveMode,
   Phase1SpeechModalState,
   QuestionModalState,
@@ -67,7 +69,7 @@ type Phase1ForegroundParams = {
 type Phase1HudParams = {
   context: CanvasRenderingContext2D;
   score: number;
-  distance: number;
+  hourmeterHours: number;
   message: string;
   instructorImage?: LoadedImageSource | null;
 };
@@ -134,7 +136,7 @@ const CARNAUBA_BASE_Y = GROUND_Y + 6;
 const CARNAUBA_BASE_SOURCE_Y = 658;
 const CARNAUBA_DRAW_HEIGHT = 666;
 const FOREGROUND_LAYER_SPEED = 1.2;
-const FOREGROUND_SPRITE_TOP_Y = 520;
+const FOREGROUND_SPRITE_TOP_Y = 480;
 const FOREGROUND_DRAW_TOP_Y = GROUND_Y + 30;
 const PICKUP_UNLOAD_TRUCK_DRAW_WIDTH = 1200;
 const PICKUP_UNLOAD_TRUCK_BASE_Y = CANVAS_HEIGHT - 50;
@@ -347,7 +349,7 @@ export function drawPhase1FnrControl({
 export function drawPhase1Hud({
   context,
   score,
-  distance,
+  hourmeterHours,
   message,
   instructorImage,
 }: Phase1HudParams) {
@@ -362,7 +364,7 @@ export function drawPhase1Hud({
     rightX,
     hudY,
     "Horímetro",
-    `${Math.floor(distance / 10)} h`,
+    `${Math.floor(hourmeterHours)} h`,
     "hourmeter",
   );
   drawVenezitoSpeechHud(
@@ -374,6 +376,98 @@ export function drawPhase1Hud({
     message,
     instructorImage,
   );
+}
+
+export function drawPhase1FinalModal(
+  context: CanvasRenderingContext2D,
+  modalState: Phase1FinalModalState,
+  instructorImage?: CanvasImageSource | null,
+) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const bodyX = titleX;
+  const bodyY = layout.panelY + 96;
+  const statY = layout.panelY + 270;
+  const statWidth = 230;
+  const statGap = 22;
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+  drawSpeechBubble(
+    context,
+    layout.portraitX + 26,
+    layout.portraitY + 100,
+    layout.portraitWidth - 52,
+    modalState.isNewHighScore ? "Novo highscore!" : "Treinamento concluido!",
+  );
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText("FIM DO TREINAMENTO", titleX, layout.panelY + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '800 42px "Segoe UI", sans-serif';
+  context.fillText(
+    modalState.isNewHighScore ? "Novo highscore" : "Highscore",
+    bodyX,
+    bodyY,
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 20px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    "O horimetro chegou em 2000 h. Venezito registrou sua melhor pontuacao nesta maquina.",
+    bodyX,
+    bodyY + 42,
+    layout.panelWidth - layout.panelPadding * 2,
+    28,
+  );
+
+  drawFinalStatCard(
+    context,
+    bodyX,
+    statY,
+    statWidth,
+    "pontuacao",
+    String(modalState.score),
+  );
+  drawFinalStatCard(
+    context,
+    bodyX + statWidth + statGap,
+    statY,
+    statWidth,
+    "highscore",
+    String(modalState.highScore),
+  );
+  drawFinalStatCard(
+    context,
+    bodyX + (statWidth + statGap) * 2,
+    statY,
+    statWidth,
+    "horimetro",
+    `${modalState.hourmeterHours} h`,
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    "Highscore salvo no navegador. Pressione uma seta para voltar ao menu.",
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
+  context.restore();
 }
 
 export function drawQuestionModal(
@@ -1115,7 +1209,10 @@ function drawGround(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1165,7 +1262,10 @@ function drawGroundOverlay(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1232,7 +1332,10 @@ function drawMachineOverlay(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1361,6 +1464,33 @@ function drawHudCard(
     drawHourmeterHudIcon(context, x + 216, y + 42);
   }
 
+  context.restore();
+}
+
+function drawFinalStatCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  label: string,
+  value: string,
+) {
+  context.save();
+  context.fillStyle = "rgba(255, 245, 220, 0.06)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.18)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, width, 108, 18);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 14px "Segoe UI", sans-serif';
+  context.fillText(label.toUpperCase(), x + 20, y + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '800 34px "Segoe UI", sans-serif';
+  context.fillText(value, x + 20, y + 74);
   context.restore();
 }
 
@@ -1543,7 +1673,8 @@ function drawForegroundPickupUnloadEvents(
 
     if (
       eventType !== "pickup-unload" ||
-      (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX))
+      (!isEventScreenXVisible(visualX) &&
+        !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth))
     ) {
       continue;
     }

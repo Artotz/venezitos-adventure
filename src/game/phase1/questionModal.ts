@@ -18,11 +18,12 @@ export function createQuestionModalState(
   eventId: number,
   definition: QuestionEventDefinition,
   question: Phase1Question,
+  selectionHint = definition.selectionHint,
 ): QuestionModalState {
   return {
     eventId,
     title: definition.modalTitle,
-    selectionHint: definition.selectionHint,
+    selectionHint,
     question,
   }
 }

@@ -636,6 +636,40 @@ h1 {
   gap: 10px;
 }
 
+.phase-control-toggle {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 248, 220, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.06);
+}
+
+.phase-control-toggle div {
+  display: grid;
+  gap: 3px;
+}
+
+.phase-control-toggle span {
+  color: #ddb970;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.phase-control-toggle strong {
+  color: #fff3d7;
+  font-size: 0.98rem;
+}
+
+.phase-control-toggle small {
+  color: rgba(255, 243, 215, 0.74);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .phase-pause-actions button {
   width: 100%;
 }

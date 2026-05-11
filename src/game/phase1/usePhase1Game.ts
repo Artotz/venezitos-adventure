@@ -20,16 +20,25 @@ import type { ActiveAnimation, AnimationPresetId } from "../retro/types";
 import { useGameLoop } from "../useGameLoop";
 import { createPhase1SoundPlayer, type Phase1SoundPlayer } from "./sounds";
 import {
-  BASE_SPEED,
   FRONT_LOAD_SPEED,
+  PHASE1_FORWARD_GEAR_SPEEDS,
   PHASE1_HIGHSCORE_STORAGE_KEY,
   PHASE1_HOURMETER_HOURS_PER_SECOND,
   PHASE1_HOURMETER_TARGET_HOURS,
-  INITIAL_MESSAGE,
+  PHASE1_REVERSE_GEAR_SPEEDS,
   PLAYER_HIT_LINE_X,
 } from "./config";
 import {
-  getEventActivationMessage,
+  getPhase1ContinueCodes,
+  getPhase1EventActionCodes,
+  getPhase1EventActivationMessage,
+  getPhase1InitialMessage,
+  getPhase1QuestionOptionLabel,
+  getPhase1QuestionDirectionFromCode,
+  getPressedPhase1GamepadCodes,
+  type Phase1ControlScheme,
+} from "./controls";
+import {
   getEventDefinition,
   getRequiredDriveStateLabel,
   isManualEventDefinition,
@@ -48,7 +57,6 @@ import { getQuestionFromCatalog } from "./questionCatalog";
 import {
   createQuestionModalState,
   getCorrectQuestionAnswerLabel,
-  getQuestionDirectionFromKey,
   isCorrectQuestionAnswer,
 } from "./questionModal";
 import {
@@ -72,18 +80,6 @@ import type {
 import type { VenezitoMood } from "./venezito";
 
 const INITIAL_PHASE1_EVENTS = createInitialPhase1Events();
-const PHASE1_CONTINUE_KEY_SET = new Set<string>(PHASE1_CONTINUE_CODES);
-const PHASE1_FNR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyA";
-const PHASE1_FNR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyD";
-const PHASE1_GEAR_UP_KEY_CODE: KeyboardEvent["code"] = "KeyW";
-const PHASE1_GEAR_DOWN_KEY_CODE: KeyboardEvent["code"] = "KeyS";
-const PHASE1_BRAKE_KEY_CODE: KeyboardEvent["code"] = "ArrowDown";
-const PHASE1_DRIVE_CONTROL_KEY_CODES = new Set<KeyboardEvent["code"]>([
-  PHASE1_FNR_UP_KEY_CODE,
-  PHASE1_FNR_DOWN_KEY_CODE,
-  PHASE1_GEAR_UP_KEY_CODE,
-  PHASE1_GEAR_DOWN_KEY_CODE,
-]);
 const DRIVE_MODE_UP: Record<Phase1DriveMode, Phase1DriveMode> = {
   reverse: "neutral",
   neutral: "forward",
@@ -94,20 +90,13 @@ const DRIVE_MODE_DOWN: Record<Phase1DriveMode, Phase1DriveMode> = {
   neutral: "reverse",
   forward: "neutral",
 };
-const FORWARD_GEAR_SPEEDS = [112, 164, 218, BASE_SPEED] as const;
-const REVERSE_GEAR_SPEEDS = [-96, -142] as const;
-const MAX_FORWARD_GEAR = FORWARD_GEAR_SPEEDS.length;
-const MAX_REVERSE_GEAR = REVERSE_GEAR_SPEEDS.length;
+const MAX_FORWARD_GEAR = PHASE1_FORWARD_GEAR_SPEEDS.length;
+const MAX_REVERSE_GEAR = PHASE1_REVERSE_GEAR_SPEEDS.length;
 const BRAKE_RESPONSE = 10;
-const DRIVE_RESPONSE = 4;
-const NEUTRAL_RESPONSE = 1.4;
+const DRIVE_RESPONSE = 2.4;
+const NEUTRAL_RESPONSE = 0.9;
 const FINAL_STOP_SPEED_THRESHOLD = 2;
 const FINAL_MODAL_DELAY_SECONDS = 2;
-const MANUAL_EVENT_KEY_CODES = new Set<string>([
-  "ArrowLeft",
-  "ArrowRight",
-  "ArrowUp",
-]);
 
 function readPhase1HighScore() {
   if (typeof window === "undefined") {
@@ -154,10 +143,10 @@ function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
       MAX_REVERSE_GEAR,
     );
 
-    return REVERSE_GEAR_SPEEDS[effectiveReverseGear - 1];
+    return PHASE1_REVERSE_GEAR_SPEEDS[effectiveReverseGear - 1];
   }
 
-  return FORWARD_GEAR_SPEEDS[clampSelectedGear(gear) - 1];
+  return PHASE1_FORWARD_GEAR_SPEEDS[clampSelectedGear(gear) - 1];
 }
 
 function getDriveModeLabel(mode: Phase1DriveMode) {
@@ -191,7 +180,11 @@ function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
   return Math.sign(targetSpeed) * Math.min(Math.abs(targetSpeed), maxAbsSpeed);
 }
 
-export function usePhase1Game(enabled = true, paused = false) {
+export function usePhase1Game(
+  enabled = true,
+  paused = false,
+  controlScheme: Phase1ControlScheme,
+) {
   const sprites = useRetroSprites();
   const [distance, setDistance] = useState(0);
   const [hourmeterHours, setHourmeterHours] = useState(0);
@@ -201,7 +194,9 @@ export function usePhase1Game(enabled = true, paused = false) {
   const [fails, setFails] = useState(0);
   const [loadedDirt, setLoadedDirt] = useState(false);
   const [rearLoaded, setRearLoaded] = useState(false);
-  const [message, setMessage] = useState(INITIAL_MESSAGE);
+  const [message, setMessage] = useState(() =>
+    getPhase1InitialMessage(controlScheme),
+  );
   const [events, setEvents] = useState<MapEvent[]>(INITIAL_PHASE1_EVENTS);
   const [activeEventId, setActiveEventId] = useState<number | null>(null);
   const [driveMode, setDriveMode] = useState<Phase1DriveMode>("neutral");
@@ -247,6 +242,8 @@ export function usePhase1Game(enabled = true, paused = false) {
   const finalModalDelayRef = useRef(0);
   const finalModalRef = useRef<Phase1FinalModalState | null>(null);
   const wasEnabledRef = useRef(false);
+  const controlSchemeRef = useRef(controlScheme);
+  const previousGamepadCodesRef = useRef<Set<string>>(new Set());
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -302,7 +299,7 @@ export function usePhase1Game(enabled = true, paused = false) {
     setFails(0);
     setLoadedDirt(false);
     setRearLoaded(false);
-    setMessage(INITIAL_MESSAGE);
+    setMessage(getPhase1InitialMessage(controlSchemeRef.current));
     setEvents(initialEvents);
     setActiveEventId(null);
     setDriveMode("neutral");
@@ -477,19 +474,13 @@ export function usePhase1Game(enabled = true, paused = false) {
     setVenezitoMood("happy");
   };
 
-  const failEvent = (
-    eventId: number,
+  const penalizeEventAttempt = (
     nextMessage: string,
     options?: {
       scorePenalty?: number;
       playSound?: boolean;
     },
   ) => {
-    const nextEvents = updateEventStatus(eventsRef.current, eventId, "missed");
-
-    eventsRef.current = nextEvents;
-    setEvents(nextEvents);
-    clearActiveEvent();
     setFails((current) => current + 1);
     const scorePenalty = options?.scorePenalty ?? 90;
     if (scorePenalty > 0) {
@@ -581,6 +572,15 @@ export function usePhase1Game(enabled = true, paused = false) {
   }, [activeEventId]);
 
   useEffect(() => {
+    controlSchemeRef.current = controlScheme;
+    previousGamepadCodesRef.current = new Set();
+
+    if (!activeEventIdRef.current && !questionModalRef.current) {
+      setMessage(getPhase1InitialMessage(controlScheme));
+    }
+  }, [controlScheme]);
+
+  useEffect(() => {
     const soundPlayer = createAnimationSoundPlayer();
 
     animationSoundPlayerRef.current = soundPlayer;
@@ -660,13 +660,42 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
+    const inputCode = event.code;
+    const scheme = controlSchemeRef.current;
+    const continueKeySet = new Set(getPhase1ContinueCodes(scheme));
+    const driveControlCodes = new Set<string>([
+      ...scheme.codes.fnrUp,
+      ...scheme.codes.fnrDown,
+      ...scheme.codes.gearUp,
+      ...scheme.codes.gearDown,
+    ]);
+    const manualEventCodes = new Set<string>([
+      ...scheme.codes.pickup,
+      ...scheme.codes.dig,
+      ...scheme.codes.grease,
+    ]);
+    const startupBlockedCodes = new Set<string>([
+      ...PHASE1_CONTINUE_CODES,
+      ...driveControlCodes,
+      ...scheme.codes.brake,
+      ...manualEventCodes,
+    ]);
+
+    if (startupLockedRef.current) {
+      if (startupBlockedCodes.has(inputCode)) {
+        event.preventDefault();
+      }
+
+      return;
+    }
+
     if (endingSequenceRef.current) {
       event.preventDefault();
       return;
     }
 
     if (finalModalRef.current) {
-      if (!PHASE1_CONTINUE_KEY_SET.has(event.code) || event.repeat) {
+      if (!continueKeySet.has(inputCode) || event.repeat) {
         return;
       }
 
@@ -675,7 +704,7 @@ export function usePhase1Game(enabled = true, paused = false) {
     }
 
     if (speechModalRef.current) {
-      if (!PHASE1_CONTINUE_KEY_SET.has(event.code) || event.repeat) {
+      if (!continueKeySet.has(inputCode) || event.repeat) {
         return;
       }
 
@@ -699,7 +728,10 @@ export function usePhase1Game(enabled = true, paused = false) {
         return;
       }
 
-      const selectedDirection = getQuestionDirectionFromKey(event);
+      const selectedDirection = getPhase1QuestionDirectionFromCode(
+        inputCode,
+        scheme,
+      );
 
       if (!selectedDirection) {
         return;
@@ -727,8 +759,7 @@ export function usePhase1Game(enabled = true, paused = false) {
         openQuestionModal.question,
       );
 
-      failEvent(
-        openQuestionModal.eventId,
+      penalizeEventAttempt(
         `Resposta errada. A resposta certa é ${correctAnswer}.`,
         {
           scorePenalty: openQuestionModal.question.penalty,
@@ -740,27 +771,27 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
-    if (PHASE1_DRIVE_CONTROL_KEY_CODES.has(event.code)) {
+    if (driveControlCodes.has(inputCode)) {
       event.preventDefault();
 
       if (event.repeat) {
         return;
       }
 
-      if (event.code === PHASE1_FNR_UP_KEY_CODE) {
+      if (scheme.codes.fnrUp.includes(inputCode)) {
         shiftDriveMode("up");
-      } else if (event.code === PHASE1_FNR_DOWN_KEY_CODE) {
+      } else if (scheme.codes.fnrDown.includes(inputCode)) {
         shiftDriveMode("down");
-      } else if (event.code === PHASE1_GEAR_UP_KEY_CODE) {
+      } else if (scheme.codes.gearUp.includes(inputCode)) {
         shiftSelectedGear(1);
-      } else if (event.code === PHASE1_GEAR_DOWN_KEY_CODE) {
+      } else if (scheme.codes.gearDown.includes(inputCode)) {
         shiftSelectedGear(-1);
       }
 
       return;
     }
 
-    if (event.code === PHASE1_BRAKE_KEY_CODE) {
+    if (scheme.codes.brake.includes(inputCode)) {
       event.preventDefault();
       brakePressedRef.current = true;
       return;
@@ -781,7 +812,11 @@ export function usePhase1Game(enabled = true, paused = false) {
     const eventDefinition = getEventDefinition(activeEvent.type);
 
     if (isQuestionEventDefinition(eventDefinition)) {
-      if (!eventDefinition.triggerCodes.includes(event.code)) {
+      if (
+        !getPhase1EventActionCodes(eventDefinition.type, scheme).includes(
+          inputCode,
+        )
+      ) {
         return;
       }
 
@@ -818,9 +853,16 @@ export function usePhase1Game(enabled = true, paused = false) {
         activeEvent.id,
         eventDefinition,
         question,
+        `Use ${getPhase1QuestionOptionLabel(scheme)} para responder`,
       );
       setSpeechModalState(createQuestionIntroModal());
-      setMessage(getEventActivationMessage(eventDefinition));
+      setMessage(
+        getPhase1EventActivationMessage(
+          eventDefinition,
+          scheme,
+          getRequiredDriveStateLabel(eventDefinition.requiredDriveState),
+        ),
+      );
       return;
     }
 
@@ -828,7 +870,9 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
-    if (!MANUAL_EVENT_KEY_CODES.has(event.code)) {
+    const acceptedCodes = getPhase1EventActionCodes(eventDefinition.type, scheme);
+
+    if (!manualEventCodes.has(inputCode)) {
       return;
     }
 
@@ -838,13 +882,12 @@ export function usePhase1Game(enabled = true, paused = false) {
     const isWithinHitbox =
       Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
 
-    if (!eventDefinition.acceptedCodes.includes(event.code)) {
+    if (!acceptedCodes.includes(inputCode)) {
       if (!isWithinHitbox) {
         return;
       }
 
-      failEvent(
-        activeEvent.id,
+      penalizeEventAttempt(
         `Comando incorreto para ${eventDefinition.title.toLowerCase()}.`,
       );
       return;
@@ -947,7 +990,7 @@ export function usePhase1Game(enabled = true, paused = false) {
       return;
     }
 
-    if (event.code !== PHASE1_BRAKE_KEY_CODE) {
+    if (!controlSchemeRef.current.codes.brake.includes(event.code)) {
       return;
     }
 
@@ -979,6 +1022,23 @@ export function usePhase1Game(enabled = true, paused = false) {
     if (finalModalRef.current) {
       return;
     }
+
+    const currentGamepadCodes = new Set(getPressedPhase1GamepadCodes());
+    const previousGamepadCodes = previousGamepadCodesRef.current;
+
+    for (const code of currentGamepadCodes) {
+      if (!previousGamepadCodes.has(code)) {
+        window.dispatchEvent(new KeyboardEvent("keydown", { code }));
+      }
+    }
+
+    for (const code of previousGamepadCodes) {
+      if (!currentGamepadCodes.has(code)) {
+        window.dispatchEvent(new KeyboardEvent("keyup", { code }));
+      }
+    }
+
+    previousGamepadCodesRef.current = currentGamepadCodes;
 
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
@@ -1208,7 +1268,13 @@ export function usePhase1Game(enabled = true, paused = false) {
         setEvents(nextEvents);
         setActiveEventId(nextUpcoming.id);
         activeEventIdRef.current = nextUpcoming.id;
-        setMessage(getEventActivationMessage(eventInfo));
+        setMessage(
+          getPhase1EventActivationMessage(
+            eventInfo,
+            controlSchemeRef.current,
+            getRequiredDriveStateLabel(eventInfo.requiredDriveState),
+          ),
+        );
         setVenezitoMood("neutral");
 
         if (isTractionEventDefinition(eventInfo)) {

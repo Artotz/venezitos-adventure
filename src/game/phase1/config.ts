@@ -3,9 +3,18 @@ export const CANVAS_HEIGHT = 720;
 export const GROUND_Y = 500;
 export const PLAYER_SCREEN_X = Math.round(CANVAS_WIDTH * 0.63);
 export const PLAYER_HIT_LINE_X = PLAYER_SCREEN_X - 200;
-export const BASE_SPEED = 280;
-export const LOW_TRACTION_SPEED = 92;
-export const FRONT_LOAD_SPEED = 148;
+export const PHASE1_SPEED_MULTIPLIER = 10;
+export const PHASE1_FORWARD_GEAR_SPEEDS_KMH = [5.4, 10.1, 20.7, 37.1] as const;
+export const PHASE1_REVERSE_GEAR_SPEEDS_KMH = [6.9, 12.7] as const;
+export const PHASE1_FORWARD_GEAR_SPEEDS = PHASE1_FORWARD_GEAR_SPEEDS_KMH.map(
+  (speedKmh) => speedKmh * PHASE1_SPEED_MULTIPLIER,
+);
+export const PHASE1_REVERSE_GEAR_SPEEDS = PHASE1_REVERSE_GEAR_SPEEDS_KMH.map(
+  (speedKmh) => -speedKmh * PHASE1_SPEED_MULTIPLIER,
+);
+export const BASE_SPEED = 37.1 * PHASE1_SPEED_MULTIPLIER;
+export const LOW_TRACTION_SPEED = 12.7 * PHASE1_SPEED_MULTIPLIER;
+export const FRONT_LOAD_SPEED = 20.7 * PHASE1_SPEED_MULTIPLIER;
 export const EVENT_SPAWN_MARGIN = 500;
 export const EVENT_DESPAWN_MARGIN = 1200;
 export const PICKUP_EVENT_KEYS_LABEL = "←";

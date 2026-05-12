@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { buildPhase1Pose } from "./retro/animations";
+import { MainMenu } from "./MainMenu";
 import { PauseMenu } from "./PauseMenu";
 import {
   DEFAULT_PHASE1_CONTROL_SCHEME_ID,
@@ -28,7 +29,6 @@ import {
   PLAYER_SCREEN_X,
 } from "./phase1/config";
 import { PHASE1_MANIFESTO_MODAL } from "./phase1/dialogue";
-import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
   drawPhase1EventShowcaseModal,
   drawPhase1Backdrop,
@@ -436,12 +436,6 @@ export function Phase1Canvas({
                 setPhaseStep("menu");
                 setOverlayStep(null);
               }}
-              onOpenEditor={() => {
-                setIsPauseMenuOpen(false);
-                setPhaseStep("menu");
-                setOverlayStep(null);
-                onChangeView("editor");
-              }}
               controlScheme={controlScheme}
               onToggleControlScheme={() =>
                 setControlSchemeId((current) =>
@@ -461,13 +455,13 @@ export function Phase1Canvas({
             } as CSSProperties
           }
         >
-          <Phase1PreGameScreen
+          <MainMenu
+            selectedPhase="phase1"
+            onSelectPhase={onChangeView}
             onPlay={() => {
               setPhaseStep("playing");
               setOverlayStep(START_OVERLAY_SEQUENCE[0]);
             }}
-            onPlayPhase2={() => onChangeView("phase2")}
-            onOpenEditor={() => onChangeView("editor")}
           />
         </div>
       )}

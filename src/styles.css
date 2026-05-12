@@ -468,6 +468,7 @@ h1 {
     linear-gradient(180deg, rgba(44, 29, 19, 0.96), rgba(22, 15, 11, 0.96));
   box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.06);
   overflow: hidden;
+  animation: phase-menu-card-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .phase-pre-game-content {
@@ -476,6 +477,7 @@ h1 {
   display: grid;
   gap: 18px;
   max-width: min(52ch, calc(100% - 360px));
+  animation: phase-menu-copy-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .phase-pre-game-hero {
@@ -509,6 +511,110 @@ h1 {
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   max-width: none;
+  animation: phase-menu-hero-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.phase-pre-game-card.is-phase2 .phase-pre-game-content {
+  justify-self: end;
+  max-width: min(52ch, calc(100% - 420px));
+  text-align: right;
+}
+
+.phase-pre-game-card.is-phase2 .phase-pre-game-actions,
+.phase-pre-game-card.is-phase2 .phase-menu-selector {
+  justify-content: flex-end;
+}
+
+.phase-pre-game-card.is-phase2 .phase-pre-game-hero {
+  right: auto;
+  left: 0;
+  width: min(44%, 560px);
+}
+
+.phase-pre-game-card.is-phase2 .phase-pre-game-hero-fade {
+  background:
+    radial-gradient(circle at 28% 44%, rgba(81, 160, 123, 0.2), transparent 42%),
+    linear-gradient(180deg, transparent 0%, rgba(22, 15, 11, 0.16) 100%);
+}
+
+.phase-pre-game-card.is-phase2 .phase-pre-game-hero-image {
+  right: auto;
+  left: -24px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  -webkit-mask-image: linear-gradient(270deg, transparent 0%, rgba(0, 0, 0, 0.28) 16%, rgba(0, 0, 0, 0.84) 34%, #000 50%);
+  mask-image: linear-gradient(270deg, transparent 0%, rgba(0, 0, 0, 0.28) 16%, rgba(0, 0, 0, 0.84) 34%, #000 50%);
+}
+
+.phase-menu-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.phase-menu-dot {
+  min-width: 86px;
+  border: 1px solid rgba(255, 248, 220, 0.12);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 248, 220, 0.05);
+  color: #d6c7b1;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.phase-menu-dot.is-active {
+  border-color: rgba(240, 203, 117, 0.45);
+  background: rgba(60, 114, 89, 0.36);
+  color: #fff3d7;
+}
+
+.phase-menu-dot:hover,
+.phase-menu-dot:focus-visible {
+  transform: translateY(-1px);
+}
+
+@keyframes phase-menu-card-in {
+  from {
+    opacity: 0.72;
+    transform: translateX(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes phase-menu-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes phase-menu-hero-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(1.04);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .phase-pre-game-eyebrow {
@@ -720,10 +826,26 @@ h1 {
 
   .phase-pre-game-content {
     max-width: none;
+    text-align: left;
   }
 
   .phase-pre-game-hero {
     width: min(58%, 320px);
+  }
+
+  .phase-pre-game-card.is-phase2 .phase-pre-game-content {
+    max-width: none;
+    text-align: left;
+  }
+
+  .phase-pre-game-card.is-phase2 .phase-pre-game-actions,
+  .phase-pre-game-card.is-phase2 .phase-menu-selector {
+    justify-content: flex-start;
+  }
+
+  .phase-pre-game-card.is-phase2 .phase-pre-game-hero {
+    width: min(58%, 320px);
+    opacity: 0.58;
   }
 
 }

@@ -3,7 +3,6 @@ import type { Phase1ControlScheme } from "./phase1/controls";
 type PauseMenuProps = {
   onResume: () => void;
   onOpenMainMenu: () => void;
-  onOpenEditor: () => void;
   controlScheme?: Phase1ControlScheme;
   onToggleControlScheme?: () => void;
 };
@@ -11,7 +10,6 @@ type PauseMenuProps = {
 export function PauseMenu({
   onResume,
   onOpenMainMenu,
-  onOpenEditor,
   controlScheme,
   onToggleControlScheme,
 }: PauseMenuProps) {
@@ -52,13 +50,6 @@ export function PauseMenu({
             onClick={onOpenMainMenu}
           >
             Menu principal
-          </button>
-          <button
-            type="button"
-            className="phase-secondary-button"
-            onClick={onOpenEditor}
-          >
-            Editor
           </button>
         </div>
       </div>

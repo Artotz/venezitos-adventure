@@ -4,6 +4,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { MainMenu } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
@@ -16,8 +17,10 @@ type Phase2CanvasProps = {
 export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
+  const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
-  const game = usePhase2Game(true, isPauseMenuOpen);
+  const isPlaying = phaseStep === "playing";
+  const game = usePhase2Game(isPlaying, isPauseMenuOpen);
 
   useEffect(() => {
     const updateCanvasScale = () => {
@@ -47,7 +50,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!canvas) {
+    if (!isPlaying || !canvas) {
       return;
     }
 
@@ -61,9 +64,14 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     }
 
     drawPhase2Scene(context, game);
-  }, [game]);
+  }, [game, isPlaying]);
 
   useEffect(() => {
+    if (!isPlaying) {
+      setIsPauseMenuOpen(false);
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Escape" || event.repeat) {
         return;
@@ -78,13 +86,14 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [isPlaying]);
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
 
   return (
     <div className="phase-layout">
+      {isPlaying ? (
       <div className="phase-canvas-shell">
         <div
           className="phase-canvas-frame"
@@ -106,15 +115,28 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
             onResume={() => setIsPauseMenuOpen(false)}
             onOpenMainMenu={() => {
               setIsPauseMenuOpen(false);
-              onChangeView("phase1");
-            }}
-            onOpenEditor={() => {
-              setIsPauseMenuOpen(false);
-              onChangeView("editor");
+              setPhaseStep("menu");
             }}
           />
         ) : null}
       </div>
+      ) : (
+        <div
+          className="phase-canvas-frame"
+          style={
+            {
+              "--phase-canvas-width": `${scaledCanvasWidth}px`,
+              "--phase-canvas-height": `${scaledCanvasHeight}px`,
+            } as CSSProperties
+          }
+        >
+          <MainMenu
+            selectedPhase="phase2"
+            onSelectPhase={onChangeView}
+            onPlay={() => setPhaseStep("playing")}
+          />
+        </div>
+      )}
     </div>
   );
 }

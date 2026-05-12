@@ -3,7 +3,10 @@ export type Phase2Cell = {
   column: number;
   row: number;
   cut: boolean;
+  planted: boolean;
 };
+
+export type Phase2Stage = "plowing" | "planting";
 
 export type Phase2Tractor = {
   x: number;
@@ -14,14 +17,24 @@ export type Phase2Tractor = {
   moving: boolean;
 };
 
+export type Phase2Plow = {
+  x: number;
+  y: number;
+  angle: number;
+};
+
 export type Phase2GameSnapshot = {
+  stage: Phase2Stage;
+  awaitingPlantConfirmation: boolean;
   score: number;
   cutCells: number;
+  plantedCells: number;
   totalCells: number;
   progress: number;
   elapsedTime: number;
   message: string;
   isComplete: boolean;
   tractor: Phase2Tractor;
+  plow: Phase2Plow;
   cells: Phase2Cell[];
 };

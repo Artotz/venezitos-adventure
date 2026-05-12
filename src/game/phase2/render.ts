@@ -7,19 +7,22 @@ import {
   FIELD_LEFT,
   FIELD_TOP,
   FIELD_WIDTH,
+  PLOW_HEIGHT,
+  PLOW_WIDTH,
 } from "./config";
-import type { Phase2Cell, Phase2GameSnapshot } from "./types";
+import type { Phase2GameSnapshot } from "./types";
+import type { Phase2VehicleSprites } from "./usePhase2TractorSprite";
 
 export function drawPhase2Scene(
   context: CanvasRenderingContext2D,
   game: Phase2GameSnapshot,
-  tractorSprite: CanvasImageSource | null = null,
+  vehicleSprites: Phase2VehicleSprites,
 ) {
   context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   drawBackdrop(context);
-  drawField(context, game.cells);
-  drawTractor(context, game, tractorSprite);
+  drawField(context, game);
+  drawVehicle(context, game, vehicleSprites);
   drawHud(context, game);
 }
 
@@ -40,16 +43,26 @@ function drawBackdrop(context: CanvasRenderingContext2D) {
   context.strokeRect(FIELD_LEFT - 18, FIELD_TOP - 18, FIELD_WIDTH + 36, FIELD_HEIGHT + 36);
 }
 
-function drawField(context: CanvasRenderingContext2D, cells: Phase2Cell[]) {
-  for (const cell of cells) {
+function drawField(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+  for (const cell of game.cells) {
     const x = FIELD_LEFT + cell.column * CELL_SIZE + CELL_GAP / 2;
     const y = FIELD_TOP + cell.row * CELL_SIZE + CELL_GAP / 2;
     const size = CELL_SIZE - CELL_GAP;
 
-    context.fillStyle = cell.cut ? "#8a6137" : getGrassColor(cell.column, cell.row);
+    context.fillStyle =
+      game.stage === "planting"
+        ? getSoilColor(cell.column, cell.row)
+        : cell.cut
+          ? "#8a6137"
+          : getGrassColor(cell.column, cell.row);
     context.fillRect(x, y, size, size);
 
-    if (cell.cut) {
+    if (game.stage === "planting") {
+      drawDirtTexture(context, x, y, size, cell.id);
+      if (cell.planted) {
+        drawPlantingTexture(context, x, y, size, cell.id);
+      }
+    } else if (cell.cut) {
       drawDirtTexture(context, x, y, size, cell.id);
     } else {
       drawGrassTexture(context, x, y, size, cell.id);
@@ -97,6 +110,36 @@ function drawDirtTexture(
   }
 }
 
+function drawVehicle(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+  vehicleSprites: Phase2VehicleSprites,
+) {
+  drawPlow(context, game, vehicleSprites.plow);
+  drawHitch(context, game);
+  drawTractor(context, game, vehicleSprites.tractor);
+}
+
+function drawPlantingTexture(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  seed: number,
+) {
+  const greenColors = ["#6fbd55", "#8cd45f", "#4f9b3f"];
+
+  for (let index = 0; index < 7; index += 1) {
+    const dotX = x + 6 + ((seed * 11 + index * 17) % Math.max(1, size - 12));
+    const dotY = y + 6 + ((seed * 19 + index * 13) % Math.max(1, size - 12));
+
+    context.fillStyle = greenColors[(seed + index) % greenColors.length];
+    context.beginPath();
+    context.arc(dotX, dotY, index % 2 === 0 ? 2.6 : 2, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
 function drawTractor(
   context: CanvasRenderingContext2D,
   game: Phase2GameSnapshot,
@@ -121,6 +164,76 @@ function drawTractor(
   }
 
   context.restore();
+}
+
+function drawPlow(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+  plowSprite: CanvasImageSource | null,
+) {
+  if (!plowSprite) {
+    return;
+  }
+
+  context.save();
+  context.translate(game.plow.x, game.plow.y);
+  context.rotate(game.plow.angle);
+  context.drawImage(
+    plowSprite,
+    -PLOW_WIDTH / 2,
+    -PLOW_HEIGHT / 2,
+    PLOW_WIDTH,
+    PLOW_HEIGHT,
+  );
+  context.restore();
+}
+
+function drawHitch(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+  const tractorRear = projectLocalPoint(
+    game.tractor.x,
+    game.tractor.y,
+    game.tractor.angle,
+    0,
+    game.tractor.height / 2 - 8,
+  );
+  const plowFront = projectLocalPoint(
+    game.plow.x,
+    game.plow.y,
+    game.plow.angle,
+    0,
+    -PLOW_HEIGHT / 2 + 8,
+  );
+
+  context.strokeStyle = "#263322";
+  context.lineWidth = 6;
+  context.lineCap = "round";
+  context.beginPath();
+  context.moveTo(tractorRear.x, tractorRear.y);
+  context.lineTo(plowFront.x, plowFront.y);
+  context.stroke();
+
+  context.strokeStyle = "#5a6a49";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(tractorRear.x, tractorRear.y);
+  context.lineTo(plowFront.x, plowFront.y);
+  context.stroke();
+}
+
+function projectLocalPoint(
+  originX: number,
+  originY: number,
+  angle: number,
+  localX: number,
+  localY: number,
+) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+
+  return {
+    x: originX + localX * cos - localY * sin,
+    y: originY + localX * sin + localY * cos,
+  };
 }
 
 function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
@@ -161,12 +274,22 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
 
   context.fillStyle = "#f4ead0";
   context.font = '700 22px "Segoe UI", sans-serif';
-  context.fillText("Fase 2 - Corte de grama", 52, 66);
+  context.fillText(
+    game.stage === "planting" ? "Fase 2 - Plantio" : "Fase 2 - Corte de grama",
+    52,
+    66,
+  );
 
   context.fillStyle = "#d8c9a6";
   context.font = '16px "Segoe UI", sans-serif';
   context.fillText("WASD / setas movem o trator", 52, 94);
-  context.fillText(`Celulas: ${game.cutCells}/${game.totalCells}`, 52, 120);
+  context.fillText(
+    game.stage === "planting"
+      ? `Plantadas: ${game.plantedCells}/${game.totalCells}`
+      : `Celulas: ${game.cutCells}/${game.totalCells}`,
+    52,
+    120,
+  );
   context.fillText(`Tempo: ${game.elapsedTime.toFixed(1)}s`, 52, 146);
 
   const barX = CANVAS_WIDTH - 390;
@@ -199,4 +322,8 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
 
 function getGrassColor(column: number, row: number) {
   return (column + row) % 2 === 0 ? "#4f9b3f" : "#5daa46";
+}
+
+function getSoilColor(column: number, row: number) {
+  return (column + row) % 2 === 0 ? "#8a6137" : "#76512f";
 }

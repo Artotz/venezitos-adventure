@@ -1,23 +1,35 @@
 import { useEffect, useState } from "react";
-import tractorTopUrl from "../../assets/phase2/tractor-top.jpeg";
+import plowUrl from "../../assets/phase2/Arado.png.png";
+import tractorTopUrl from "../../assets/phase2/Trator.png.png";
 import { loadImage } from "../loadImage";
 
+export type Phase2VehicleSprites = {
+  tractor: HTMLCanvasElement | null;
+  plow: HTMLCanvasElement | null;
+};
+
 export function usePhase2TractorSprite() {
-  const [sprite, setSprite] = useState<HTMLCanvasElement | null>(null);
+  const [sprites, setSprites] = useState<Phase2VehicleSprites>({
+    tractor: null,
+    plow: null,
+  });
 
   useEffect(() => {
     let active = true;
 
-    loadImage(tractorTopUrl)
-      .then((image) => {
+    Promise.all([loadImage(tractorTopUrl), loadImage(plowUrl)])
+      .then(([tractorImage, plowImage]) => {
         if (!active) {
           return;
         }
 
-        setSprite(createTransparentTractorSprite(image));
+        setSprites({
+          tractor: createTransparentSprite(tractorImage),
+          plow: createTransparentSprite(plowImage),
+        });
       })
       .catch((error) => {
-        console.error("Falha ao carregar sprite do trator da fase 2.", error);
+        console.error("Falha ao carregar sprites do veiculo da fase 2.", error);
       });
 
     return () => {
@@ -25,10 +37,10 @@ export function usePhase2TractorSprite() {
     };
   }, []);
 
-  return sprite;
+  return sprites;
 }
 
-function createTransparentTractorSprite(image: HTMLImageElement) {
+function createTransparentSprite(image: HTMLImageElement) {
   const source = document.createElement("canvas");
   source.width = image.naturalWidth;
   source.height = image.naturalHeight;
@@ -96,7 +108,7 @@ function isBackgroundPixel(data: Uint8ClampedArray, pixelIndex: number) {
   const green = data[dataIndex + 1];
   const blue = data[dataIndex + 2];
 
-  return red < 34 && green < 34 && blue < 34;
+  return red < 6 && green < 6 && blue < 6;
 }
 
 function cropTransparentEdges(source: HTMLCanvasElement) {

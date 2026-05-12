@@ -1,7 +1,7 @@
 export const CANVAS_WIDTH = 1560;
 export const CANVAS_HEIGHT = 720;
 
-export const FIELD_COLUMNS = 30;
+export const FIELD_COLUMNS = 34;
 export const FIELD_ROWS = 16;
 export const CELL_SIZE = 40;
 export const CELL_GAP = 2;
@@ -14,12 +14,27 @@ export const TRACTOR_WIDTH = 100;
 export const TRACTOR_HEIGHT = 120;
 export const TRACTOR_HITBOX_WIDTH = 50;
 export const TRACTOR_HITBOX_HEIGHT = 70;
+export const PLOW_WIDTH = 135;
+export const PLOW_HEIGHT = 71;
+export const PLOW_OFFSET_Y = 82;
+export const PLOW_HITBOX_WIDTH = 98;
+export const PLOW_HITBOX_HEIGHT = 40;
+export const PLOW_FOLLOW_RESPONSE = 1.6;
+export const PLOW_MAX_ARTICULATION = Math.PI / 2.5;
+export const PLOW_TURN_SWING = Math.PI / 4.5;
+export const PLOW_TONGUE_LENGTH = 24;
 export const TRACTOR_START_X = FIELD_LEFT + CELL_SIZE * 1.5;
-export const TRACTOR_START_Y = FIELD_TOP + FIELD_HEIGHT - CELL_SIZE * 1.5;
-export const TRACTOR_SPEED = 285;
+export const TRACTOR_START_Y =
+  FIELD_TOP + FIELD_HEIGHT - PLOW_OFFSET_Y - PLOW_HEIGHT / 2;
+export const TRACTOR_SPEED = 235;
 export const TRACTOR_TURN_RESPONSE = 3.2;
 export const RESTART_DISTANCE = 50;
 
 export const INITIAL_MESSAGE = "Corte toda a grama passando por cima das celulas.";
 export const COMPLETE_MESSAGE = "Campo limpo. Todas as celulas foram cortadas.";
+export const READY_TO_PLANT_MESSAGE = "Campo limpo! Volte ao inicio para plantar.";
+export const CONFIRM_PLANTING_MESSAGE =
+  "A segunda etapa vai comecar. Pressione Space para confirmar.";
+export const PLANTING_MESSAGE = "Plante o campo passando o arado pelo solo.";
+export const PLANTING_COMPLETE_MESSAGE = "Plantio completo. Campo preparado!";
 export const READY_TO_RESTART_MESSAGE = "Campo limpo! Pressione espaço para reiniciar.";

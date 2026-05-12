@@ -7,7 +7,14 @@ import {
 } from "react";
 
 import { buildPhase1Pose } from "./retro/animations";
+import { MainMenu } from "./MainMenu";
 import { PauseMenu } from "./PauseMenu";
+import {
+  DEFAULT_PHASE1_CONTROL_SCHEME_ID,
+  getPhase1ContinueCodes,
+  getNextPhase1ControlSchemeId,
+  getPhase1ControlScheme,
+} from "./phase1/controls";
 import {
   applyToPoint,
   computeWorldMatrices,
@@ -22,11 +29,11 @@ import {
   PLAYER_SCREEN_X,
 } from "./phase1/config";
 import { PHASE1_MANIFESTO_MODAL } from "./phase1/dialogue";
-import { Phase1PreGameScreen } from "./phase1/Phase1PreGameScreen";
 import {
   drawPhase1EventShowcaseModal,
   drawPhase1Backdrop,
   drawPhase1Environment,
+  drawPhase1FinalModal,
   drawPhase1Foreground,
   drawPhase1FnrControl,
   drawPhase1GreaseAnimation,
@@ -70,10 +77,15 @@ export function Phase1Canvas({
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [overlayStep, setOverlayStep] = useState<StartOverlayStep | null>(null);
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [controlSchemeId, setControlSchemeId] = useState(
+    DEFAULT_PHASE1_CONTROL_SCHEME_ID,
+  );
+  const controlScheme = getPhase1ControlScheme(controlSchemeId);
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(
     isPlaying,
     overlayStep !== null || isPauseMenuOpen,
+    controlScheme,
   );
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
@@ -97,6 +109,11 @@ export function Phase1Canvas({
     venezitoImages,
     "full",
     game.speechModal?.mood ?? "neutral",
+  );
+  const finalModalImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "full",
+    game.finalModal?.isNewHighScore ? "happy" : "neutral",
   );
   const selectedLeverImage =
     fnrImages.leverImages[game.selectedGear - 1] ?? null;
@@ -124,7 +141,6 @@ export function Phase1Canvas({
         window.innerHeight - viewportPadding,
       );
       const nextScale = Math.min(
-        1,
         availableWidth / CANVAS_WIDTH,
         availableHeight / CANVAS_HEIGHT,
       );
@@ -146,7 +162,9 @@ export function Phase1Canvas({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!START_MODAL_CONTINUE_KEYS.has(event.code)) {
+      const continueCodes = getPhase1ContinueCodes(controlScheme);
+
+      if (!START_MODAL_CONTINUE_KEYS.has(event.code) && !continueCodes.includes(event.code)) {
         return;
       }
 
@@ -168,7 +186,35 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isPauseMenuOpen, overlayStep]);
+  }, [controlScheme, isPauseMenuOpen, overlayStep]);
+
+  useEffect(() => {
+    if (!game.finalModal || isPauseMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const continueCodes = getPhase1ContinueCodes(controlScheme);
+
+      if (
+        (!START_MODAL_CONTINUE_KEYS.has(event.code) &&
+          !continueCodes.includes(event.code)) ||
+        event.repeat
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setPhaseStep("menu");
+      setOverlayStep(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [controlScheme, game.finalModal, isPauseMenuOpen]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -177,7 +223,7 @@ export function Phase1Canvas({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Escape" || event.repeat) {
+      if (event.code !== "Escape" || event.repeat || game.isEndingSequence) {
         return;
       }
 
@@ -190,7 +236,7 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isPlaying]);
+  }, [game.isEndingSequence, isPlaying]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -253,6 +299,7 @@ export function Phase1Canvas({
       holeFullImage: eventSprites.holeFullImage,
       pickupUnloadTruckImage,
       workSignImage: eventSprites.workSignImage,
+      controlScheme,
     });
     // drawCenterGuide(
     //   context,
@@ -264,7 +311,7 @@ export function Phase1Canvas({
     drawPhase1Hud({
       context,
       score: game.score,
-      distance: game.distance,
+      hourmeterHours: game.hourmeterHours,
       message: game.message,
       instructorImage: hudVenezitoImage,
     });
@@ -284,6 +331,7 @@ export function Phase1Canvas({
         machineAngles: pose.angles,
         machineContentHeight: game.excavatorScene.contentHeight,
         machineContentWidth: game.excavatorScene.contentWidth,
+        controlScheme,
       });
     } else if (
       overlayStep === "pickup" ||
@@ -299,11 +347,19 @@ export function Phase1Canvas({
         greaseSignImage: eventSprites.greaseSignImage,
         mudImage: eventSprites.mudImage,
         workSignImage: eventSprites.workSignImage,
+        controlScheme,
       });
+    } else if (game.finalModal) {
+      drawPhase1FinalModal(context, game.finalModal, finalModalImage);
     } else if (game.speechModal) {
       drawPhase1SpeechModal(context, game.speechModal, speechModalImage);
     } else if (game.questionModal) {
-      drawQuestionModal(context, game.questionModal, instructorImage);
+      drawQuestionModal(
+        context,
+        game.questionModal,
+        instructorImage,
+        controlScheme,
+      );
     }
   }, [
     game.activeEventId,
@@ -330,13 +386,17 @@ export function Phase1Canvas({
     eventSprites.workSignImage,
     game.animationTick,
     game.questionModal,
+    controlScheme,
     game.message,
     game.score,
+    game.hourmeterHours,
     game.venezitoMood,
     hudVenezitoImage,
     images,
     instructorImage,
     pose.angles,
+    game.finalModal,
+    finalModalImage,
     game.speechModal,
     speechModalImage,
     overlayStep,
@@ -376,12 +436,12 @@ export function Phase1Canvas({
                 setPhaseStep("menu");
                 setOverlayStep(null);
               }}
-              onOpenEditor={() => {
-                setIsPauseMenuOpen(false);
-                setPhaseStep("menu");
-                setOverlayStep(null);
-                onChangeView("editor");
-              }}
+              controlScheme={controlScheme}
+              onToggleControlScheme={() =>
+                setControlSchemeId((current) =>
+                  getNextPhase1ControlSchemeId(current),
+                )
+              }
             />
           ) : null}
         </div>
@@ -395,13 +455,13 @@ export function Phase1Canvas({
             } as CSSProperties
           }
         >
-          <Phase1PreGameScreen
+          <MainMenu
+            selectedPhase="phase1"
+            onSelectPhase={onChangeView}
             onPlay={() => {
               setPhaseStep("playing");
               setOverlayStep(START_OVERLAY_SEQUENCE[0]);
             }}
-            onPlayPhase2={() => onChangeView("phase2")}
-            onOpenEditor={() => onChangeView("editor")}
           />
         </div>
       )}

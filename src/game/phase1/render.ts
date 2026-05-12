@@ -2,11 +2,18 @@ import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   GROUND_Y,
-  PHASE1_START_MODAL_DESCRIPTION,
+  PLAYER_HIT_LINE_X,
   PHASE1_START_MODAL_HINT,
   PHASE1_START_MODAL_TITLE,
   TRACTION_SCORE_LENIENCY_MARGIN,
 } from "./config";
+import {
+  DEFAULT_PHASE1_CONTROL_SCHEME_ID,
+  getPhase1EventActionLabel,
+  getPhase1ControlScheme,
+  getPhase1StartModalDescription,
+  type Phase1ControlScheme,
+} from "./controls";
 import { getEventDefinition } from "./eventCatalog";
 import { drawExcavator } from "../retro/render";
 import {
@@ -23,11 +30,13 @@ import { drawGreaseAnimation } from "../venezito/render";
 import {
   getEventHitboxScreenX,
   getEventVisualScreenX,
+  isEventScreenRangeVisible,
   isEventScreenXVisible,
   resolveMapEventType,
 } from "./eventPositioner";
 import type {
   MapEvent,
+  Phase1FinalModalState,
   Phase1DriveMode,
   Phase1SpeechModalState,
   QuestionModalState,
@@ -62,12 +71,13 @@ type Phase1ForegroundParams = {
   holeFullImage?: LoadedImageSource | null;
   pickupUnloadTruckImage?: LoadedImageSource | null;
   workSignImage?: LoadedImageSource | null;
+  controlScheme?: Phase1ControlScheme;
 };
 
 type Phase1HudParams = {
   context: CanvasRenderingContext2D;
   score: number;
-  distance: number;
+  hourmeterHours: number;
   message: string;
   instructorImage?: LoadedImageSource | null;
 };
@@ -103,6 +113,16 @@ type Phase1ModalLayout = {
   panelPadding: number;
 };
 
+const MODAL_FRAME_MARGIN_X = 44;
+const MODAL_FRAME_MARGIN_Y = 34;
+const MODAL_PORTRAIT_WIDTH = 320;
+const MODAL_PANEL_GAP = 24;
+const MODAL_PANEL_INSET = 20;
+const MODAL_PANEL_PADDING = 30;
+const START_MODAL_SIDE_CARD_WIDTH = 210;
+const START_MODAL_CENTER_CARD_WIDTH = 240;
+let activeInstructionControlScheme: Phase1ControlScheme | null = null;
+
 type Phase1StartModalParams = {
   context: CanvasRenderingContext2D;
   instructorImage?: CanvasImageSource | null;
@@ -110,6 +130,7 @@ type Phase1StartModalParams = {
   machineAngles: Record<LayerName, number>;
   machineContentWidth: number;
   machineContentHeight: number;
+  controlScheme: Phase1ControlScheme;
 };
 
 type Phase1EventShowcaseKind = "pickup" | "dig" | "grease" | "traction";
@@ -123,6 +144,7 @@ type Phase1EventShowcaseModalParams = {
   greaseSignImage?: LoadedImageSource | null;
   mudImage?: LoadedImageSource | null;
   workSignImage?: LoadedImageSource | null;
+  controlScheme: Phase1ControlScheme;
 };
 
 const WRAPPED_TEXT_LAYOUT_CACHE = new Map<string, string[]>();
@@ -134,7 +156,7 @@ const CARNAUBA_BASE_Y = GROUND_Y + 6;
 const CARNAUBA_BASE_SOURCE_Y = 658;
 const CARNAUBA_DRAW_HEIGHT = 666;
 const FOREGROUND_LAYER_SPEED = 1.2;
-const FOREGROUND_SPRITE_TOP_Y = 520;
+const FOREGROUND_SPRITE_TOP_Y = 480;
 const FOREGROUND_DRAW_TOP_Y = GROUND_Y + 30;
 const PICKUP_UNLOAD_TRUCK_DRAW_WIDTH = 1200;
 const PICKUP_UNLOAD_TRUCK_BASE_Y = CANVAS_HEIGHT - 50;
@@ -158,6 +180,8 @@ const MUD_OFFSET_X = 0;
 const WORK_SIGN_DRAW_HEIGHT = 184;
 const WORK_SIGN_BASE_Y = GROUND_Y + 12 + 120;
 const WORK_SIGN_OFFSET_X = 150 + 30;
+const EVENT_BUTTON_PROMPT_Y = GROUND_Y - 280;
+const EVENT_BUTTON_PROMPT_SIZE = 70;
 const FNR_PANEL_DRAW_WIDTH = 300;
 const FNR_PANEL_RIGHT_OVERFLOW = 45;
 const FNR_LEVER_DRAW_WIDTH = 330;
@@ -240,7 +264,11 @@ export function drawPhase1Foreground({
   holeFullImage,
   pickupUnloadTruckImage,
   workSignImage,
+  controlScheme,
 }: Phase1ForegroundParams) {
+  const activeControlScheme =
+    controlScheme ?? getPhase1ControlScheme(DEFAULT_PHASE1_CONTROL_SCHEME_ID);
+
   drawMachineOverlay(
     context,
     distance,
@@ -262,6 +290,15 @@ export function drawPhase1Foreground({
     pickupUnloadTruckImage,
   );
   drawForeground(context, distance, foregroundImage);
+  drawActiveEventButtonPrompt(
+    context,
+    distance,
+    events,
+    activeEventId,
+    loadedDirt,
+    rearLoaded,
+    activeControlScheme,
+  );
 }
 
 export function drawCenterGuide(
@@ -347,7 +384,7 @@ export function drawPhase1FnrControl({
 export function drawPhase1Hud({
   context,
   score,
-  distance,
+  hourmeterHours,
   message,
   instructorImage,
 }: Phase1HudParams) {
@@ -362,7 +399,7 @@ export function drawPhase1Hud({
     rightX,
     hudY,
     "Horímetro",
-    `${Math.floor(distance / 10)} h`,
+    `${Math.floor(hourmeterHours)} h`,
     "hourmeter",
   );
   drawVenezitoSpeechHud(
@@ -376,25 +413,121 @@ export function drawPhase1Hud({
   );
 }
 
+export function drawPhase1FinalModal(
+  context: CanvasRenderingContext2D,
+  modalState: Phase1FinalModalState,
+  instructorImage?: CanvasImageSource | null,
+) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const bodyX = titleX;
+  const bodyY = layout.panelY + 96;
+  const statY = layout.panelY + 270;
+  const statGap = 18;
+  const statWidth =
+    (layout.panelWidth - layout.panelPadding * 2 - statGap * 2) / 3;
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+  drawSpeechBubble(
+    context,
+    layout.portraitX + 26,
+    layout.portraitY + 100,
+    layout.portraitWidth - 52,
+    modalState.isNewHighScore ? "Novo highscore!" : "Treinamento concluido!",
+  );
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText("FIM DO TREINAMENTO", titleX, layout.panelY + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '800 42px "Segoe UI", sans-serif';
+  context.fillText(
+    modalState.isNewHighScore ? "Novo highscore" : "Highscore",
+    bodyX,
+    bodyY,
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 20px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    "O horimetro chegou em 2000 h. Venezito registrou sua melhor pontuacao nesta maquina.",
+    bodyX,
+    bodyY + 42,
+    layout.panelWidth - layout.panelPadding * 2,
+    28,
+  );
+
+  drawFinalStatCard(
+    context,
+    bodyX,
+    statY,
+    statWidth,
+    "pontuacao",
+    String(modalState.score),
+  );
+  drawFinalStatCard(
+    context,
+    bodyX + statWidth + statGap,
+    statY,
+    statWidth,
+    "highscore",
+    String(modalState.highScore),
+  );
+  drawFinalStatCard(
+    context,
+    bodyX + (statWidth + statGap) * 2,
+    statY,
+    statWidth,
+    "horimetro",
+    `${modalState.hourmeterHours} h`,
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    "Highscore salvo no navegador. Pressione uma seta para voltar ao menu.",
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
+  context.restore();
+}
+
 export function drawQuestionModal(
   context: CanvasRenderingContext2D,
   modalState: QuestionModalState,
   instructorImage?: CanvasImageSource | null,
+  controlScheme?: Phase1ControlScheme,
 ) {
   const layout = getPhase1ModalLayout();
   const questionBoxX = layout.panelX + layout.panelPadding;
   const questionBoxY = layout.panelY + 54;
   const questionBoxWidth = layout.panelWidth - layout.panelPadding * 2;
-  const questionBoxHeight = 126;
-  const choiceWidth = 470;
-  const choiceHeight = 104;
-  const topChoiceX = layout.panelX + layout.panelWidth / 2 - choiceWidth / 2;
+  const questionBoxHeight = 112;
+  const choiceGap = 18;
+  const sideChoiceWidth = (questionBoxWidth - choiceGap) / 2;
+  const centerChoiceWidth = Math.min(430, questionBoxWidth);
+  const choiceHeight = 96;
+  const topChoiceX =
+    layout.panelX + layout.panelWidth / 2 - centerChoiceWidth / 2;
   const leftChoiceX = layout.panelX + layout.panelPadding;
-  const rightChoiceX =
-    layout.panelX + layout.panelWidth - layout.panelPadding - choiceWidth;
+  const rightChoiceX = leftChoiceX + sideChoiceWidth + choiceGap;
   const topChoiceY = questionBoxY + questionBoxHeight + 26;
-  const sideChoiceY = topChoiceY + choiceHeight + 18;
-  const bottomChoiceY = sideChoiceY + choiceHeight + 18;
+  const sideChoiceY = topChoiceY + choiceHeight + choiceGap;
+  const bottomChoiceY = sideChoiceY + choiceHeight + choiceGap;
 
   context.save();
   drawModalFrame(context, layout);
@@ -431,46 +564,50 @@ export function drawQuestionModal(
   context.stroke();
 
   context.fillStyle = "#fff3d7";
-  context.font = '700 28px "Segoe UI", sans-serif';
+  context.font = '700 24px "Segoe UI", sans-serif';
   drawWrappedText(
     context,
     modalState.question.prompt,
     questionBoxX + 24,
-    questionBoxY + 40,
+    questionBoxY + 36,
     questionBoxWidth - 48,
-    36,
+    31,
   );
 
   drawQuestionChoiceCard(
     context,
     topChoiceX,
     topChoiceY,
-    choiceWidth,
-    "\u2191",
+    centerChoiceWidth,
+    choiceHeight,
+    controlScheme?.labels.question.up ?? "\u2191",
     modalState.question.choices.up.label,
   );
   drawQuestionChoiceCard(
     context,
     leftChoiceX,
     sideChoiceY,
-    choiceWidth,
-    "\u2190",
+    sideChoiceWidth,
+    choiceHeight,
+    controlScheme?.labels.question.left ?? "\u2190",
     modalState.question.choices.left.label,
   );
   drawQuestionChoiceCard(
     context,
     rightChoiceX,
     sideChoiceY,
-    choiceWidth,
-    "\u2192",
+    sideChoiceWidth,
+    choiceHeight,
+    controlScheme?.labels.question.right ?? "\u2192",
     modalState.question.choices.right.label,
   );
   drawQuestionChoiceCard(
     context,
     topChoiceX,
     bottomChoiceY,
-    choiceWidth,
-    "\u2193",
+    centerChoiceWidth,
+    choiceHeight,
+    controlScheme?.labels.question.down ?? "\u2193",
     modalState.question.choices.down.label,
   );
   context.restore();
@@ -553,6 +690,7 @@ export function drawPhase1StartModal({
   machineAngles,
   machineContentHeight,
   machineContentWidth,
+  controlScheme,
 }: Phase1StartModalParams) {
   const layout = getPhase1ModalLayout();
   const titleX = layout.panelX + layout.panelPadding;
@@ -563,7 +701,7 @@ export function drawPhase1StartModal({
   const machineStageHeight = layout.panelHeight - 196;
   const centerX = machineStageX + machineStageWidth / 2;
   const centerY = machineStageY + machineStageHeight / 2 + 4;
-  const maxMachineWidth = machineStageWidth - 420;
+  const maxMachineWidth = machineStageWidth * 0.56;
   const maxMachineHeight = machineStageHeight - 210;
   const machineScale = Math.min(
     0.72,
@@ -607,7 +745,7 @@ export function drawPhase1StartModal({
   context.font = '600 22px "Segoe UI", sans-serif';
   drawWrappedText(
     context,
-    PHASE1_START_MODAL_DESCRIPTION,
+    getPhase1StartModalDescription(controlScheme),
     titleX,
     descriptionY,
     layout.panelWidth - layout.panelPadding * 2,
@@ -635,11 +773,12 @@ export function drawPhase1StartModal({
 
   drawExcavator(context, images, machineWorldMatrices);
 
+  activeInstructionControlScheme = controlScheme;
   drawInstructionCard(
     context,
-    centerX - 130,
+    centerX - START_MODAL_CENTER_CARD_WIDTH / 2,
     machineStageY + 10,
-    260,
+    START_MODAL_CENTER_CARD_WIDTH,
     92,
     "↑",
     "Engraxar",
@@ -649,7 +788,7 @@ export function drawPhase1StartModal({
     context,
     machineStageX + 10,
     centerY - 44,
-    224,
+    START_MODAL_SIDE_CARD_WIDTH,
     92,
     "←",
     "Carregar",
@@ -657,9 +796,9 @@ export function drawPhase1StartModal({
   );
   drawInstructionCard(
     context,
-    machineStageX + machineStageWidth - 242 + 8,
+    machineStageX + machineStageWidth - START_MODAL_SIDE_CARD_WIDTH - 10,
     centerY - 44,
-    224,
+    START_MODAL_SIDE_CARD_WIDTH,
     92,
     "→",
     "Cavar",
@@ -667,9 +806,9 @@ export function drawPhase1StartModal({
   );
   drawInstructionCard(
     context,
-    centerX - 130,
+    centerX - START_MODAL_CENTER_CARD_WIDTH / 2,
     machineStageY + machineStageHeight - 100,
-    260,
+    START_MODAL_CENTER_CARD_WIDTH,
     92,
     "↓",
     "Freio",
@@ -679,6 +818,7 @@ export function drawPhase1StartModal({
   context.fillStyle = "#d5b178";
   context.font = '600 16px "Segoe UI", sans-serif';
   context.textAlign = "center";
+  activeInstructionControlScheme = null;
   context.fillText(
     PHASE1_START_MODAL_HINT,
     layout.panelX + layout.panelWidth / 2,
@@ -697,6 +837,7 @@ export function drawPhase1EventShowcaseModal({
   greaseSignImage,
   mudImage,
   workSignImage,
+  controlScheme,
 }: Phase1EventShowcaseModalParams) {
   const layout = getPhase1ModalLayout();
   const titleX = layout.panelX + layout.panelPadding;
@@ -734,7 +875,10 @@ export function drawPhase1EventShowcaseModal({
     },
   };
 
-  const content = contentByKind[kind];
+  const content = {
+    ...contentByKind[kind],
+    body: getPhase1EventShowcaseBody(kind, controlScheme),
+  };
 
   context.save();
   drawModalFrame(context, layout);
@@ -850,16 +994,35 @@ export function drawPhase1EventShowcaseModal({
   context.restore();
 }
 
+function getPhase1EventShowcaseBody(
+  kind: Phase1EventShowcaseKind,
+  controlScheme: Phase1ControlScheme,
+) {
+  if (kind === "pickup") {
+    return `Aproxime da pilha e use ${controlScheme.labels.pickup} para operar a carregadeira na dianteira.`;
+  }
+
+  if (kind === "dig") {
+    return `Use ${controlScheme.labels.dig} para operar a escavadeira na traseira e cavar ou preencher buracos.`;
+  }
+
+  if (kind === "grease") {
+    return `Pare no ponto de manutencao e use ${controlScheme.labels.grease} para iniciar a graxa.`;
+  }
+
+  return `Use ${controlScheme.labels.brake} para frear e controlar a aproximacao da maquina.`;
+}
+
 function getPhase1ModalLayout(): Phase1ModalLayout {
-  const frameX = 44;
-  const frameY = 34;
-  const frameWidth = CANVAS_WIDTH - 88;
-  const frameHeight = CANVAS_HEIGHT - 68;
-  const portraitWidth = 368;
-  const panelGap = 28;
+  const frameX = MODAL_FRAME_MARGIN_X;
+  const frameY = MODAL_FRAME_MARGIN_Y;
+  const frameWidth = CANVAS_WIDTH - MODAL_FRAME_MARGIN_X * 2;
+  const frameHeight = CANVAS_HEIGHT - MODAL_FRAME_MARGIN_Y * 2;
+  const portraitWidth = MODAL_PORTRAIT_WIDTH;
+  const panelGap = MODAL_PANEL_GAP;
   const panelX = frameX + portraitWidth + panelGap;
   const panelY = frameY + 20;
-  const panelWidth = frameWidth - portraitWidth - panelGap - 20;
+  const panelWidth = frameWidth - portraitWidth - panelGap - MODAL_PANEL_INSET;
   const panelHeight = frameHeight - 40;
 
   return {
@@ -875,7 +1038,7 @@ function getPhase1ModalLayout(): Phase1ModalLayout {
     panelY,
     panelWidth,
     panelHeight,
-    panelPadding: 34,
+    panelPadding: MODAL_PANEL_PADDING,
   };
 }
 
@@ -1115,7 +1278,10 @@ function drawGround(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1165,7 +1331,10 @@ function drawGroundOverlay(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1232,7 +1401,10 @@ function drawMachineOverlay(
     const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
     const hitboxHalfWidth = getEventDefinition(eventType).hitboxHalfWidth;
 
-    if (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX)) {
+    if (
+      !isEventScreenXVisible(visualX) &&
+      !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth)
+    ) {
       continue;
     }
 
@@ -1361,6 +1533,33 @@ function drawHudCard(
     drawHourmeterHudIcon(context, x + 216, y + 42);
   }
 
+  context.restore();
+}
+
+function drawFinalStatCard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  label: string,
+  value: string,
+) {
+  context.save();
+  context.fillStyle = "rgba(255, 245, 220, 0.06)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.18)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, width, 108, 18);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 14px "Segoe UI", sans-serif';
+  context.fillText(label.toUpperCase(), x + 20, y + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '800 34px "Segoe UI", sans-serif';
+  context.fillText(value, x + 20, y + 74);
   context.restore();
 }
 
@@ -1543,7 +1742,8 @@ function drawForegroundPickupUnloadEvents(
 
     if (
       eventType !== "pickup-unload" ||
-      (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX))
+      (!isEventScreenXVisible(visualX) &&
+        !isEventScreenRangeVisible(hitboxX, hitboxHalfWidth))
     ) {
       continue;
     }
@@ -1669,6 +1869,7 @@ function drawQuestionChoiceCard(
   x: number,
   y: number,
   width: number,
+  height: number,
   directionLabel: string,
   label: string,
 ) {
@@ -1677,7 +1878,7 @@ function drawQuestionChoiceCard(
   context.strokeStyle = "rgba(255, 229, 178, 0.18)";
   context.lineWidth = 2;
   context.beginPath();
-  context.roundRect(x, y, width, 104, 20);
+  context.roundRect(x, y, width, height, 20);
   context.fill();
   context.stroke();
 
@@ -1693,10 +1894,10 @@ function drawQuestionChoiceCard(
   context.fillText(directionLabel, x + 40, y + 42);
 
   context.fillStyle = "#fff3d7";
-  context.font = '600 18px "Segoe UI", sans-serif';
+  context.font = '600 17px "Segoe UI", sans-serif';
   context.textAlign = "start";
   context.textBaseline = "alphabetic";
-  drawWrappedText(context, label, x + 78, y + 40, width - 100, 24);
+  drawWrappedText(context, label, x + 76, y + 38, width - 94, 22);
   context.restore();
 }
 
@@ -1739,6 +1940,12 @@ function drawInstructionCard(
   title: string,
   description: string,
 ) {
+  const controlText = getInstructionCardControlText(
+    title,
+    keyLabel,
+    description,
+  );
+
   context.save();
   context.fillStyle = "rgba(26, 19, 13, 0.96)";
   context.strokeStyle = "rgba(255, 229, 178, 0.28)";
@@ -1757,7 +1964,7 @@ function drawInstructionCard(
   context.textBaseline = "middle";
   context.fillStyle = "#fff3d7";
   context.font = '700 22px "Segoe UI", sans-serif';
-  context.fillText(keyLabel, x + 38, y + 38);
+  context.fillText(controlText.keyLabel, x + 38, y + 38);
 
   context.textAlign = "start";
   context.textBaseline = "alphabetic";
@@ -1767,7 +1974,127 @@ function drawInstructionCard(
 
   context.fillStyle = "#fff3d7";
   context.font = '600 15px "Segoe UI", sans-serif';
-  drawWrappedText(context, description, x + 74, y + 56, width - 92, 20);
+  drawWrappedText(context, controlText.description, x + 74, y + 56, width - 92, 20);
+  context.restore();
+}
+
+function getInstructionCardControlText(
+  title: string,
+  fallbackKeyLabel: string,
+  fallbackDescription: string,
+) {
+  const scheme = activeInstructionControlScheme;
+
+  if (!scheme) {
+    return {
+      keyLabel: fallbackKeyLabel,
+      description: fallbackDescription,
+    };
+  }
+
+  if (title === "Engraxar") {
+    return {
+      keyLabel: scheme.labels.grease,
+      description: `Use ${scheme.labels.grease} para aplicar graxa.`,
+    };
+  }
+
+  if (title === "Carregar") {
+    return {
+      keyLabel: scheme.labels.pickup,
+      description: `Use ${scheme.labels.pickup} para carregar.`,
+    };
+  }
+
+  if (title === "Cavar") {
+    return {
+      keyLabel: scheme.labels.dig,
+      description: `Use ${scheme.labels.dig} para cavar.`,
+    };
+  }
+
+  if (title === "Freio") {
+    return {
+      keyLabel: scheme.labels.brake,
+      description: `Use ${scheme.labels.brake} para frear a maquina.`,
+    };
+  }
+
+  return {
+    keyLabel: fallbackKeyLabel,
+    description: fallbackDescription,
+  };
+}
+
+function drawActiveEventButtonPrompt(
+  context: CanvasRenderingContext2D,
+  distance: number,
+  events: MapEvent[],
+  activeEventId: number | null,
+  loadedDirt: boolean,
+  rearLoaded: boolean,
+  controlScheme: Phase1ControlScheme,
+) {
+  if (activeEventId === null) {
+    return;
+  }
+
+  const event = events.find((item) => item.id === activeEventId);
+
+  if (!event) {
+    return;
+  }
+
+  const eventType = resolveMapEventType(event, loadedDirt, rearLoaded);
+  const eventDefinition = getEventDefinition(eventType);
+  const hitboxX = getEventHitboxScreenX(event, distance);
+  const isWithinHitbox =
+    Math.abs(hitboxX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
+
+  if (!isWithinHitbox) {
+    return;
+  }
+
+  const visualX = getEventVisualScreenX(
+    event,
+    distance,
+    loadedDirt,
+    rearLoaded,
+  );
+  const promptX = Math.min(
+    CANVAS_WIDTH - EVENT_BUTTON_PROMPT_SIZE / 2 - 16,
+    Math.max(EVENT_BUTTON_PROMPT_SIZE / 2 + 16, visualX),
+  );
+  const keyLabel = getPhase1EventActionLabel(eventDefinition, controlScheme);
+
+  context.save();
+  context.shadowColor = "rgba(0, 0, 0, 0.28)";
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 6;
+  context.fillStyle = "rgba(26, 19, 13, 0.92)";
+  context.strokeStyle = "rgba(255, 242, 168, 0.94)";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.roundRect(
+    promptX - EVENT_BUTTON_PROMPT_SIZE / 2,
+    EVENT_BUTTON_PROMPT_Y,
+    EVENT_BUTTON_PROMPT_SIZE,
+    EVENT_BUTTON_PROMPT_SIZE,
+    16,
+  );
+  context.fill();
+  context.stroke();
+
+  context.shadowColor = "transparent";
+  context.fillStyle = "#fff3d7";
+  context.font = '800 28px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(
+    keyLabel,
+    promptX,
+    EVENT_BUTTON_PROMPT_Y + EVENT_BUTTON_PROMPT_SIZE / 2,
+  );
   context.restore();
 }
 

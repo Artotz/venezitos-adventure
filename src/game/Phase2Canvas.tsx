@@ -4,6 +4,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { Phase2PreGameScreen } from "./phase2/Phase2PreGameScreen";
 import { PauseMenu } from "./PauseMenu";
@@ -18,6 +19,8 @@ type Phase2CanvasProps = {
 export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
+  const [menuScale, setMenuScale] = useState(1);
+  const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const game = usePhase2Game(gameStarted, isPauseMenuOpen);
@@ -36,8 +39,13 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
         availableWidth / CANVAS_WIDTH,
         availableHeight / CANVAS_HEIGHT,
       );
+      const nextMenuScale = Math.min(
+        availableWidth / MAIN_MENU_WIDTH,
+        availableHeight / MAIN_MENU_HEIGHT,
+      );
 
       setCanvasScale(nextScale > 0 ? nextScale : 1);
+      setMenuScale(nextMenuScale > 0 ? nextMenuScale : 1);
     };
 
     updateCanvasScale();
@@ -51,7 +59,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!canvas) {
+    if (!isPlaying || !canvas) {
       return;
     }
 
@@ -68,6 +76,11 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   }, [game, tractorSprite]);
 
   useEffect(() => {
+    if (!isPlaying) {
+      setIsPauseMenuOpen(false);
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Escape" || event.repeat) {
         return;
@@ -82,7 +95,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [isPlaying]);
 
   useEffect(() => {
     if (gameStarted) {
@@ -107,6 +120,8 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
+  const scaledMenuWidth = Math.round(MAIN_MENU_WIDTH * menuScale);
+  const scaledMenuHeight = Math.round(MAIN_MENU_HEIGHT * menuScale);
 
   return (
     <div className="phase-layout">

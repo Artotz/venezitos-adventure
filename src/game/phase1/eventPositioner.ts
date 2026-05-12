@@ -9,41 +9,27 @@ import { getEventDefinition } from "./eventCatalog";
 import type {
   EventStatus,
   MapEvent,
-  MapEventGroup,
   MapEventType,
 } from "./types";
 
 type EventSpawnSlot = {
-  group: MapEventGroup;
+  type: MapEventType;
   hitboxX: number;
 };
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { group: "grease", hitboxX: 1500 },
-  { group: "pickup", hitboxX: 1500 * 2 },
-  // { group: "traction", hitboxX: 1500 * 3 },
-  { group: "dig", hitboxX: 1500 * 4 },
-  { group: "question", hitboxX: 1500 * 5 },
-  { group: "grease", hitboxX: 1500 * 6 },
-  { group: "dig", hitboxX: 1500 * 7 },
-  // { group: "traction", hitboxX: 1500 * 8 },
-  { group: "pickup", hitboxX: 1500 * 9 },
-  { group: "question", hitboxX: 1500 * 10 },
+  { type: "grease", hitboxX: 1500 },
+  { type: "pickup-load", hitboxX: 1500 * 2 },
+  // { type: "traction", hitboxX: 1500 * 3 },
+  { type: "dig-load", hitboxX: 1500 * 4 },
+  { type: "question", hitboxX: 1500 * 5 },
+  { type: "grease", hitboxX: 1500 * 6 },
+  { type: "dig-unload", hitboxX: 1500 * 7 },
+  // { type: "traction", hitboxX: 1500 * 8 },
+  { type: "pickup-unload", hitboxX: 1500 * 9 },
+  { type: "question", hitboxX: 1500 * 10 },
 ];
-
-// const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-//   { group: "dig", hitboxX: 1500 },
-//   { group: "pickup", hitboxX: 1500 * 2 },
-//   { group: "traction", hitboxX: 1500 * 3 },
-//   { group: "dig", hitboxX: 1500 * 4 },
-//   { group: "pickup", hitboxX: 1500 * 5 },
-//   { group: "grease", hitboxX: 1500 * 6 },
-//   { group: "question", hitboxX: 1500 * 7 },
-//   { group: "traction", hitboxX: 1500 * 8 },
-//   { group: "pickup", hitboxX: 1500 * 9 },
-//   { group: "question", hitboxX: 1500 * 10 },
-// ];
 
 const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length;
 const MIN_UPCOMING_EVENT_BUFFER = EVENT_SEQUENCE_LENGTH;
@@ -62,29 +48,11 @@ function createSpawnedEvent(id: number): MapEvent {
 
   return {
     id,
-    group: slot.group,
+    group: getEventDefinition(slot.type).group,
     hitboxX: slot.hitboxX + cycleIndex * EVENT_SPAWN_CYCLE_LENGTH,
     status: "upcoming",
-    type: null,
+    type: slot.type,
   };
-}
-
-function trimExpiredEvents(events: MapEvent[], distance: number) {
-  let hasChanges = false;
-
-  const nextEvents = events.filter((event) => {
-    if (event.status === "upcoming" || event.status === "active") {
-      return true;
-    }
-
-    const screenX = getEventHitboxScreenX(event, distance);
-    const keepEvent = screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN;
-    hasChanges ||= !keepEvent;
-
-    return keepEvent;
-  });
-
-  return hasChanges ? nextEvents : events;
 }
 
 function ensureUpcomingEventBuffer(events: MapEvent[]) {
@@ -114,9 +82,13 @@ export function getEventHitboxScreenX(event: MapEvent, distance: number) {
 }
 
 export function isEventScreenXVisible(screenX: number) {
+  return isEventScreenRangeVisible(screenX, 0);
+}
+
+export function isEventScreenRangeVisible(screenX: number, halfWidth: number) {
   return (
-    screenX >= -EVENT_SPAWN_MARGIN &&
-    screenX <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
+    screenX + halfWidth >= -EVENT_SPAWN_MARGIN &&
+    screenX - halfWidth <= CANVAS_WIDTH + EVENT_DESPAWN_MARGIN
   );
 }
 
@@ -145,16 +117,16 @@ export function cloneEvents(events: MapEvent[]) {
 }
 
 export function resolveSpawnedEventType(
-  group: MapEventGroup,
-  loadedDirt: boolean,
-  rearLoaded: boolean,
+  group: MapEvent["group"],
+  _loadedDirt: boolean,
+  _rearLoaded: boolean,
 ): MapEventType {
   if (group === "pickup") {
-    return loadedDirt ? "pickup-unload" : "pickup-load";
+    return "pickup-load";
   }
 
   if (group === "dig") {
-    return rearLoaded ? "dig-unload" : "dig-load";
+    return "dig-load";
   }
 
   if (group === "grease") {
@@ -221,7 +193,11 @@ export function assignSpawnedEventTypes(
 
     if (
       event.type ||
-      (!isEventScreenXVisible(visualX) && !isEventScreenXVisible(hitboxX))
+      (!isEventScreenXVisible(visualX) &&
+        !isEventScreenRangeVisible(
+          hitboxX,
+          getEventDefinition(eventType).hitboxHalfWidth,
+        ))
     ) {
       return event;
     }
@@ -254,8 +230,7 @@ export function syncInfiniteEventStream(
   loadedDirt: boolean,
   rearLoaded: boolean,
 ) {
-  const trimmedEvents = trimExpiredEvents(events, distance);
-  const bufferedEvents = ensureUpcomingEventBuffer(trimmedEvents);
+  const bufferedEvents = ensureUpcomingEventBuffer(events);
 
   return assignSpawnedEventTypes(
     bufferedEvents,

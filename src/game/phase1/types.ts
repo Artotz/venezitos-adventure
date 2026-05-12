@@ -3,6 +3,15 @@ import type { VenezitoMood } from './venezito'
 
 export type Phase1DriveMode = 'reverse' | 'neutral' | 'forward'
 
+export type Phase1RequiredDriveState =
+  | {
+      mode: 'neutral'
+    }
+  | {
+      mode: 'forward' | 'reverse'
+      gear: number
+    }
+
 export type ManualEventType =
   | 'pickup-load'
   | 'pickup-unload'
@@ -79,6 +88,7 @@ type BaseEventDefinition<
   description: string
   hint: string
   successMessage: string
+  requiredDriveState: Phase1RequiredDriveState
 }
 
 export type ManualEventDefinition = BaseEventDefinition<
@@ -110,6 +120,8 @@ export type QuestionEventDefinition = BaseEventDefinition<
   'question',
   'question-modal'
 > & {
+  triggerCodes: KeyboardEvent['code'][]
+  triggerKeyLabel: string
   modalTitle: string
   selectionHint: string
   approachSlowdownDistance: number
@@ -154,4 +166,11 @@ export type Phase1SpeechModalState = {
   body: string
   continueHint: string
   mood: VenezitoMood
+}
+
+export type Phase1FinalModalState = {
+  score: number
+  highScore: number
+  isNewHighScore: boolean
+  hourmeterHours: number
 }

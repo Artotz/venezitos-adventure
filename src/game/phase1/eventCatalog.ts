@@ -6,7 +6,6 @@ import {
   QUESTION_APPROACH_SLOWDOWN_DISTANCE,
   QUESTION_APPROACH_TARGET_SPEED,
   QUESTION_OPTION_DISPLAY_LABEL,
-  QUESTION_OPTION_KEYS_LABEL,
   TRACTION_TOGGLE_KEY_LABEL,
 } from "./config";
 import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
@@ -32,6 +31,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Punhado de terra no caminho",
     hint: "A carregadeira enche a frente sem mexer na traseira.",
     successMessage: "Terra apanhada. A cacamba esta carregada.",
+    requiredDriveState: { mode: "forward", gear: 1 },
     reward: 180,
     animation: {
       kind: "retro-preset",
@@ -56,6 +56,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Caminhao esperando a frente",
     hint: "Pare a maquina e descarregue a terra da frente.",
     successMessage: "Terra descarregada no caminhao.",
+    requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
@@ -80,6 +81,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Ponto de escavacao atras",
     hint: "A retroescavadeira carrega a traseira e persiste no final.",
     successMessage: "Retroescavadeira carregada atras.",
+    requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
@@ -105,6 +107,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Vala para descarregar atras",
     hint: "A retro abre e descarrega atras sem mexer na frente.",
     successMessage: "Retroescavadeira descarregada na vala.",
+    requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
@@ -127,6 +130,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     acceptedCodes: ["ArrowUp"],
     keyLabel: GREASE_EVENT_KEYS_LABEL,
     title: "Aplicar graxa",
+    requiredDriveState: { mode: "neutral" },
     description: "Ponto de lubrificacao no caminho",
     hint: "A maquina desacelera, para para a graxa e retoma depois.",
     successMessage: "Graxa aplicada. Volte para a operação.",
@@ -148,6 +152,7 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Ponto de controle no caminho",
     hint: "Use ↓ para frear a maquina.",
     successMessage: "Aproximacao controlada com o freio.",
+    requiredDriveState: { mode: "neutral" },
     toggleCodes: ["ArrowDown"],
     toggleKeyLabel: TRACTION_TOGGLE_KEY_LABEL,
     activeSpeed: LOW_TRACTION_SPEED,
@@ -165,6 +170,9 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     description: "Instrutor bloqueando a pista",
     hint: "A maquina para e voce responde seguindo ↑ ← ↓ → no modal.",
     successMessage: "Pergunta respondida.",
+    requiredDriveState: { mode: "neutral" },
+    triggerCodes: ["ArrowUp"],
+    triggerKeyLabel: GREASE_EVENT_KEYS_LABEL,
     modalTitle: "Pergunta do instrutor",
     selectionHint: `Use ${QUESTION_OPTION_DISPLAY_LABEL} para responder`,
     approachSlowdownDistance: QUESTION_APPROACH_SLOWDOWN_DISTANCE,
@@ -199,13 +207,29 @@ export function isQuestionEventDefinition(
 }
 
 export function getEventActivationMessage(definition: EventDefinition) {
+  const driveStateLabel = getRequiredDriveStateLabel(
+    definition.requiredDriveState,
+  );
+
   if (isManualEventDefinition(definition)) {
-    return `${definition.title}: pressione ${definition.keyLabel}.`;
+    return `${definition.title}: use ${driveStateLabel} e pressione ${definition.keyLabel}.`;
   }
 
   if (isTractionEventDefinition(definition)) {
-    return `${definition.title}: use ${definition.toggleKeyLabel} no trecho.`;
+    return `${definition.title}: use ${driveStateLabel} e ${definition.toggleKeyLabel} no trecho.`;
   }
 
-  return `${definition.title}: responda com ${QUESTION_OPTION_KEYS_LABEL}.`;
+  return `${definition.title}: use ${driveStateLabel} e pressione ${definition.triggerKeyLabel}.`;
+}
+
+export function getRequiredDriveStateLabel(
+  requiredDriveState: EventDefinition["requiredDriveState"],
+) {
+  if (requiredDriveState.mode === "neutral") {
+    return "N";
+  }
+
+  return `${requiredDriveState.mode === "forward" ? "F" : "R"}${
+    requiredDriveState.gear
+  }`;
 }

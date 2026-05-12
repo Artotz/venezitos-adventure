@@ -6,9 +6,11 @@ import {
 } from "react";
 import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
+import { Phase2PreGameScreen } from "./phase2/Phase2PreGameScreen";
 import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
 import { usePhase2Game } from "./phase2/usePhase2Game";
+import { usePhase2TractorSprite } from "./phase2/usePhase2TractorSprite";
 
 type Phase2CanvasProps = {
   onChangeView: (view: "phase1" | "phase2" | "editor") => void;
@@ -20,8 +22,9 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const [menuScale, setMenuScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
-  const isPlaying = phaseStep === "playing";
-  const game = usePhase2Game(isPlaying, isPauseMenuOpen);
+  const [gameStarted, setGameStarted] = useState(false);
+  const game = usePhase2Game(gameStarted, isPauseMenuOpen);
+  const tractorSprite = usePhase2TractorSprite();
 
   useEffect(() => {
     const updateCanvasScale = () => {
@@ -69,8 +72,8 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
       return;
     }
 
-    drawPhase2Scene(context, game);
-  }, [game, isPlaying]);
+    drawPhase2Scene(context, game, tractorSprite);
+  }, [game, tractorSprite]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -94,6 +97,27 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     };
   }, [isPlaying]);
 
+  useEffect(() => {
+    if (gameStarted) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Enter" || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      setGameStarted(true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [gameStarted]);
+
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
   const scaledMenuWidth = Math.round(MAIN_MENU_WIDTH * menuScale);
@@ -101,7 +125,12 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
 
   return (
     <div className="phase-layout">
-      {isPlaying ? (
+      {!gameStarted ? (
+        <Phase2PreGameScreen
+          onPlay={() => setGameStarted(true)}
+          onOpenMainMenu={() => onChangeView("phase1")}
+        />
+      ) : (
         <div className="phase-canvas-shell">
           <div
             className="phase-canvas-frame"
@@ -123,28 +152,17 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
               onResume={() => setIsPauseMenuOpen(false)}
               onOpenMainMenu={() => {
                 setIsPauseMenuOpen(false);
-                setPhaseStep("menu");
+                onChangeView("phase1");
+              }}
+              onOpenEditor={() => {
+                setIsPauseMenuOpen(false);
+                onChangeView("editor");
               }}
             />
           ) : null}
-        </div>
-      ) : (
-        <div
-          className="phase-canvas-frame"
-          style={
-            {
-              "--phase-canvas-width": `${scaledMenuWidth}px`,
-              "--phase-canvas-height": `${scaledMenuHeight}px`,
-            } as CSSProperties
-          }
-        >
-          <MainMenu
-            selectedPhase="phase2"
-            onSelectPhase={onChangeView}
-            onPlay={() => setPhaseStep("playing")}
-          />
         </div>
       )}
     </div>
   );
 }
+

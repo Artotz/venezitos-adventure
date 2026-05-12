@@ -849,3 +849,51 @@ h1 {
   }
 
 }
+
+/* Phase 2 Green Theme */
+.phase2-pre-game-card {
+  background:
+    radial-gradient(circle at top left, rgba(107, 174, 97, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(44, 68, 44, 0.96), rgba(25, 44, 34, 0.96)) !important;
+}
+
+.phase2-eyebrow {
+  color: #6bae61 !important;
+}
+
+.phase2-pre-game-card h2 {
+  color: #a8d5a8;
+}
+
+.phase2-pre-game-card .phase-pre-game-copy {
+  color: #8fc47f;
+}
+
+.phase2-hero-fade {
+  background:
+    radial-gradient(circle at 72% 44%, rgba(107, 174, 97, 0.18), transparent 42%),
+    linear-gradient(180deg, transparent 0%, rgba(25, 44, 34, 0.16) 100%) !important;
+}
+
+.phase2-primary-button {
+  border: 1px solid rgba(107, 174, 97, 0.36) !important;
+  background: rgba(93, 155, 84, 0.18) !important;
+  color: #c8e6c8 !important;
+}
+
+.phase2-primary-button:hover {
+  background: rgba(93, 155, 84, 0.28) !important;
+  border-color: rgba(107, 174, 97, 0.56) !important;
+}
+
+.phase2-secondary-button {
+  border: 1px solid rgba(107, 174, 97, 0.12) !important;
+  background: rgba(107, 174, 97, 0.05) !important;
+  color: #8fc47f !important;
+}
+
+.phase2-secondary-button:hover {
+  background: rgba(107, 174, 97, 0.12) !important;
+  border-color: rgba(107, 174, 97, 0.24) !important;
+}
+

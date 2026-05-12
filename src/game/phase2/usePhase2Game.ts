@@ -11,7 +11,11 @@ import {
   FIELD_TOP,
   FIELD_WIDTH,
   INITIAL_MESSAGE,
+  READY_TO_RESTART_MESSAGE,
+  RESTART_DISTANCE,
   TRACTOR_HEIGHT,
+  TRACTOR_HITBOX_HEIGHT,
+  TRACTOR_HITBOX_WIDTH,
   TRACTOR_SPEED,
   TRACTOR_START_X,
   TRACTOR_START_Y,
@@ -56,7 +60,7 @@ function createInitialSnapshot(): Phase2GameSnapshot {
       y: TRACTOR_START_Y,
       width: TRACTOR_WIDTH,
       height: TRACTOR_HEIGHT,
-      angle: -Math.PI / 2,
+      angle: 0,
       moving: false,
     },
     cells,
@@ -84,8 +88,26 @@ export function usePhase2Game(enabled = true, paused = false) {
 
     window.addEventListener("keydown", preventPageScroll);
 
+    const handleRestart = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat) {
+        return;
+      }
+
+      setSnapshot((current) => {
+        if (!current.isComplete || !isTractorAtStart(current.tractor.x, current.tractor.y)) {
+          return current;
+        }
+
+        event.preventDefault();
+        return createInitialSnapshot();
+      });
+    };
+
+    window.addEventListener("keydown", handleRestart);
+
     return () => {
       window.removeEventListener("keydown", preventPageScroll);
+      window.removeEventListener("keydown", handleRestart);
       input.detach();
       if (inputRef.current === input) {
         inputRef.current = null;
@@ -102,28 +124,27 @@ export function usePhase2Game(enabled = true, paused = false) {
       const movement = inputRef.current?.getMovementVector() ?? { x: 0, y: 0 };
 
       setSnapshot((current) => {
-        const magnitude = Math.hypot(movement.x, movement.y);
-        const inputX = magnitude > 0 ? movement.x / magnitude : 0;
-        const inputY = magnitude > 0 ? movement.y / magnitude : 0;
-        const halfWidth = current.tractor.width / 2;
-        const halfHeight = current.tractor.height / 2;
+        const steering = movement.x;
+        const throttle = -movement.y;
+        const isMoving = throttle !== 0;
+        const turnDirection = isMoving ? steering * Math.sign(throttle) : 0;
+        const nextAngle =
+          current.tractor.angle + turnDirection * TRACTOR_TURN_RESPONSE * dt;
+        const forwardX = Math.sin(nextAngle);
+        const forwardY = -Math.cos(nextAngle);
+        const halfWidth = TRACTOR_HITBOX_WIDTH / 2;
+        const halfHeight = TRACTOR_HITBOX_HEIGHT / 2;
 
         const nextX = clamp(
-          current.tractor.x + inputX * TRACTOR_SPEED * dt,
+          current.tractor.x + forwardX * throttle * TRACTOR_SPEED * dt,
           FIELD_LEFT + halfWidth,
           FIELD_LEFT + FIELD_WIDTH - halfWidth,
         );
         const nextY = clamp(
-          current.tractor.y + inputY * TRACTOR_SPEED * dt,
+          current.tractor.y + forwardY * throttle * TRACTOR_SPEED * dt,
           FIELD_TOP + halfHeight,
           FIELD_TOP + FIELD_HEIGHT - halfHeight,
         );
-        const targetAngle =
-          magnitude > 0 ? Math.atan2(inputY, inputX) + Math.PI / 2 : current.tractor.angle;
-        const nextAngle =
-          magnitude > 0
-            ? rotateToward(current.tractor.angle, targetAngle, TRACTOR_TURN_RESPONSE * dt)
-            : current.tractor.angle;
 
         let newlyCut = 0;
         const nextCells = current.cells.map((cell) => {
@@ -138,15 +159,19 @@ export function usePhase2Game(enabled = true, paused = false) {
         const nextCutCells = current.cutCells + newlyCut;
         const progress = nextCutCells / current.totalCells;
         const isComplete = nextCutCells === current.totalCells;
+        const readyToRestart = isComplete && isTractorAtStart(nextX, nextY);
+        const shouldCountTime = !isComplete || !readyToRestart;
 
         return {
           ...current,
           score: current.score + newlyCut * 10,
           cutCells: nextCutCells,
           progress,
-          elapsedTime: isComplete ? current.elapsedTime : current.elapsedTime + dt,
+          elapsedTime: shouldCountTime ? current.elapsedTime + dt : current.elapsedTime,
           message: isComplete
-            ? COMPLETE_MESSAGE
+            ? readyToRestart
+              ? READY_TO_RESTART_MESSAGE
+              : COMPLETE_MESSAGE
             : newlyCut > 0
               ? `Grama cortada: ${Math.round(progress * 100)}%`
               : current.message,
@@ -156,7 +181,7 @@ export function usePhase2Game(enabled = true, paused = false) {
             x: nextX,
             y: nextY,
             angle: nextAngle,
-            moving: magnitude > 0,
+            moving: isMoving,
           },
           cells: nextCells,
         };
@@ -188,14 +213,8 @@ function doesTractorCoverCell(
   );
 }
 
-function rotateToward(current: number, target: number, amount: number) {
-  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
-
-  if (Math.abs(delta) <= amount) {
-    return target;
-  }
-
-  return current + Math.sign(delta) * amount;
+function isTractorAtStart(x: number, y: number) {
+  return Math.hypot(x - TRACTOR_START_X, y - TRACTOR_START_Y) <= RESTART_DISTANCE;
 }
 
 function clamp(value: number, min: number, max: number) {

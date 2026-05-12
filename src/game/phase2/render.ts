@@ -13,12 +13,13 @@ import type { Phase2Cell, Phase2GameSnapshot } from "./types";
 export function drawPhase2Scene(
   context: CanvasRenderingContext2D,
   game: Phase2GameSnapshot,
+  tractorSprite: CanvasImageSource | null = null,
 ) {
   context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   drawBackdrop(context);
   drawField(context, game.cells);
-  drawTractor(context, game);
+  drawTractor(context, game, tractorSprite);
   drawHud(context, game);
 }
 
@@ -96,20 +97,34 @@ function drawDirtTexture(
   }
 }
 
-function drawTractor(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+function drawTractor(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+  tractorSprite: CanvasImageSource | null,
+) {
   const { tractor } = game;
 
   context.save();
   context.translate(tractor.x, tractor.y);
   context.rotate(tractor.angle);
 
-  context.fillStyle = "rgba(22, 24, 18, 0.25)";
-  context.fillRect(
-    -tractor.width / 2 - 8,
-    -tractor.height / 2 + 8,
-    tractor.width + 16,
-    tractor.height,
-  );
+  if (tractorSprite) {
+    context.drawImage(
+      tractorSprite,
+      -tractor.width / 2,
+      -tractor.height / 2,
+      tractor.width,
+      tractor.height,
+    );
+  } else {
+    drawFallbackTractor(context, game);
+  }
+
+  context.restore();
+}
+
+function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+  const { tractor } = game;
 
   context.fillStyle = "#1b1f1a";
   context.fillRect(-tractor.width / 2 - 12, -tractor.height / 2 + 8, 16, 30);
@@ -134,12 +149,6 @@ function drawTractor(context: CanvasRenderingContext2D, game: Phase2GameSnapshot
   context.lineTo(12, -tractor.height / 2 + 8);
   context.closePath();
   context.fill();
-
-  context.strokeStyle = "rgba(255, 255, 255, 0.18)";
-  context.lineWidth = 3;
-  context.strokeRect(-tractor.width / 2, -tractor.height / 2, tractor.width, tractor.height);
-
-  context.restore();
 }
 
 function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {

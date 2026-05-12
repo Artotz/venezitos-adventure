@@ -1,9 +1,12 @@
 import { useEffect } from "react";
-import heroPhase1Src from "../assets/hero.png";
-import heroPhase2Src from "../assets/hero2.jpeg";
+import heroPhase1Src from "../assets/hero-menu.jpg";
+import heroPhase2Src from "../assets/hero2-menu.jpg";
 import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./phase1/config";
 
 export type MainMenuPhase = "phase1" | "phase2";
+
+export const MAIN_MENU_WIDTH = 1280;
+export const MAIN_MENU_HEIGHT = 720;
 
 const PHASES: Record<
   MainMenuPhase,

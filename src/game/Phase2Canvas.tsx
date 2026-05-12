@@ -4,7 +4,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { MainMenu } from "./MainMenu";
+import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
@@ -17,6 +17,7 @@ type Phase2CanvasProps = {
 export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvasScale, setCanvasScale] = useState(1);
+  const [menuScale, setMenuScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const isPlaying = phaseStep === "playing";
@@ -35,8 +36,13 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
         availableWidth / CANVAS_WIDTH,
         availableHeight / CANVAS_HEIGHT,
       );
+      const nextMenuScale = Math.min(
+        availableWidth / MAIN_MENU_WIDTH,
+        availableHeight / MAIN_MENU_HEIGHT,
+      );
 
       setCanvasScale(nextScale > 0 ? nextScale : 1);
+      setMenuScale(nextMenuScale > 0 ? nextMenuScale : 1);
     };
 
     updateCanvasScale();
@@ -90,43 +96,45 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
+  const scaledMenuWidth = Math.round(MAIN_MENU_WIDTH * menuScale);
+  const scaledMenuHeight = Math.round(MAIN_MENU_HEIGHT * menuScale);
 
   return (
     <div className="phase-layout">
       {isPlaying ? (
-      <div className="phase-canvas-shell">
-        <div
-          className="phase-canvas-frame"
-          style={
-            {
-              "--phase-canvas-width": `${scaledCanvasWidth}px`,
-              "--phase-canvas-height": `${scaledCanvasHeight}px`,
-            } as CSSProperties
-          }
-        >
-          <canvas
-            ref={canvasRef}
-            className="phase-canvas"
-            aria-label="Fase 2 com um trator em visao de cima cortando grama"
-          />
+        <div className="phase-canvas-shell">
+          <div
+            className="phase-canvas-frame"
+            style={
+              {
+                "--phase-canvas-width": `${scaledCanvasWidth}px`,
+                "--phase-canvas-height": `${scaledCanvasHeight}px`,
+              } as CSSProperties
+            }
+          >
+            <canvas
+              ref={canvasRef}
+              className="phase-canvas"
+              aria-label="Fase 2 com um trator em visao de cima cortando grama"
+            />
+          </div>
+          {isPauseMenuOpen ? (
+            <PauseMenu
+              onResume={() => setIsPauseMenuOpen(false)}
+              onOpenMainMenu={() => {
+                setIsPauseMenuOpen(false);
+                setPhaseStep("menu");
+              }}
+            />
+          ) : null}
         </div>
-        {isPauseMenuOpen ? (
-          <PauseMenu
-            onResume={() => setIsPauseMenuOpen(false)}
-            onOpenMainMenu={() => {
-              setIsPauseMenuOpen(false);
-              setPhaseStep("menu");
-            }}
-          />
-        ) : null}
-      </div>
       ) : (
         <div
           className="phase-canvas-frame"
           style={
             {
-              "--phase-canvas-width": `${scaledCanvasWidth}px`,
-              "--phase-canvas-height": `${scaledCanvasHeight}px`,
+              "--phase-canvas-width": `${scaledMenuWidth}px`,
+              "--phase-canvas-height": `${scaledMenuHeight}px`,
             } as CSSProperties
           }
         >

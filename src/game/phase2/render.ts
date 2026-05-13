@@ -1,6 +1,7 @@
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  CELL_SCORE_VALUE,
   CELL_GAP,
   CELL_SIZE,
   FIELD_HEIGHT,
@@ -11,6 +12,9 @@ import {
   PLANTER_WIDTH,
   PLOW_HEIGHT,
   PLOW_WIDTH,
+  SPRAYER_HEIGHT,
+  SPRAYER_WIDTH,
+  STAGE_DURATION_SECONDS,
 } from "./config";
 import type { Phase2GameSnapshot } from "./types";
 import type { Phase2VehicleSprites } from "./usePhase2TractorSprite";
@@ -27,7 +31,7 @@ export function drawPhase2Scene(
   drawVehicle(context, game, vehicleSprites);
   drawHud(context, game);
   if (game.stage === "cane" && game.isComplete) {
-    drawCompletionMessage(context);
+    drawCompletionMessage(context, game);
   }
 }
 
@@ -54,15 +58,14 @@ function drawField(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) 
     const y = FIELD_TOP + cell.row * CELL_SIZE + CELL_GAP / 2;
     const size = CELL_SIZE - CELL_GAP;
 
-    context.fillStyle =
-      game.stage !== "plowing"
-        ? getSoilColor(cell.column, cell.row)
-        : cell.cut
-          ? "#8a6137"
-          : getGrassColor(cell.column, cell.row);
+    const isSoil = cell.cut;
+
+    context.fillStyle = isSoil
+      ? getSoilColor(cell.column, cell.row)
+      : getGrassColor(cell.column, cell.row);
     context.fillRect(x, y, size, size);
 
-    if (game.stage !== "plowing") {
+    if (isSoil) {
       drawDirtTexture(context, x, y, size, cell.id);
       if (cell.planted) {
         drawPlantingTexture(context, x, y, size, cell.id);
@@ -70,12 +73,9 @@ function drawField(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) 
       if (cell.cane) {
         drawCaneTexture(context, x, y, size, cell.id, game.isComplete);
       }
-    } else if (cell.cut) {
-      drawDirtTexture(context, x, y, size, cell.id);
     } else {
       drawGrassTexture(context, x, y, size, cell.id);
     }
-
   }
 }
 
@@ -124,12 +124,31 @@ function drawVehicle(
   game: Phase2GameSnapshot,
   vehicleSprites: Phase2VehicleSprites,
 ) {
+  const implementSprite =
+    game.stage === "plowing"
+      ? vehicleSprites.plow
+      : game.stage === "cane"
+        ? vehicleSprites.sprayer
+        : vehicleSprites.planter;
+  const implementWidth =
+    game.stage === "plowing"
+      ? PLOW_WIDTH
+      : game.stage === "cane"
+        ? SPRAYER_WIDTH
+        : PLANTER_WIDTH;
+  const implementHeight =
+    game.stage === "plowing"
+      ? PLOW_HEIGHT
+      : game.stage === "cane"
+        ? SPRAYER_HEIGHT
+        : PLANTER_HEIGHT;
+
   drawImplement(
     context,
     game,
-    game.stage === "plowing" ? vehicleSprites.plow : vehicleSprites.planter,
-    game.stage === "plowing" ? PLOW_WIDTH : PLANTER_WIDTH,
-    game.stage === "plowing" ? PLOW_HEIGHT : PLANTER_HEIGHT,
+    implementSprite,
+    implementWidth,
+    implementHeight,
   );
   drawHitch(context, game);
   drawTractor(context, game, vehicleSprites.tractor);
@@ -194,11 +213,16 @@ function drawCaneTexture(
   }
 }
 
-function drawCompletionMessage(context: CanvasRenderingContext2D) {
+function drawCompletionMessage(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+) {
   const boxWidth = 640;
-  const boxHeight = 118;
+  const boxHeight = 178;
   const boxX = CANVAS_WIDTH / 2 - boxWidth / 2;
   const boxY = CANVAS_HEIGHT / 2 - boxHeight / 2;
+  const cellPoints =
+    (game.cutCells + game.plantedCells + game.caneCells) * CELL_SCORE_VALUE;
 
   context.fillStyle = "rgba(18, 26, 18, 0.86)";
   context.fillRect(boxX, boxY, boxWidth, boxHeight);
@@ -209,8 +233,24 @@ function drawCompletionMessage(context: CanvasRenderingContext2D) {
   context.fillStyle = "#f4ead0";
   context.font = '700 36px "Segoe UI", sans-serif';
   context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.fillText("Muito bem, plantio concluido", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+  context.textBaseline = "alphabetic";
+  context.fillText("Muito bem, plantio concluido", CANVAS_WIDTH / 2, boxY + 54);
+
+  context.fillStyle = "#d8c9a6";
+  context.font = '18px "Segoe UI", sans-serif';
+  context.fillText(
+    `Celulas: ${cellPoints.toFixed(1)} pts  |  Tempo total: ${game.totalElapsedTime.toFixed(1)}s`,
+    CANVAS_WIDTH / 2,
+    boxY + 96,
+  );
+
+  context.fillStyle = "#f0c34e";
+  context.font = '700 26px "Segoe UI", sans-serif';
+  context.fillText(
+    `Pontuacao final: ${game.score.toFixed(1)}`,
+    CANVAS_WIDTH / 2,
+    boxY + 136,
+  );
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
 }
@@ -342,59 +382,69 @@ function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2Game
 }
 
 function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
-  context.fillStyle = "rgba(18, 26, 18, 0.82)";
-  context.fillRect(28, 28, 430, 146);
+  context.save();
+  context.globalAlpha = 0.76;
+  context.fillStyle = "rgba(18, 26, 18, 0.72)";
+  context.fillRect(28, 28, 322, 96);
 
-  context.strokeStyle = "rgba(229, 214, 164, 0.22)";
+  context.strokeStyle = "rgba(229, 214, 164, 0.18)";
   context.lineWidth = 2;
-  context.strokeRect(28, 28, 430, 146);
+  context.strokeRect(28, 28, 322, 96);
+  context.restore();
 
   context.fillStyle = "#f4ead0";
-  context.font = '700 22px "Segoe UI", sans-serif';
+  context.font = '700 18px "Segoe UI", sans-serif';
   context.fillText(
     game.stage === "cane"
       ? "Fase 2 - Cana"
       : game.stage === "planting"
         ? "Fase 2 - Plantio"
         : "Fase 2 - Corte de grama",
-    52,
-    66,
+    46,
+    58,
   );
 
   context.fillStyle = "#d8c9a6";
-  context.font = '16px "Segoe UI", sans-serif';
-  context.fillText("WASD / setas movem o trator", 52, 94);
+  context.font = '14px "Segoe UI", sans-serif';
   context.fillText(
     game.stage === "cane"
       ? `Cana: ${game.caneCells}/${game.totalCells}`
       : game.stage === "planting"
         ? `Plantadas: ${game.plantedCells}/${game.totalCells}`
         : `Celulas: ${game.cutCells}/${game.totalCells}`,
-    52,
-    120,
+    46,
+    84,
   );
-  context.fillText(`Tempo: ${game.elapsedTime.toFixed(1)}s`, 52, 146);
+  context.fillText(
+    `Tempo: ${game.elapsedTime.toFixed(1)}/${STAGE_DURATION_SECONDS}s`,
+    46,
+    108,
+  );
 
-  const barX = CANVAS_WIDTH - 390;
+  const barX = CANVAS_WIDTH - 314;
   const barY = 38;
-  const barWidth = 330;
-  const barHeight = 24;
+  const barWidth = 250;
+  const barHeight = 18;
+  const cellProgress = getCellProgress(game);
 
-  context.fillStyle = "rgba(18, 26, 18, 0.78)";
-  context.fillRect(barX - 24, 28, barWidth + 48, 96);
-  context.strokeStyle = "rgba(229, 214, 164, 0.22)";
-  context.strokeRect(barX - 24, 28, barWidth + 48, 96);
+  context.save();
+  context.globalAlpha = 0.76;
+  context.fillStyle = "rgba(18, 26, 18, 0.72)";
+  context.fillRect(barX - 18, 28, barWidth + 36, 76);
+  context.strokeStyle = "rgba(229, 214, 164, 0.18)";
+  context.strokeRect(barX - 18, 28, barWidth + 36, 76);
+  context.restore();
 
   context.fillStyle = "#f4ead0";
-  context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText(`Progresso ${Math.round(game.progress * 100)}%`, barX, 58);
+  context.font = '700 16px "Segoe UI", sans-serif';
+  context.fillText(`Progresso ${Math.round(cellProgress * 100)}%`, barX, 56);
 
   context.fillStyle = "#3a4b31";
-  context.fillRect(barX, barY + 34, barWidth, barHeight);
+  context.fillRect(barX, barY + 28, barWidth, barHeight);
   context.fillStyle = game.isComplete ? "#f0c34e" : "#95c954";
-  context.fillRect(barX, barY + 34, barWidth * game.progress, barHeight);
+  context.fillRect(barX, barY + 28, barWidth * cellProgress, barHeight);
   context.strokeStyle = "rgba(255, 255, 255, 0.18)";
-  context.strokeRect(barX, barY + 34, barWidth, barHeight);
+  context.strokeRect(barX, barY + 28, barWidth, barHeight);
 
   context.fillStyle = game.isComplete ? "#f0c34e" : "#f4ead0";
   context.font = '700 18px "Segoe UI", sans-serif';
@@ -405,6 +455,18 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
 
 function getGrassColor(column: number, row: number) {
   return (column + row) % 2 === 0 ? "#4f9b3f" : "#5daa46";
+}
+
+function getCellProgress(game: Phase2GameSnapshot) {
+  if (game.stage === "planting") {
+    return game.cutCells > 0 ? game.plantedCells / game.cutCells : 0;
+  }
+
+  if (game.stage === "cane") {
+    return game.plantedCells > 0 ? game.caneCells / game.plantedCells : 0;
+  }
+
+  return game.totalCells > 0 ? game.cutCells / game.totalCells : 0;
 }
 
 function getSoilColor(column: number, row: number) {

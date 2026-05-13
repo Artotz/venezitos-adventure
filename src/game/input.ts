@@ -5,6 +5,20 @@ const movementKeys = {
   down: ['ArrowDown', 's', 'S'],
 }
 
+const wasdKeys = {
+  left: ['a', 'A'],
+  right: ['d', 'D'],
+  up: ['w', 'W'],
+  down: ['s', 'S'],
+}
+
+const arrowKeys = {
+  left: ['ArrowLeft'],
+  right: ['ArrowRight'],
+  up: ['ArrowUp'],
+  down: ['ArrowDown'],
+}
+
 export class InputManager {
   private pressedKeys = new Set<string>()
   private listening = false
@@ -53,6 +67,28 @@ export class InputManager {
       Number(this.isAnyPressed(movementKeys.up))
 
     return { x: horizontal, y: vertical }
+  }
+
+  getWasdVector() {
+    const horizontal =
+      Number(this.isAnyPressed(wasdKeys.right)) -
+      Number(this.isAnyPressed(wasdKeys.left))
+    const vertical =
+      Number(this.isAnyPressed(wasdKeys.down)) -
+      Number(this.isAnyPressed(wasdKeys.up))
+
+    return { x: horizontal, y: vertical }
+  }
+
+  getArrowTractorControls() {
+    const steering =
+      Number(this.isAnyPressed(arrowKeys.right)) -
+      Number(this.isAnyPressed(arrowKeys.left))
+    const throttle =
+      Number(this.isAnyPressed(arrowKeys.up)) -
+      Number(this.isAnyPressed(arrowKeys.down))
+
+    return { steering, throttle }
   }
 
   private isAnyPressed(keys: string[]) {

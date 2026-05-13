@@ -35,6 +35,8 @@ export type Phase2GameSnapshot = {
   totalCells: number;
   progress: number;
   elapsedTime: number;
+  totalElapsedTime: number;
+  timerStarted: boolean;
   message: string;
   isComplete: boolean;
   tractor: Phase2Tractor;

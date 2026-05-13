@@ -16,9 +16,13 @@ export const TRACTOR_HITBOX_WIDTH = 50;
 export const TRACTOR_HITBOX_HEIGHT = 70;
 export const PLOW_WIDTH = 135;
 export const PLOW_HEIGHT = 71;
+export const PLANTER_WIDTH = 170;
+export const PLANTER_HEIGHT = 90;
 export const PLOW_OFFSET_Y = 82;
 export const PLOW_HITBOX_WIDTH = 98;
 export const PLOW_HITBOX_HEIGHT = 40;
+export const PLANTER_HITBOX_WIDTH = 150;
+export const PLANTER_HITBOX_HEIGHT = 68;
 export const PLOW_FOLLOW_RESPONSE = 1.6;
 export const PLOW_MAX_ARTICULATION = Math.PI / 2.5;
 export const PLOW_TURN_SWING = Math.PI / 4.5;
@@ -37,4 +41,10 @@ export const CONFIRM_PLANTING_MESSAGE =
   "A segunda etapa vai comecar. Pressione Space para confirmar.";
 export const PLANTING_MESSAGE = "Plante o campo passando o arado pelo solo.";
 export const PLANTING_COMPLETE_MESSAGE = "Plantio completo. Campo preparado!";
+export const READY_TO_CANE_MESSAGE =
+  "Plantio completo! Volte ao inicio para iniciar a cana.";
+export const CONFIRM_CANE_MESSAGE =
+  "A terceira etapa vai comecar. Pressione Space para confirmar.";
+export const CANE_MESSAGE = "Passe pelo campo para formar o plantio de cana.";
+export const CANE_COMPLETE_MESSAGE = "Plantio de cana completo!";
 export const READY_TO_RESTART_MESSAGE = "Campo limpo! Pressione espaço para reiniciar.";

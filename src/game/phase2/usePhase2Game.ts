@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { InputManager } from "../input";
 import { useGameLoop } from "../useGameLoop";
 import {
+  CANE_COMPLETE_MESSAGE,
+  CANE_MESSAGE,
   CELL_SIZE,
+  CONFIRM_CANE_MESSAGE,
   CONFIRM_PLANTING_MESSAGE,
   FIELD_COLUMNS,
   FIELD_HEIGHT,
@@ -11,8 +14,9 @@ import {
   FIELD_TOP,
   FIELD_WIDTH,
   INITIAL_MESSAGE,
-  PLANTING_COMPLETE_MESSAGE,
   PLANTING_MESSAGE,
+  PLANTER_HITBOX_HEIGHT,
+  PLANTER_HITBOX_WIDTH,
   PLOW_HITBOX_HEIGHT,
   PLOW_HITBOX_WIDTH,
   PLOW_HEIGHT,
@@ -20,6 +24,7 @@ import {
   PLOW_MAX_ARTICULATION,
   PLOW_TONGUE_LENGTH,
   PLOW_TURN_SWING,
+  READY_TO_CANE_MESSAGE,
   READY_TO_PLANT_MESSAGE,
   RESTART_DISTANCE,
   TRACTOR_HEIGHT,
@@ -51,6 +56,7 @@ function createInitialCells(): Phase2Cell[] {
     row: Math.floor(index / FIELD_COLUMNS),
     cut: false,
     planted: false,
+    cane: false,
   }));
 }
 
@@ -60,9 +66,11 @@ function createInitialSnapshot(): Phase2GameSnapshot {
   return {
     stage: "plowing",
     awaitingPlantConfirmation: false,
+    awaitingCaneConfirmation: false,
     score: 0,
     cutCells: 0,
     plantedCells: 0,
+    caneCells: 0,
     totalCells: cells.length,
     progress: 0,
     elapsedTime: 0,
@@ -112,11 +120,29 @@ export function usePhase2Game(enabled = true, paused = false) {
       }
 
       setSnapshot((current) => {
-        if (!current.awaitingPlantConfirmation) {
+        if (!current.awaitingPlantConfirmation && !current.awaitingCaneConfirmation) {
           return current;
         }
 
         event.preventDefault();
+
+        if (current.awaitingCaneConfirmation) {
+          return {
+            ...current,
+            stage: "cane",
+            awaitingCaneConfirmation: false,
+            caneCells: 0,
+            progress: 0,
+            message: CANE_MESSAGE,
+            isComplete: false,
+            cells: current.cells.map((cell) => ({
+              ...cell,
+              cut: true,
+              planted: true,
+              cane: false,
+            })),
+          };
+        }
 
         return {
           ...current,
@@ -130,6 +156,7 @@ export function usePhase2Game(enabled = true, paused = false) {
             ...cell,
             cut: true,
             planted: false,
+            cane: false,
           })),
         };
       });
@@ -156,12 +183,17 @@ export function usePhase2Game(enabled = true, paused = false) {
       const movement = inputRef.current?.getMovementVector() ?? { x: 0, y: 0 };
 
       setSnapshot((current) => {
-        if (current.awaitingPlantConfirmation) {
+        if (current.stage === "cane" && current.isComplete) {
+          return current;
+        }
+
+        if (current.awaitingPlantConfirmation || current.awaitingCaneConfirmation) {
           return current;
         }
 
         const steering = movement.x;
-        const throttle = -movement.y;
+        const throttle =
+          movement.y === 0 && steering !== 0 ? 1 : -movement.y;
         const isMoving = throttle !== 0;
         const turnDirection = isMoving ? steering * Math.sign(throttle) : 0;
         const nextAngle =
@@ -200,19 +232,47 @@ export function usePhase2Game(enabled = true, paused = false) {
           current.stage === "plowing" &&
           current.isComplete &&
           isTractorAtStart(nextX, nextY);
+        const shouldAskCaneConfirmation =
+          current.stage === "planting" &&
+          current.isComplete &&
+          isTractorAtStart(nextX, nextY);
         let newlyChanged = 0;
         const nextCells = current.cells.map((cell) => {
+          const cellAlreadyDone =
+            current.stage === "plowing"
+              ? cell.cut
+              : current.stage === "planting"
+                ? cell.planted
+                : cell.cane;
+
           if (
-            (current.stage === "plowing" ? cell.cut : cell.planted) ||
-            !doesPlowCoverCell(nextPlow.x, nextPlow.y, constrainedPlowAngle, cell)
+            cellAlreadyDone ||
+            !doesImplementCoverCell(
+              nextPlow.x,
+              nextPlow.y,
+              constrainedPlowAngle,
+              current.stage === "plowing"
+                ? PLOW_HITBOX_WIDTH
+                : PLANTER_HITBOX_WIDTH,
+              current.stage === "plowing"
+                ? PLOW_HITBOX_HEIGHT
+                : PLANTER_HITBOX_HEIGHT,
+              cell,
+            )
           ) {
             return cell;
           }
 
           newlyChanged += 1;
-          return current.stage === "plowing"
-            ? { ...cell, cut: true }
-            : { ...cell, planted: true };
+          if (current.stage === "plowing") {
+            return { ...cell, cut: true };
+          }
+
+          if (current.stage === "planting") {
+            return { ...cell, planted: true };
+          }
+
+          return { ...cell, cane: true };
         });
 
         const nextStage = current.stage;
@@ -224,43 +284,54 @@ export function usePhase2Game(enabled = true, paused = false) {
           current.stage === "planting"
             ? current.plantedCells + newlyChanged
             : current.plantedCells;
+        const nextCaneCells =
+          current.stage === "cane"
+            ? current.caneCells + newlyChanged
+            : current.caneCells;
         const progress =
-          nextStage === "planting"
-            ? nextPlantedCells / current.totalCells
-            : nextCutCells / current.totalCells;
+          nextStage === "plowing"
+            ? nextCutCells / current.totalCells
+            : nextStage === "planting"
+              ? nextPlantedCells / current.totalCells
+              : nextCaneCells / current.totalCells;
         const isComplete =
-          nextStage === "planting"
-            ? nextPlantedCells === current.totalCells
-            : nextCutCells === current.totalCells;
+          nextStage === "plowing"
+            ? nextCutCells === current.totalCells
+            : nextStage === "planting"
+              ? nextPlantedCells === current.totalCells
+              : nextCaneCells === current.totalCells;
+        const shouldFinishCane = nextStage === "cane" && isComplete;
+        const finalPlow = getPlowPosition(TRACTOR_START_X, TRACTOR_START_Y, 0, 0);
 
         return {
           ...current,
           stage: nextStage,
           awaitingPlantConfirmation: shouldAskPlantingConfirmation,
+          awaitingCaneConfirmation: shouldAskCaneConfirmation,
           score: current.score + newlyChanged * 10,
           cutCells: nextCutCells,
           plantedCells: nextPlantedCells,
+          caneCells: nextCaneCells,
           progress,
-          elapsedTime: current.elapsedTime + dt,
+          elapsedTime: shouldFinishCane ? current.elapsedTime : current.elapsedTime + dt,
           message: getNextMessage({
             isComplete,
-            newlyChanged,
-            progress,
             shouldAskPlantingConfirmation,
+            shouldAskCaneConfirmation,
             stage: nextStage,
           }),
           isComplete,
           tractor: {
             ...current.tractor,
-            x: nextX,
-            y: nextY,
-            angle: nextAngle,
-            moving: isMoving,
+            x: shouldFinishCane ? TRACTOR_START_X : nextX,
+            y: shouldFinishCane ? TRACTOR_START_Y : nextY,
+            angle: shouldFinishCane ? 0 : nextAngle,
+            moving: shouldFinishCane ? false : isMoving,
           },
           plow: {
-            x: nextPlow.x,
-            y: nextPlow.y,
-            angle: constrainedPlowAngle,
+            x: shouldFinishCane ? finalPlow.x : nextPlow.x,
+            y: shouldFinishCane ? finalPlow.y : nextPlow.y,
+            angle: shouldFinishCane ? 0 : constrainedPlowAngle,
           },
           cells: nextCells,
         };
@@ -280,22 +351,24 @@ export function usePhase2Game(enabled = true, paused = false) {
   return snapshot;
 }
 
-function doesPlowCoverCell(
-  plowX: number,
-  plowY: number,
-  plowAngle: number,
+function doesImplementCoverCell(
+  implementX: number,
+  implementY: number,
+  implementAngle: number,
+  hitboxWidth: number,
+  hitboxHeight: number,
   cell: Phase2Cell,
 ) {
   const cellLeft = FIELD_LEFT + cell.column * CELL_SIZE;
   const cellTop = FIELD_TOP + cell.row * CELL_SIZE;
   const cellRight = cellLeft + CELL_SIZE;
   const cellBottom = cellTop + CELL_SIZE;
-  const cos = Math.cos(plowAngle);
-  const sin = Math.sin(plowAngle);
-  const plowLeft = -PLOW_HITBOX_WIDTH / 2;
-  const plowRight = PLOW_HITBOX_WIDTH / 2;
-  const plowTop = -PLOW_HITBOX_HEIGHT / 2;
-  const plowBottom = PLOW_HITBOX_HEIGHT / 2;
+  const cos = Math.cos(implementAngle);
+  const sin = Math.sin(implementAngle);
+  const implementLeft = -hitboxWidth / 2;
+  const implementRight = hitboxWidth / 2;
+  const implementTop = -hitboxHeight / 2;
+  const implementBottom = hitboxHeight / 2;
   const corners = [
     { x: cellLeft, y: cellTop },
     { x: cellRight, y: cellTop },
@@ -308,8 +381,8 @@ function doesPlowCoverCell(
   let maxLocalY = -Infinity;
 
   for (const corner of corners) {
-    const dx = corner.x - plowX;
-    const dy = corner.y - plowY;
+    const dx = corner.x - implementX;
+    const dy = corner.y - implementY;
     const localX = dx * cos + dy * sin;
     const localY = -dx * sin + dy * cos;
 
@@ -320,23 +393,21 @@ function doesPlowCoverCell(
   }
 
   return (
-    minLocalX < plowRight &&
-    maxLocalX > plowLeft &&
-    minLocalY < plowBottom &&
-    maxLocalY > plowTop
+    minLocalX < implementRight &&
+    maxLocalX > implementLeft &&
+    minLocalY < implementBottom &&
+    maxLocalY > implementTop
   );
 }
 
 function getNextMessage({
   isComplete,
-  newlyChanged,
-  progress,
+  shouldAskCaneConfirmation,
   shouldAskPlantingConfirmation,
   stage,
 }: {
   isComplete: boolean;
-  newlyChanged: number;
-  progress: number;
+  shouldAskCaneConfirmation: boolean;
   shouldAskPlantingConfirmation: boolean;
   stage: Phase2Stage;
 }) {
@@ -344,23 +415,31 @@ function getNextMessage({
     return CONFIRM_PLANTING_MESSAGE;
   }
 
-  if (stage === "planting") {
+  if (shouldAskCaneConfirmation) {
+    return CONFIRM_CANE_MESSAGE;
+  }
+
+  if (stage === "cane") {
     if (isComplete) {
-      return PLANTING_COMPLETE_MESSAGE;
+      return CANE_COMPLETE_MESSAGE;
     }
 
-    return newlyChanged > 0
-      ? `Plantio: ${Math.round(progress * 100)}%`
-      : PLANTING_MESSAGE;
+    return CANE_MESSAGE;
+  }
+
+  if (stage === "planting") {
+    if (isComplete) {
+      return READY_TO_CANE_MESSAGE;
+    }
+
+    return PLANTING_MESSAGE;
   }
 
   if (isComplete) {
     return READY_TO_PLANT_MESSAGE;
   }
 
-  return newlyChanged > 0
-    ? `Grama cortada: ${Math.round(progress * 100)}%`
-    : INITIAL_MESSAGE;
+  return INITIAL_MESSAGE;
 }
 
 function getPlowPosition(

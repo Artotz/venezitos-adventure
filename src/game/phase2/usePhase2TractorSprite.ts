@@ -1,24 +1,27 @@
 import { useEffect, useState } from "react";
 import plowUrl from "../../assets/phase2/Arado.png.png";
+import planterUrl from "../../assets/phase2/Plantadeira,png.png";
 import tractorTopUrl from "../../assets/phase2/Trator.png.png";
 import { loadImage } from "../loadImage";
 
 export type Phase2VehicleSprites = {
   tractor: HTMLCanvasElement | null;
   plow: HTMLCanvasElement | null;
+  planter: HTMLCanvasElement | null;
 };
 
 export function usePhase2TractorSprite() {
   const [sprites, setSprites] = useState<Phase2VehicleSprites>({
     tractor: null,
     plow: null,
+    planter: null,
   });
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([loadImage(tractorTopUrl), loadImage(plowUrl)])
-      .then(([tractorImage, plowImage]) => {
+    Promise.all([loadImage(tractorTopUrl), loadImage(plowUrl), loadImage(planterUrl)])
+      .then(([tractorImage, plowImage, planterImage]) => {
         if (!active) {
           return;
         }
@@ -26,6 +29,7 @@ export function usePhase2TractorSprite() {
         setSprites({
           tractor: createTransparentSprite(tractorImage),
           plow: createTransparentSprite(plowImage),
+          planter: createTransparentSprite(planterImage),
         });
       })
       .catch((error) => {

@@ -4,6 +4,7 @@ import type {
   LayerName,
   SpriteName,
 } from "./types";
+import { TEXT } from "../i18n";
 
 export const ROOT_LAYER: LayerName = "Camada 3.png";
 
@@ -23,7 +24,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 3.png",
     parentPoint: { x: 114, y: 106 },
     childPoint: { x: 178, y: 20 },
-    label: "Camada 1 em relacao ao corpo",
+    label: TEXT.retro.layers.layer1,
     min: -110,
     max: 110,
   },
@@ -31,7 +32,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 1.png",
     parentPoint: { x: 9, y: 137 },
     childPoint: { x: 78, y: 32 },
-    label: "Camada 2 em relacao a camada 1",
+    label: TEXT.retro.layers.layer2,
     min: -160,
     max: 160,
   },
@@ -39,7 +40,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: null,
     parentPoint: null,
     childPoint: null,
-    label: "Corpo fixo",
+    label: TEXT.retro.layers.body,
     min: 0,
     max: 0,
   },
@@ -47,7 +48,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 3.png",
     parentPoint: { x: 50, y: 200 },
     childPoint: { x: 42, y: 45 },
-    label: "Pneu dianteiro",
+    label: TEXT.retro.layers.frontWheel,
     min: -360,
     max: 360,
   },
@@ -55,7 +56,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 3.png",
     parentPoint: { x: 230, y: 180 },
     childPoint: { x: 60, y: 63 },
-    label: "Pneu traseiro",
+    label: TEXT.retro.layers.rearWheel,
     min: -360,
     max: 360,
   },
@@ -63,7 +64,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 3.png",
     parentPoint: { x: 330, y: 180 },
     childPoint: { x: 46, y: 230 },
-    label: "Camada 6 em relacao ao corpo",
+    label: TEXT.retro.layers.layer6,
     min: -110,
     max: 110,
   },
@@ -71,7 +72,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 6.png",
     parentPoint: { x: 90, y: 16 },
     childPoint: { x: 16, y: 18 },
-    label: "Camada 7 em relacao a camada 6",
+    label: TEXT.retro.layers.layer7,
     min: -180,
     max: 180,
   },
@@ -79,7 +80,7 @@ export const LAYER_CONFIG: Record<LayerName, LayerConfig> = {
     parent: "Camada 7.png",
     parentPoint: { x: 103, y: 180 },
     childPoint: { x: 66, y: 49 },
-    label: "Camada 8 em relacao a camada 7",
+    label: TEXT.retro.layers.layer8,
     min: -180,
     max: 180,
   },
@@ -110,7 +111,7 @@ export const BASE_SPRITES: Record<LayerName, SpriteName> = {
 export const ANIMATION_PRESETS: AnimationPreset[] = [
   {
     id: "idle",
-    name: "Ciclo de cacamba 1",
+    name: TEXT.retro.animations.bucketCycle1,
     keyframes: [
       { at: 0, changes: {} },
       { at: 600, changes: { "Camada 1.png": 8, "Camada 2.png": -16 } },
@@ -125,7 +126,7 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
   },
   {
     id: "idle2",
-    name: "Ciclo de cacamba 2",
+    name: TEXT.retro.animations.bucketCycle2,
     keyframes: [
       { at: 0, changes: {} },
       { at: 1200, changes: { "Camada 1.png": 75, "Camada 2.png": -24 } },
@@ -145,7 +146,7 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
   },
   {
     id: "arm-extended",
-    name: "Braco estendido",
+    name: TEXT.retro.animations.armExtended,
     keyframes: [
       { at: 0, changes: {} },
       {
@@ -183,7 +184,7 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
   },
   {
     id: "arm-unload",
-    name: "Descarregando traseira",
+    name: TEXT.retro.animations.rearUnloading,
     keyframes: [
       { at: 0, changes: {} },
       {

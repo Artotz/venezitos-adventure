@@ -1,3 +1,5 @@
+import { TEXT } from "../i18n";
+
 export const CANVAS_WIDTH = 1560;
 export const CANVAS_HEIGHT = 720;
 
@@ -39,17 +41,34 @@ export const RESTART_DISTANCE = 50;
 export const STAGE_DURATION_SECONDS = 40;
 export const CELL_SCORE_VALUE = 1.35;
 
-export const INITIAL_MESSAGE = "Corte toda a grama passando por cima das celulas.";
-export const COMPLETE_MESSAGE = "Campo limpo. Todas as celulas foram cortadas.";
-export const READY_TO_PLANT_MESSAGE = "Campo limpo! Volte ao inicio para plantar.";
-export const CONFIRM_PLANTING_MESSAGE =
-  "A segunda etapa vai comecar. Pressione Space para confirmar.";
-export const PLANTING_MESSAGE = "Plante o campo passando o arado pelo solo.";
-export const PLANTING_COMPLETE_MESSAGE = "Plantio completo. Campo preparado!";
-export const READY_TO_CANE_MESSAGE =
-  "Plantio completo! Volte ao inicio para iniciar a cana.";
-export const CONFIRM_CANE_MESSAGE =
-  "A terceira etapa vai comecar. Pressione Space para confirmar.";
-export const CANE_MESSAGE = "Passe pelo campo para formar o plantio de cana.";
-export const CANE_COMPLETE_MESSAGE = "Plantio de cana completo!";
-export const READY_TO_RESTART_MESSAGE = "Campo limpo! Pressione espaço para reiniciar.";
+export const PHASE2_MENU_EYEBROW = TEXT.phase2.menuEyebrow;
+export const PHASE2_MENU_TITLE = TEXT.phase2.menuTitle;
+export const PHASE2_MENU_DESCRIPTION = TEXT.phase2.menuDescription;
+export const PHASE2_MENU_ACTION_LABEL = TEXT.phase2.menuAction;
+
+export const PHASE2_PRE_GAME_TITLE = TEXT.phase2.preGameTitle;
+export const PHASE2_PRE_GAME_DESCRIPTION = TEXT.phase2.preGameDescription;
+export const PHASE2_PRE_GAME_ACTION_LABEL = TEXT.phase2.preGameAction;
+export const PHASE2_PRE_GAME_BACK_LABEL = TEXT.phase2.preGameBack;
+
+export const PHASE2_PLOWING_TITLE = TEXT.phase2.plowingTitle;
+export const PHASE2_PLANTING_TITLE = TEXT.phase2.plantingTitle;
+export const PHASE2_CANE_TITLE = TEXT.phase2.caneTitle;
+export const PHASE2_MOVEMENT_HINT = TEXT.phase2.movementHint;
+export const PHASE2_PLANTED_LABEL = TEXT.phase2.plantedLabel;
+export const PHASE2_CANE_LABEL = TEXT.phase2.caneLabel;
+export const PHASE2_CELLS_LABEL = TEXT.phase2.cellsLabel;
+export const PHASE2_TIME_LABEL = TEXT.phase2.timeLabel;
+export const PHASE2_PROGRESS_LABEL = TEXT.phase2.progressLabel;
+
+export const INITIAL_MESSAGE = TEXT.phase2.initialMessage;
+export const COMPLETE_MESSAGE = TEXT.phase2.completeMessage;
+export const READY_TO_PLANT_MESSAGE = TEXT.phase2.readyToPlantMessage;
+export const CONFIRM_PLANTING_MESSAGE = TEXT.phase2.confirmPlantingMessage;
+export const PLANTING_MESSAGE = TEXT.phase2.plantingMessage;
+export const PLANTING_COMPLETE_MESSAGE = TEXT.phase2.plantingCompleteMessage;
+export const READY_TO_CANE_MESSAGE = TEXT.phase2.readyToCaneMessage;
+export const CONFIRM_CANE_MESSAGE = TEXT.phase2.confirmCaneMessage;
+export const CANE_MESSAGE = TEXT.phase2.caneMessage;
+export const CANE_COMPLETE_MESSAGE = TEXT.phase2.caneCompleteMessage;
+export const READY_TO_RESTART_MESSAGE = TEXT.phase2.readyToRestartMessage;

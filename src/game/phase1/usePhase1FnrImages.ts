@@ -6,6 +6,7 @@ import lever2Src from "../../assets/fnr/alavanca2.png";
 import lever3Src from "../../assets/fnr/alavanca3.png";
 import lever4Src from "../../assets/fnr/alavanca4.png";
 import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
+import { TEXT } from "../i18n";
 
 type Phase1FnrImages = {
   fnrImage: LoadedImageSource | null;
@@ -51,7 +52,7 @@ export function usePhase1FnrImages() {
             "alavanca4",
           ];
           console.error(
-            `Falha ao carregar o sprite ${assetNames[index]}.`,
+            TEXT.phase1.errors.sprite(assetNames[index]),
             result.reason,
           );
         }

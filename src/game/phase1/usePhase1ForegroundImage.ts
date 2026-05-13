@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import foregroundSrc from "../../assets/foreground.png";
 import { loadImage } from "../loadImage";
+import { TEXT } from "../i18n";
 
 export function usePhase1ForegroundImage() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -16,7 +17,7 @@ export function usePhase1ForegroundImage() {
         }
       })
       .catch((error: unknown) => {
-        console.error("Falha ao carregar o foreground da fase 1.", error);
+        console.error(TEXT.phase1.errors.foreground, error);
       });
 
     return () => {

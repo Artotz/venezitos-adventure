@@ -2,6 +2,7 @@ import {
   GREASE_POINTS,
   type GreaseAnimationConfig,
 } from "../venezito/greaseAnimation"
+import { TEXT } from "../i18n"
 
 type GreaseControlsProps = {
   config: GreaseAnimationConfig
@@ -33,7 +34,7 @@ const SCALAR_FIELDS: Array<{
 }> = [
   {
     key: "frameDurationMs",
-    label: "Duracao por frame",
+    label: TEXT.editor.grease.frameDuration,
     min: 20,
     max: 1000,
     step: 1,
@@ -41,7 +42,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "framesPerPoint",
-    label: "Frames por ponto",
+    label: TEXT.editor.grease.framesPerPoint,
     min: 1,
     max: 8,
     step: 1,
@@ -49,7 +50,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "spriteHeight",
-    label: "Altura do sprite",
+    label: TEXT.editor.grease.spriteHeight,
     min: 40,
     max: 260,
     step: 1,
@@ -57,7 +58,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "spriteOffsetX",
-    label: "Offset X",
+    label: TEXT.editor.grease.spriteOffsetX,
     min: -200,
     max: 200,
     step: 1,
@@ -65,7 +66,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "spriteOffsetY",
-    label: "Offset Y",
+    label: TEXT.editor.grease.spriteOffsetY,
     min: -200,
     max: 200,
     step: 1,
@@ -73,7 +74,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "spritePivotX",
-    label: "Pivot X",
+    label: TEXT.editor.grease.spritePivotX,
     min: 0,
     max: 1,
     step: 0.01,
@@ -81,7 +82,7 @@ const SCALAR_FIELDS: Array<{
   },
   {
     key: "spritePivotY",
-    label: "Pivot Y",
+    label: TEXT.editor.grease.spritePivotY,
     min: 0,
     max: 1,
     step: 0.01,
@@ -106,26 +107,30 @@ export function GreaseControls({
   return (
     <div className="controls-group grease-controls">
       <div className="controls-header">
-        <h2>Venezito Grease</h2>
+        <h2>{TEXT.editor.grease.title}</h2>
         <div className="controls-actions">
           <button type="button" className="reset-button" onClick={onReset}>
-            Resetar
+            {TEXT.common.reset}
           </button>
           <button type="button" className="reset-button" onClick={onTogglePlayback}>
-            {isPlaying ? "Pausar" : "Tocar"}
+            {isPlaying ? TEXT.common.pause : TEXT.common.play}
           </button>
         </div>
       </div>
 
       <p className="points-help">
-        Preview usando {GREASE_POINTS.length} pontos da maquina.
+        {TEXT.editor.grease.previewPrefix} {GREASE_POINTS.length}{" "}
+        {TEXT.editor.grease.previewSuffix}
         {currentPointIndex === null
-          ? " Ajuste os parametros e toque a animacao."
-          : ` Ponto atual: ${currentPointIndex + 1}/${GREASE_POINTS.length}.`}
+          ? ` ${TEXT.editor.grease.adjustAndPlay}`
+          : ` ${TEXT.editor.grease.currentPoint(
+              currentPointIndex + 1,
+              GREASE_POINTS.length,
+            )}`}
       </p>
 
       <label className="slider-control">
-        <span className="slider-title">Timeline</span>
+        <span className="slider-title">{TEXT.editor.animations.timeline}</span>
         <span className="slider-value">
           {Math.round(currentTime)} ms / {totalDuration} ms
         </span>
@@ -168,7 +173,9 @@ export function GreaseControls({
       <div className="grease-sequence-grid">
         {config.wobbleRotations.map((value, index) => (
           <label key={`rotation-${index}`} className="slider-control">
-            <span className="slider-title">{`Rotacao frame ${index + 1}`}</span>
+            <span className="slider-title">
+              {TEXT.editor.grease.rotationFrame(index + 1)}
+            </span>
             <span className="slider-value">{value.toFixed(2)} rad</span>
             <input
               type="range"
@@ -189,7 +196,9 @@ export function GreaseControls({
 
         {config.wobbleYOffsets.map((value, index) => (
           <label key={`offset-${index}`} className="slider-control">
-            <span className="slider-title">{`Offset Y frame ${index + 1}`}</span>
+            <span className="slider-title">
+              {TEXT.editor.grease.offsetYFrame(index + 1)}
+            </span>
             <span className="slider-value">{Math.round(value)} px</span>
             <input
               type="range"
@@ -210,7 +219,7 @@ export function GreaseControls({
       </div>
 
       <div className="point-export">
-        <span>Config atual</span>
+        <span>{TEXT.editor.grease.currentConfig}</span>
         <code>{configCode}</code>
       </div>
     </div>

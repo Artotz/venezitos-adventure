@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { GameCanvas } from "./game/GameCanvas";
+import { useGamepadKeyboardBridge } from "./game/gamepadInput";
 import { Phase1Canvas } from "./game/Phase1Canvas";
 import { Phase2Canvas } from "./game/Phase2Canvas";
 import "./styles.css";
 
 function App() {
+  useGamepadKeyboardBridge(true);
   const [activeView, setActiveView] = useState<
     "phase1" | "phase2" | "editor"
   >("phase1");

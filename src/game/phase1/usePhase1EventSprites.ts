@@ -8,6 +8,7 @@ import maintenanceSignSrc from "../../assets/maintenance-sign.png";
 import mudSrc from "../../assets/mud.png";
 import workSignSrc from "../../assets/work-sign.png";
 import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
+import { TEXT } from "../i18n";
 
 type Phase1EventSprites = {
   dirtPileImage: LoadedImageSource | null;
@@ -69,7 +70,7 @@ export function usePhase1EventSprites() {
             "mud",
             "work-sign",
           ];
-          console.error(`Falha ao carregar o sprite ${assetNames[index]}.`, result.reason);
+          console.error(TEXT.phase1.errors.sprite(assetNames[index]), result.reason);
         }
       });
     });

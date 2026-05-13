@@ -1,7 +1,21 @@
 import { useEffect } from "react";
 import heroPhase1Src from "../assets/hero-menu.jpg";
 import heroPhase2Src from "../assets/hero2-menu.jpg";
+import {
+  isMenuConfirmCode,
+  isMenuDownCode,
+  isMenuLeftCode,
+  isMenuRightCode,
+  isMenuUpCode,
+} from "./gamepadInput";
+import { TEXT } from "./i18n";
 import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./phase1/config";
+import {
+  PHASE2_MENU_ACTION_LABEL,
+  PHASE2_MENU_DESCRIPTION,
+  PHASE2_MENU_EYEBROW,
+  PHASE2_MENU_TITLE,
+} from "./phase2/config";
 
 export type MainMenuPhase = "phase1" | "phase2";
 
@@ -19,17 +33,17 @@ const PHASES: Record<
   }
 > = {
   phase1: {
-    eyebrow: "Veneza Equipamentos",
+    eyebrow: TEXT.mainMenu.phase1Eyebrow,
     title: PHASE1_MENU_TITLE,
     description: PHASE1_MENU_DESCRIPTION,
-    actionLabel: "Jogar fase 1",
+    actionLabel: TEXT.mainMenu.phase1Action,
     heroSrc: heroPhase1Src,
   },
   phase2: {
-    eyebrow: "VENEZA MÁQUINAS",
-    title: "Cortando a grama",
-    description: "Controle o trator por cima, limpe o campo inteiro e mantenha o ritmo.",
-    actionLabel: "Jogar fase 2",
+    eyebrow: PHASE2_MENU_EYEBROW,
+    title: PHASE2_MENU_TITLE,
+    description: PHASE2_MENU_DESCRIPTION,
+    actionLabel: PHASE2_MENU_ACTION_LABEL,
     heroSrc: heroPhase2Src,
   },
 };
@@ -54,13 +68,18 @@ export function MainMenu({
         return;
       }
 
-      if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+      if (
+        isMenuLeftCode(event.code) ||
+        isMenuRightCode(event.code) ||
+        isMenuUpCode(event.code) ||
+        isMenuDownCode(event.code)
+      ) {
         event.preventDefault();
         onSelectPhase(nextPhase);
         return;
       }
 
-      if (event.code === "Enter" || event.code === "NumpadEnter") {
+      if (isMenuConfirmCode(event.code)) {
         event.preventDefault();
         onPlay();
       }
@@ -79,7 +98,10 @@ export function MainMenu({
         <p className="phase-pre-game-eyebrow">{selected.eyebrow}</p>
         <h2>{selected.title}</h2>
         <p className="phase-pre-game-copy">{selected.description}</p>
-        <div className="phase-menu-selector" aria-label="Selecionar fase">
+        <div
+          className="phase-menu-selector"
+          aria-label={TEXT.mainMenu.phaseSelectorAria}
+        >
           <button
             type="button"
             className={`phase-menu-dot${
@@ -88,7 +110,7 @@ export function MainMenu({
             aria-pressed={selectedPhase === "phase1"}
             onClick={() => onSelectPhase("phase1")}
           >
-            Fase 1
+            {TEXT.common.phase1}
           </button>
           <button
             type="button"
@@ -98,7 +120,7 @@ export function MainMenu({
             aria-pressed={selectedPhase === "phase2"}
             onClick={() => onSelectPhase("phase2")}
           >
-            Fase 2
+            {TEXT.common.phase2}
           </button>
         </div>
         <div className="phase-pre-game-actions">

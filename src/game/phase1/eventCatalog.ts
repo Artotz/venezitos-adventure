@@ -8,6 +8,7 @@ import {
   QUESTION_OPTION_DISPLAY_LABEL,
   TRACTION_TOGGLE_KEY_LABEL,
 } from "./config";
+import { TEXT } from "../i18n";
 import { getGreaseAnimationTotalDuration } from "./greaseAnimation";
 import type {
   EventDefinition,
@@ -27,17 +28,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     hitboxHalfWidth: 76,
     acceptedCodes: ["ArrowLeft"],
     keyLabel: PICKUP_EVENT_KEYS_LABEL,
-    title: "Carregar carregadeira",
-    description: "Punhado de terra no caminho",
-    hint: "A carregadeira enche a frente sem mexer na traseira.",
-    successMessage: "Terra apanhada. A cacamba esta carregada.",
+    title: TEXT.phase1.events.pickupLoad.title,
+    description: TEXT.phase1.events.pickupLoad.description,
+    hint: TEXT.phase1.events.pickupLoad.hint,
+    successMessage: TEXT.phase1.events.pickupLoad.success,
     requiredDriveState: { mode: "forward", gear: 1 },
     reward: 180,
     animation: {
       kind: "retro-preset",
       target: "front",
       presetId: "idle",
-      label: "Ciclo de cacamba 1",
+      label: TEXT.phase1.events.pickupLoad.animation,
       lockMovement: false,
       loadStateOnComplete: {
         loadedDirt: true,
@@ -52,17 +53,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     hitboxHalfWidth: 300,
     acceptedCodes: ["ArrowLeft"],
     keyLabel: PICKUP_EVENT_KEYS_LABEL,
-    title: "Descarregar carregadeira",
-    description: "Caminhao esperando a frente",
-    hint: "Pare a maquina e descarregue a terra da frente.",
-    successMessage: "Terra descarregada no caminhao.",
+    title: TEXT.phase1.events.pickupUnload.title,
+    description: TEXT.phase1.events.pickupUnload.description,
+    hint: TEXT.phase1.events.pickupUnload.hint,
+    successMessage: TEXT.phase1.events.pickupUnload.success,
     requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
       target: "front",
       presetId: "idle2",
-      label: "Ciclo de cacamba 2",
+      label: TEXT.phase1.events.pickupUnload.animation,
       lockMovement: true,
       loadStateOnComplete: {
         loadedDirt: false,
@@ -77,17 +78,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     hitboxHalfWidth: 82,
     acceptedCodes: ["ArrowRight"],
     keyLabel: DIG_EVENT_KEYS_LABEL,
-    title: "Carregar retroescavadeira",
-    description: "Ponto de escavacao atras",
-    hint: "A retroescavadeira carrega a traseira e persiste no final.",
-    successMessage: "Retroescavadeira carregada atras.",
+    title: TEXT.phase1.events.digLoad.title,
+    description: TEXT.phase1.events.digLoad.description,
+    hint: TEXT.phase1.events.digLoad.hint,
+    successMessage: TEXT.phase1.events.digLoad.success,
     requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
       target: "rear",
       presetId: "arm-extended",
-      label: "Braco estendido",
+      label: TEXT.phase1.events.digLoad.animation,
       lockMovement: true,
       spriteSwapAtMs: 2000 + 1500,
       loadStateOnComplete: {
@@ -103,17 +104,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     hitboxHalfWidth: 94,
     acceptedCodes: ["ArrowRight"],
     keyLabel: DIG_EVENT_KEYS_LABEL,
-    title: "Descarregar retroescavadeira",
-    description: "Vala para descarregar atras",
-    hint: "A retro abre e descarrega atras sem mexer na frente.",
-    successMessage: "Retroescavadeira descarregada na vala.",
+    title: TEXT.phase1.events.digUnload.title,
+    description: TEXT.phase1.events.digUnload.description,
+    hint: TEXT.phase1.events.digUnload.hint,
+    successMessage: TEXT.phase1.events.digUnload.success,
     requiredDriveState: { mode: "neutral" },
     reward: 180,
     animation: {
       kind: "retro-preset",
       target: "rear",
       presetId: "arm-unload",
-      label: "Descarregando traseira",
+      label: TEXT.phase1.events.digUnload.animation,
       lockMovement: true,
       spriteSwapAtMs: 2400,
       loadStateOnComplete: {
@@ -129,15 +130,15 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     hitboxHalfWidth: 92,
     acceptedCodes: ["ArrowUp"],
     keyLabel: GREASE_EVENT_KEYS_LABEL,
-    title: "Aplicar graxa",
+    title: TEXT.phase1.events.grease.title,
     requiredDriveState: { mode: "neutral" },
-    description: "Ponto de lubrificacao no caminho",
-    hint: "A maquina desacelera, para para a graxa e retoma depois.",
-    successMessage: "Graxa aplicada. Volte para a operação.",
+    description: TEXT.phase1.events.grease.description,
+    hint: TEXT.phase1.events.grease.hint,
+    successMessage: TEXT.phase1.events.grease.success,
     reward: 180,
     animation: {
       kind: "grease",
-      label: "Aplicando graxa",
+      label: TEXT.phase1.events.grease.animation,
       lockMovement: true,
       durationMs: getGreaseAnimationTotalDuration(),
     },
@@ -148,17 +149,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     interaction: "traction-zone",
     visualOffset: 0,
     hitboxHalfWidth: 175,
-    title: "Frear",
-    description: "Ponto de controle no caminho",
-    hint: "Use ↓ para frear a maquina.",
-    successMessage: "Aproximacao controlada com o freio.",
+    title: TEXT.phase1.events.traction.title,
+    description: TEXT.phase1.events.traction.description,
+    hint: TEXT.phase1.events.traction.hint(TRACTION_TOGGLE_KEY_LABEL),
+    successMessage: TEXT.phase1.events.traction.success,
     requiredDriveState: { mode: "neutral" },
     toggleCodes: ["ArrowDown"],
     toggleKeyLabel: TRACTION_TOGGLE_KEY_LABEL,
     activeSpeed: LOW_TRACTION_SPEED,
     drainPerFrame: 1,
     rewardPerFrame: 1,
-    failureMessage: "Voce atravessou o trecho sem frear.",
+    failureMessage: TEXT.phase1.events.traction.failure,
   },
   question: {
     type: "question",
@@ -166,15 +167,17 @@ export const EVENT_DEFINITIONS: Record<MapEventType, EventDefinition> = {
     interaction: "question-modal",
     visualOffset: 30,
     hitboxHalfWidth: 86,
-    title: "Parada de avaliacao",
-    description: "Instrutor bloqueando a pista",
-    hint: "A maquina para e voce responde seguindo ↑ ← ↓ → no modal.",
-    successMessage: "Pergunta respondida.",
+    title: TEXT.phase1.events.question.title,
+    description: TEXT.phase1.events.question.description,
+    hint: TEXT.phase1.events.question.hint(QUESTION_OPTION_DISPLAY_LABEL),
+    successMessage: TEXT.phase1.events.question.success,
     requiredDriveState: { mode: "neutral" },
     triggerCodes: ["ArrowUp"],
     triggerKeyLabel: GREASE_EVENT_KEYS_LABEL,
-    modalTitle: "Pergunta do instrutor",
-    selectionHint: `Use ${QUESTION_OPTION_DISPLAY_LABEL} para responder`,
+    modalTitle: TEXT.phase1.events.question.modalTitle,
+    selectionHint: TEXT.phase1.events.question.selectionHint(
+      QUESTION_OPTION_DISPLAY_LABEL,
+    ),
     approachSlowdownDistance: QUESTION_APPROACH_SLOWDOWN_DISTANCE,
     approachTargetSpeed: QUESTION_APPROACH_TARGET_SPEED,
   },
@@ -212,14 +215,26 @@ export function getEventActivationMessage(definition: EventDefinition) {
   );
 
   if (isManualEventDefinition(definition)) {
-    return `${definition.title}: use ${driveStateLabel} e pressione ${definition.keyLabel}.`;
+    return TEXT.phase1.controls.eventAction.manual(
+      definition.title,
+      driveStateLabel,
+      definition.keyLabel,
+    );
   }
 
   if (isTractionEventDefinition(definition)) {
-    return `${definition.title}: use ${driveStateLabel} e ${definition.toggleKeyLabel} no trecho.`;
+    return TEXT.phase1.controls.eventAction.traction(
+      definition.title,
+      driveStateLabel,
+      definition.toggleKeyLabel,
+    );
   }
 
-  return `${definition.title}: use ${driveStateLabel} e pressione ${definition.triggerKeyLabel}.`;
+  return TEXT.phase1.controls.eventAction.manual(
+    definition.title,
+    driveStateLabel,
+    definition.triggerKeyLabel,
+  );
 }
 
 export function getRequiredDriveStateLabel(

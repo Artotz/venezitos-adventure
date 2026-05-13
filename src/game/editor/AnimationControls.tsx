@@ -1,4 +1,5 @@
 import { ANIMATION_PRESETS } from '../retro/config'
+import { TEXT } from '../i18n'
 import type { AnimationPreset } from '../retro/types'
 
 type AnimationControlsProps = {
@@ -25,19 +26,19 @@ export function AnimationControls({
   return (
     <div className="controls-group animation-controls">
       <div className="controls-header">
-        <h2>Animacoes</h2>
+        <h2>{TEXT.editor.animations.title}</h2>
         <button
           type="button"
           className="reset-button"
           onClick={onTogglePlayback}
           disabled={!selectedAnimation}
         >
-          {isPlaying ? 'Pausar' : 'Tocar'}
+          {isPlaying ? TEXT.common.pause : TEXT.common.play}
         </button>
       </div>
 
       <label className="slider-control">
-        <span className="slider-title">Preset</span>
+        <span className="slider-title">{TEXT.editor.animations.preset}</span>
         <select
           className="animation-select"
           value={selectedAnimationId}
@@ -52,7 +53,7 @@ export function AnimationControls({
       </label>
 
       <label className="slider-control">
-        <span className="slider-title">Timeline</span>
+        <span className="slider-title">{TEXT.editor.animations.timeline}</span>
         <span className="slider-value">
           {Math.round(currentTime)} ms / {totalDuration} ms
         </span>
@@ -70,7 +71,7 @@ export function AnimationControls({
         <div className="keyframe-list">
           {selectedAnimation.keyframes.map((keyframe, index) => (
             <div key={keyframe.at} className="keyframe-card">
-              <strong>Keyframe {index}</strong>
+              <strong>{TEXT.editor.animations.keyframe} {index}</strong>
               <span>{keyframe.at} ms</span>
               <code>{JSON.stringify(keyframe)}</code>
             </div>

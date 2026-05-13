@@ -3,6 +3,12 @@ import type {
   MapEventType,
   QuestionChoiceDirection,
 } from "./types";
+import {
+  GAMEPAD_AXIS_CODES,
+  GAMEPAD_BUTTON_CODES,
+  getPressedGamepadCodes,
+} from "../gamepadInput";
+import { TEXT } from "../i18n";
 
 export type Phase1ControlSchemeId = "keyboard" | "playstation" | "xbox";
 
@@ -35,23 +41,38 @@ export type Phase1ControlScheme = {
   };
 };
 
-export const PHASE1_GAMEPAD_BUTTON_CODES = {
-  faceBottom: "GamepadButton0",
-  faceRight: "GamepadButton1",
-  faceLeft: "GamepadButton2",
-  faceTop: "GamepadButton3",
-  dpadUp: "GamepadButton12",
-  dpadDown: "GamepadButton13",
-  dpadLeft: "GamepadButton14",
-  dpadRight: "GamepadButton15",
+export const PHASE1_GAMEPAD_BUTTON_CODES = GAMEPAD_BUTTON_CODES;
+export const PHASE1_GAMEPAD_AXIS_CODES = GAMEPAD_AXIS_CODES;
+
+const GAMEPAD_DRIVE_CODES = {
+  fnrUp: [
+    PHASE1_GAMEPAD_BUTTON_CODES.dpadLeft,
+    PHASE1_GAMEPAD_AXIS_CODES.leftStickLeft,
+    PHASE1_GAMEPAD_AXIS_CODES.rightStickLeft,
+  ],
+  fnrDown: [
+    PHASE1_GAMEPAD_BUTTON_CODES.dpadRight,
+    PHASE1_GAMEPAD_AXIS_CODES.leftStickRight,
+    PHASE1_GAMEPAD_AXIS_CODES.rightStickRight,
+  ],
+  gearUp: [
+    PHASE1_GAMEPAD_BUTTON_CODES.dpadUp,
+    PHASE1_GAMEPAD_AXIS_CODES.leftStickUp,
+    PHASE1_GAMEPAD_AXIS_CODES.rightStickUp,
+  ],
+  gearDown: [
+    PHASE1_GAMEPAD_BUTTON_CODES.dpadDown,
+    PHASE1_GAMEPAD_AXIS_CODES.leftStickDown,
+    PHASE1_GAMEPAD_AXIS_CODES.rightStickDown,
+  ],
 } as const;
 
 export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   {
     id: "keyboard",
-    name: "WASD + setas",
-    driveSummary: "FNR em A/D, marchas em W/S",
-    eventSummary: "Eventos nas setas",
+    name: TEXT.phase1.controls.keyboardName,
+    driveSummary: TEXT.phase1.controls.keyboardDriveSummary,
+    eventSummary: TEXT.phase1.controls.keyboardEventSummary,
     labels: {
       fnrUp: "A",
       fnrDown: "D",
@@ -87,9 +108,9 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   },
   {
     id: "playstation",
-    name: "Setas + PlayStation",
-    driveSummary: "FNR e marchas nas setas",
-    eventSummary: "Eventos nos face buttons",
+    name: TEXT.phase1.controls.playstationName,
+    driveSummary: TEXT.phase1.controls.gamepadDriveSummary,
+    eventSummary: TEXT.phase1.controls.faceButtons,
     labels: {
       fnrUp: "←",
       fnrDown: "→",
@@ -107,10 +128,10 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
       },
     },
     codes: {
-      fnrUp: ["ArrowLeft", PHASE1_GAMEPAD_BUTTON_CODES.dpadLeft],
-      fnrDown: ["ArrowRight", PHASE1_GAMEPAD_BUTTON_CODES.dpadRight],
-      gearUp: ["ArrowUp", PHASE1_GAMEPAD_BUTTON_CODES.dpadUp],
-      gearDown: ["ArrowDown", PHASE1_GAMEPAD_BUTTON_CODES.dpadDown],
+      fnrUp: [...GAMEPAD_DRIVE_CODES.fnrUp],
+      fnrDown: [...GAMEPAD_DRIVE_CODES.fnrDown],
+      gearUp: [...GAMEPAD_DRIVE_CODES.gearUp],
+      gearDown: [...GAMEPAD_DRIVE_CODES.gearDown],
       pickup: [PHASE1_GAMEPAD_BUTTON_CODES.faceLeft],
       dig: [PHASE1_GAMEPAD_BUTTON_CODES.faceRight],
       grease: [PHASE1_GAMEPAD_BUTTON_CODES.faceTop],
@@ -125,9 +146,9 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   },
   {
     id: "xbox",
-    name: "Setas + Xbox",
-    driveSummary: "FNR e marchas nas setas",
-    eventSummary: "Eventos nos face buttons",
+    name: TEXT.phase1.controls.xboxName,
+    driveSummary: TEXT.phase1.controls.gamepadDriveSummary,
+    eventSummary: TEXT.phase1.controls.faceButtons,
     labels: {
       fnrUp: "←",
       fnrDown: "→",
@@ -145,10 +166,10 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
       },
     },
     codes: {
-      fnrUp: ["ArrowLeft", PHASE1_GAMEPAD_BUTTON_CODES.dpadLeft],
-      fnrDown: ["ArrowRight", PHASE1_GAMEPAD_BUTTON_CODES.dpadRight],
-      gearUp: ["ArrowUp", PHASE1_GAMEPAD_BUTTON_CODES.dpadUp],
-      gearDown: ["ArrowDown", PHASE1_GAMEPAD_BUTTON_CODES.dpadDown],
+      fnrUp: [...GAMEPAD_DRIVE_CODES.fnrUp],
+      fnrDown: [...GAMEPAD_DRIVE_CODES.fnrDown],
+      gearUp: [...GAMEPAD_DRIVE_CODES.gearUp],
+      gearDown: [...GAMEPAD_DRIVE_CODES.gearDown],
       pickup: [PHASE1_GAMEPAD_BUTTON_CODES.faceLeft],
       dig: [PHASE1_GAMEPAD_BUTTON_CODES.faceRight],
       grease: [PHASE1_GAMEPAD_BUTTON_CODES.faceTop],
@@ -182,13 +203,76 @@ export function getNextPhase1ControlSchemeId(id: Phase1ControlSchemeId) {
   return PHASE1_CONTROL_SCHEMES[nextIndex].id;
 }
 
+function mergeCodeLists(...codeLists: string[][]) {
+  return [...new Set(codeLists.flat())];
+}
+
+export function getPhase1UniversalInputScheme(
+  visualScheme: Phase1ControlScheme,
+): Phase1ControlScheme {
+  return {
+    ...visualScheme,
+    codes: {
+      fnrUp: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.fnrUp),
+      ),
+      fnrDown: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.fnrDown),
+      ),
+      gearUp: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.gearUp),
+      ),
+      gearDown: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.gearDown),
+      ),
+      pickup: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.pickup),
+      ),
+      dig: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.dig),
+      ),
+      grease: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.grease),
+      ),
+      brake: mergeCodeLists(
+        ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.brake),
+      ),
+      question: {
+        up: mergeCodeLists(
+          ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.question.up),
+        ),
+        left: mergeCodeLists(
+          ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.question.left),
+        ),
+        right: mergeCodeLists(
+          ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.question.right),
+        ),
+        down: mergeCodeLists(
+          ...PHASE1_CONTROL_SCHEMES.map((scheme) => scheme.codes.question.down),
+        ),
+      },
+    },
+  };
+}
+
 export function getPhase1InitialMessage(scheme: Phase1ControlScheme) {
-  return `Use ${scheme.labels.fnrUp}/${scheme.labels.fnrDown} no FNR, ${scheme.labels.gearUp}/${scheme.labels.gearDown} para marcha e ${scheme.labels.brake} para frear.`;
+  return TEXT.phase1.controls.initialMessage(
+    scheme.labels.fnrUp,
+    scheme.labels.fnrDown,
+    scheme.labels.gearUp,
+    scheme.labels.gearDown,
+    scheme.labels.brake,
+  );
 }
 
 export function getPhase1StartModalDescription(scheme: Phase1ControlScheme) {
-  return `Use ${scheme.labels.fnrUp}/${scheme.labels.fnrDown} para alternar F, N e R.
-Use ${scheme.labels.gearUp}/${scheme.labels.gearDown} para trocar marcha e ${scheme.eventSummary.toLowerCase()}.`;
+  return TEXT.phase1.controls.startDescription(
+    scheme.labels.fnrUp,
+    scheme.labels.fnrDown,
+    scheme.labels.gearUp,
+    scheme.labels.gearDown,
+    scheme.eventSummary,
+  );
 }
 
 export function getPhase1QuestionOptionLabel(scheme: Phase1ControlScheme) {
@@ -270,30 +354,20 @@ export function getPhase1EventActivationMessage(
   const actionLabel = getPhase1EventActionLabel(definition, scheme);
 
   if (definition.interaction === "traction-zone") {
-    return `${definition.title}: use ${driveStateLabel} e ${actionLabel} no trecho.`;
+    return TEXT.phase1.controls.eventAction.traction(
+      definition.title,
+      driveStateLabel,
+      actionLabel,
+    );
   }
 
-  return `${definition.title}: use ${driveStateLabel} e pressione ${actionLabel}.`;
+  return TEXT.phase1.controls.eventAction.manual(
+    definition.title,
+    driveStateLabel,
+    actionLabel,
+  );
 }
 
 export function getPressedPhase1GamepadCodes() {
-  if (typeof navigator === "undefined" || !navigator.getGamepads) {
-    return [];
-  }
-
-  const pressedCodes = new Set<string>();
-
-  for (const gamepad of navigator.getGamepads()) {
-    if (!gamepad) {
-      continue;
-    }
-
-    gamepad.buttons.forEach((button, index) => {
-      if (button.pressed) {
-        pressedCodes.add(`GamepadButton${index}`);
-      }
-    });
-  }
-
-  return [...pressedCodes];
+  return getPressedGamepadCodes();
 }

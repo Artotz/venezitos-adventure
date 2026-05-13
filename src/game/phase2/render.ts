@@ -8,6 +8,15 @@ import {
   FIELD_LEFT,
   FIELD_TOP,
   FIELD_WIDTH,
+  PHASE2_CANE_LABEL,
+  PHASE2_CANE_TITLE,
+  PHASE2_CELLS_LABEL,
+  PHASE2_MOVEMENT_HINT,
+  PHASE2_PLANTED_LABEL,
+  PHASE2_PLANTING_TITLE,
+  PHASE2_PLOWING_TITLE,
+  PHASE2_PROGRESS_LABEL,
+  PHASE2_TIME_LABEL,
   PLANTER_HEIGHT,
   PLANTER_WIDTH,
   PLOW_HEIGHT,
@@ -382,62 +391,60 @@ function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2Game
 }
 
 function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+  const cellProgress = getCellProgress(game);
+  const stageTitle =
+    game.stage === "cane"
+      ? PHASE2_CANE_TITLE
+      : game.stage === "planting"
+        ? PHASE2_PLANTING_TITLE
+        : PHASE2_PLOWING_TITLE;
+  const stageCounter =
+    game.stage === "cane"
+      ? `${PHASE2_CANE_LABEL}: ${game.caneCells}/${game.plantedCells}`
+      : game.stage === "planting"
+        ? `${PHASE2_PLANTED_LABEL}: ${game.plantedCells}/${game.cutCells}`
+        : `${PHASE2_CELLS_LABEL}: ${game.cutCells}/${game.totalCells}`;
+  const barX = CANVAS_WIDTH - 390;
+  const barY = 38;
+  const barWidth = 330;
+  const barHeight = 24;
+
   context.save();
   context.globalAlpha = 0.76;
   context.fillStyle = "rgba(18, 26, 18, 0.72)";
-  context.fillRect(28, 28, 322, 96);
+  context.fillRect(28, 28, 430, 146);
 
   context.strokeStyle = "rgba(229, 214, 164, 0.18)";
   context.lineWidth = 2;
-  context.strokeRect(28, 28, 322, 96);
+  context.strokeRect(28, 28, 430, 146);
   context.restore();
+
+  context.fillStyle = "#f4ead0";
+  context.font = '700 22px "Segoe UI", sans-serif';
+  context.fillText(stageTitle, 52, 66);
+
+  context.fillStyle = "#d8c9a6";
+  context.font = '16px "Segoe UI", sans-serif';
+  context.fillText(PHASE2_MOVEMENT_HINT, 52, 94);
+  context.fillText(stageCounter, 52, 120);
+  context.fillText(
+    `${PHASE2_TIME_LABEL}: ${game.elapsedTime.toFixed(1)}/${STAGE_DURATION_SECONDS}s`,
+    52,
+    146,
+  );
+
+  context.fillStyle = "rgba(18, 26, 18, 0.78)";
+  context.fillRect(barX - 24, 28, barWidth + 48, 96);
+  context.strokeStyle = "rgba(229, 214, 164, 0.22)";
+  context.strokeRect(barX - 24, 28, barWidth + 48, 96);
 
   context.fillStyle = "#f4ead0";
   context.font = '700 18px "Segoe UI", sans-serif';
   context.fillText(
-    game.stage === "cane"
-      ? "Fase 2 - Cana"
-      : game.stage === "planting"
-        ? "Fase 2 - Plantio"
-        : "Fase 2 - Corte de grama",
-    46,
+    `${PHASE2_PROGRESS_LABEL} ${Math.round(cellProgress * 100)}%`,
+    barX,
     58,
   );
-
-  context.fillStyle = "#d8c9a6";
-  context.font = '14px "Segoe UI", sans-serif';
-  context.fillText(
-    game.stage === "cane"
-      ? `Cana: ${game.caneCells}/${game.totalCells}`
-      : game.stage === "planting"
-        ? `Plantadas: ${game.plantedCells}/${game.totalCells}`
-        : `Celulas: ${game.cutCells}/${game.totalCells}`,
-    46,
-    84,
-  );
-  context.fillText(
-    `Tempo: ${game.elapsedTime.toFixed(1)}/${STAGE_DURATION_SECONDS}s`,
-    46,
-    108,
-  );
-
-  const barX = CANVAS_WIDTH - 314;
-  const barY = 38;
-  const barWidth = 250;
-  const barHeight = 18;
-  const cellProgress = getCellProgress(game);
-
-  context.save();
-  context.globalAlpha = 0.76;
-  context.fillStyle = "rgba(18, 26, 18, 0.72)";
-  context.fillRect(barX - 18, 28, barWidth + 36, 76);
-  context.strokeStyle = "rgba(229, 214, 164, 0.18)";
-  context.strokeRect(barX - 18, 28, barWidth + 36, 76);
-  context.restore();
-
-  context.fillStyle = "#f4ead0";
-  context.font = '700 16px "Segoe UI", sans-serif';
-  context.fillText(`Progresso ${Math.round(cellProgress * 100)}%`, barX, 56);
 
   context.fillStyle = "#3a4b31";
   context.fillRect(barX, barY + 28, barWidth, barHeight);

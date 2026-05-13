@@ -18,6 +18,7 @@ import {
 import { useRetroSprites } from "../retro/sprites";
 import type { ActiveAnimation, AnimationPresetId } from "../retro/types";
 import { useGameLoop } from "../useGameLoop";
+import { TEXT } from "../i18n";
 import { createPhase1SoundPlayer, type Phase1SoundPlayer } from "./sounds";
 import {
   FRONT_LOAD_SPEED,
@@ -35,7 +36,6 @@ import {
   getPhase1InitialMessage,
   getPhase1QuestionOptionLabel,
   getPhase1QuestionDirectionFromCode,
-  getPressedPhase1GamepadCodes,
   type Phase1ControlScheme,
 } from "./controls";
 import {
@@ -96,6 +96,7 @@ const BRAKE_RESPONSE = 10;
 const DRIVE_RESPONSE = 2.4;
 const NEUTRAL_RESPONSE = 0.9;
 const FINAL_STOP_SPEED_THRESHOLD = 2;
+const EVENT_STOP_SPEED_THRESHOLD = 2;
 const FINAL_MODAL_DELAY_SECONDS = 2;
 
 function readPhase1HighScore() {
@@ -149,31 +150,36 @@ function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
   return PHASE1_FORWARD_GEAR_SPEEDS[clampSelectedGear(gear) - 1];
 }
 
-function getDriveModeLabel(mode: Phase1DriveMode) {
-  if (mode === "forward") {
-    return "F";
-  }
-
-  if (mode === "reverse") {
-    return "R";
-  }
-
-  return "N";
-}
-
 function isRequiredDriveStateActive(
   requiredDriveState: Phase1RequiredDriveState,
   currentMode: Phase1DriveMode,
   currentGear: number,
+  currentSpeed: number,
 ) {
   if (requiredDriveState.mode === "neutral") {
-    return currentMode === "neutral";
+    return (
+      currentMode === "neutral" &&
+      Math.abs(currentSpeed) <= EVENT_STOP_SPEED_THRESHOLD
+    );
   }
 
   return (
     currentMode === requiredDriveState.mode &&
     clampSelectedGear(currentGear) === requiredDriveState.gear
   );
+}
+
+function getRequiredDriveStateAdjustmentMessage(
+  title: string,
+  requiredDriveState: Phase1RequiredDriveState,
+) {
+  const driveStateLabel = getRequiredDriveStateLabel(requiredDriveState);
+
+  if (requiredDriveState.mode === "neutral") {
+    return TEXT.phase1.controls.driveAdjustment.stop(title, driveStateLabel);
+  }
+
+  return TEXT.phase1.controls.driveAdjustment.gear(title, driveStateLabel);
 }
 
 function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
@@ -213,8 +219,9 @@ export function usePhase1Game(
   const [isEndingSequence, setIsEndingSequence] = useState(false);
   const [venezitoMood, setVenezitoMood] = useState<VenezitoMood>("neutral");
   const [animationTick, setAnimationTick] = useState(0);
-  const [activeAnimationLabel, setActiveAnimationLabel] =
-    useState("Rodagem continua");
+  const [activeAnimationLabel, setActiveAnimationLabel] = useState<string>(
+    TEXT.phase1.animation.continuousDrive,
+  );
 
   const eventsRef = useRef<MapEvent[]>(INITIAL_PHASE1_EVENTS);
   const activeEventIdRef = useRef<number | null>(null);
@@ -243,7 +250,6 @@ export function usePhase1Game(
   const finalModalRef = useRef<Phase1FinalModalState | null>(null);
   const wasEnabledRef = useRef(false);
   const controlSchemeRef = useRef(controlScheme);
-  const previousGamepadCodesRef = useRef<Set<string>>(new Set());
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -254,10 +260,14 @@ export function usePhase1Game(
     const labels = [
       frontAnimationRef.current?.label,
       rearAnimationRef.current?.label,
-      greaseAnimationRef.current?.hasStarted ? "Aplicando graxa" : null,
+      greaseAnimationRef.current?.hasStarted
+        ? TEXT.phase1.events.grease.animation
+        : null,
     ].filter(Boolean);
 
-    setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
+    setActiveAnimationLabel(
+      labels.join(" + ") || TEXT.phase1.animation.continuousDrive,
+    );
   };
 
   const clearBrakeInput = () => {
@@ -310,7 +320,7 @@ export function usePhase1Game(
     setIsEndingSequence(false);
     setVenezitoMood("neutral");
     setAnimationTick((current) => current + 1);
-    setActiveAnimationLabel("Rodagem continua");
+    setActiveAnimationLabel(TEXT.phase1.animation.continuousDrive);
   };
 
   const beginEndingSequence = () => {
@@ -329,7 +339,7 @@ export function usePhase1Game(
     driveModeRef.current = "neutral";
     setDriveMode("neutral");
     setVenezitoMood("neutral");
-    setMessage("Horimetro completo. Voltando para neutro e freando.");
+    setMessage(TEXT.phase1.messages.hourmeterComplete);
   };
 
   const finishPhase = (finalHourmeterHours: number) => {
@@ -364,17 +374,6 @@ export function usePhase1Game(
     syncAnimationLabel();
   };
 
-  const syncDriveMessage = (
-    nextMode = driveModeRef.current,
-    nextGear = selectedGearRef.current,
-  ) => {
-    setMessage(
-      `FNR em ${getDriveModeLabel(nextMode)}. Marcha ${clampSelectedGear(
-        nextGear,
-      )}.`,
-    );
-  };
-
   const setQuestionModalState = (nextModal: QuestionModalState | null) => {
     if (nextModal) {
       clearBrakeInput();
@@ -407,16 +406,13 @@ export function usePhase1Game(
 
     driveModeRef.current = nextMode;
     setDriveMode(nextMode);
-    syncDriveMessage(nextMode);
   };
 
   const shiftSelectedGear = (delta: 1 | -1) => {
-    const currentMode = driveModeRef.current;
     const nextGear = clampSelectedGear(selectedGearRef.current + delta);
 
     selectedGearRef.current = nextGear;
     setSelectedGear(nextGear);
-    syncDriveMessage(currentMode, nextGear);
   };
 
   const clearActiveEvent = () => {
@@ -573,7 +569,6 @@ export function usePhase1Game(
 
   useEffect(() => {
     controlSchemeRef.current = controlScheme;
-    previousGamepadCodesRef.current = new Set();
 
     if (!activeEventIdRef.current && !questionModalRef.current) {
       setMessage(getPhase1InitialMessage(controlScheme));
@@ -680,6 +675,38 @@ export function usePhase1Game(
       ...scheme.codes.brake,
       ...manualEventCodes,
     ]);
+    const handleDriveOrBrakeInput = () => {
+      if (scheme.codes.brake.includes(inputCode)) {
+        event.preventDefault();
+        if (frontAnimationRef.current?.presetId === "idle") {
+          return true;
+        }
+        brakePressedRef.current = true;
+        return true;
+      }
+
+      if (!driveControlCodes.has(inputCode)) {
+        return false;
+      }
+
+      event.preventDefault();
+
+      if (event.repeat) {
+        return true;
+      }
+
+      if (scheme.codes.fnrUp.includes(inputCode)) {
+        shiftDriveMode("up");
+      } else if (scheme.codes.fnrDown.includes(inputCode)) {
+        shiftDriveMode("down");
+      } else if (scheme.codes.gearUp.includes(inputCode)) {
+        shiftSelectedGear(1);
+      } else if (scheme.codes.gearDown.includes(inputCode)) {
+        shiftSelectedGear(-1);
+      }
+
+      return true;
+    };
 
     if (startupLockedRef.current) {
       if (startupBlockedCodes.has(inputCode)) {
@@ -714,7 +741,7 @@ export function usePhase1Game(
         pendingQuestionModalRef.current = null;
         setSpeechModalState(null);
         setQuestionModalState(nextQuestionModal);
-        setMessage("Responda a pergunta do instrutor.");
+      setMessage(TEXT.phase1.messages.answerInstructorQuestion);
         return;
       }
       setSpeechModalState(null);
@@ -760,7 +787,7 @@ export function usePhase1Game(
       );
 
       penalizeEventAttempt(
-        `Resposta errada. A resposta certa é ${correctAnswer}.`,
+        TEXT.phase1.dialogue.shortFailureAnswer(correctAnswer),
         {
           scorePenalty: openQuestionModal.question.penalty,
         },
@@ -771,52 +798,39 @@ export function usePhase1Game(
       return;
     }
 
-    if (driveControlCodes.has(inputCode)) {
-      event.preventDefault();
-
-      if (event.repeat) {
-        return;
-      }
-
-      if (scheme.codes.fnrUp.includes(inputCode)) {
-        shiftDriveMode("up");
-      } else if (scheme.codes.fnrDown.includes(inputCode)) {
-        shiftDriveMode("down");
-      } else if (scheme.codes.gearUp.includes(inputCode)) {
-        shiftSelectedGear(1);
-      } else if (scheme.codes.gearDown.includes(inputCode)) {
-        shiftSelectedGear(-1);
-      }
-
-      return;
-    }
-
-    if (scheme.codes.brake.includes(inputCode)) {
-      event.preventDefault();
-      brakePressedRef.current = true;
-      return;
-    }
-
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
     );
 
     if (!activeEvent) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     if (!activeEvent.type) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     const eventDefinition = getEventDefinition(activeEvent.type);
 
     if (isQuestionEventDefinition(eventDefinition)) {
-      if (
-        !getPhase1EventActionCodes(eventDefinition.type, scheme).includes(
-          inputCode,
-        )
-      ) {
+      const acceptedCodes = getPhase1EventActionCodes(
+        eventDefinition.type,
+        scheme,
+      );
+
+      if (!acceptedCodes.includes(inputCode)) {
+        if (handleDriveOrBrakeInput()) {
+          return;
+        }
+
+        if (
+          !driveControlCodes.has(inputCode) &&
+          !scheme.codes.brake.includes(inputCode)
+        ) {
+          event.preventDefault();
+        }
         return;
       }
 
@@ -828,7 +842,7 @@ export function usePhase1Game(
         eventDefinition.hitboxHalfWidth;
 
       if (!isWithinHitbox) {
-        setMessage("Fora da hitbox do evento.");
+        setMessage(TEXT.phase1.messages.outsideHitbox);
         return;
       }
 
@@ -837,12 +851,14 @@ export function usePhase1Game(
           eventDefinition.requiredDriveState,
           driveModeRef.current,
           selectedGearRef.current,
+          currentSpeedRef.current,
         )
       ) {
         setMessage(
-          `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+          getRequiredDriveStateAdjustmentMessage(
+            eventDefinition.title,
             eventDefinition.requiredDriveState,
-          )}.`,
+          ),
         );
         return;
       }
@@ -853,7 +869,9 @@ export function usePhase1Game(
         activeEvent.id,
         eventDefinition,
         question,
-        `Use ${getPhase1QuestionOptionLabel(scheme)} para responder`,
+        TEXT.phase1.animation.questionPrompt(
+          getPhase1QuestionOptionLabel(scheme),
+        ),
       );
       setSpeechModalState(createQuestionIntroModal());
       setMessage(
@@ -867,12 +885,39 @@ export function usePhase1Game(
     }
 
     if (!isManualEventDefinition(eventDefinition)) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     const acceptedCodes = getPhase1EventActionCodes(eventDefinition.type, scheme);
 
     if (!manualEventCodes.has(inputCode)) {
+      if (
+        !driveControlCodes.has(inputCode) &&
+        !scheme.codes.brake.includes(inputCode)
+      ) {
+        return;
+      }
+    }
+
+    if (!acceptedCodes.includes(inputCode)) {
+      if (handleDriveOrBrakeInput()) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+      const isWithinHitbox =
+        Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
+
+      if (!isWithinHitbox) {
+        return;
+      }
+
+      penalizeEventAttempt(
+        TEXT.phase1.messages.wrongCommand(eventDefinition.title),
+      );
       return;
     }
 
@@ -882,21 +927,10 @@ export function usePhase1Game(
     const isWithinHitbox =
       Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
 
-    if (!acceptedCodes.includes(inputCode)) {
-      if (!isWithinHitbox) {
-        return;
-      }
-
-      penalizeEventAttempt(
-        `Comando incorreto para ${eventDefinition.title.toLowerCase()}.`,
-      );
-      return;
-    }
-
     if (!isWithinHitbox) {
       setFails((current) => current + 1);
       setScore((current) => Math.max(0, current - 50));
-      setMessage("Fora da hitbox do evento.");
+        setMessage(TEXT.phase1.messages.outsideHitbox);
       setVenezitoMood("sad");
       return;
     }
@@ -906,12 +940,14 @@ export function usePhase1Game(
         eventDefinition.requiredDriveState,
         driveModeRef.current,
         selectedGearRef.current,
+        currentSpeedRef.current,
       )
     ) {
       setMessage(
-        `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+        getRequiredDriveStateAdjustmentMessage(
+          eventDefinition.title,
           eventDefinition.requiredDriveState,
-        )}.`,
+        ),
       );
       return;
     }
@@ -943,6 +979,10 @@ export function usePhase1Game(
       retroAnimation.target === "front" ? frontAnimationRef : rearAnimationRef;
 
     let hasSwappedDigSprite = false;
+
+    if (activeEvent.type === "pickup-load") {
+      clearBrakeInput();
+    }
 
     startAnimation(
       animationTarget,
@@ -1022,23 +1062,6 @@ export function usePhase1Game(
     if (finalModalRef.current) {
       return;
     }
-
-    const currentGamepadCodes = new Set(getPressedPhase1GamepadCodes());
-    const previousGamepadCodes = previousGamepadCodesRef.current;
-
-    for (const code of currentGamepadCodes) {
-      if (!previousGamepadCodes.has(code)) {
-        window.dispatchEvent(new KeyboardEvent("keydown", { code }));
-      }
-    }
-
-    for (const code of previousGamepadCodes) {
-      if (!currentGamepadCodes.has(code)) {
-        window.dispatchEvent(new KeyboardEvent("keyup", { code }));
-      }
-    }
-
-    previousGamepadCodesRef.current = currentGamepadCodes;
 
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
@@ -1126,7 +1149,9 @@ export function usePhase1Game(
       );
     }
 
-    if (frontAnimationRef.current?.presetId === "idle") {
+    const isPickupLoadAnimation = frontAnimationRef.current?.presetId === "idle";
+
+    if (isPickupLoadAnimation) {
       targetSpeed = capTargetSpeed(targetSpeed, FRONT_LOAD_SPEED);
     }
 
@@ -1146,12 +1171,16 @@ export function usePhase1Game(
       targetSpeed = 0;
     }
 
-    if (brakePressedRef.current || endingSequenceRef.current) {
+    if (
+      (brakePressedRef.current && !isPickupLoadAnimation) ||
+      endingSequenceRef.current
+    ) {
       targetSpeed = 0;
     }
 
     const speedResponse =
-      brakePressedRef.current || endingSequenceRef.current
+      (brakePressedRef.current && !isPickupLoadAnimation) ||
+      endingSequenceRef.current
         ? BRAKE_RESPONSE
         : driveModeRef.current === "neutral"
           ? NEUTRAL_RESPONSE

@@ -2,6 +2,7 @@ import dirtSoundSrc from "../../assets/sfx/dirt.mp3";
 import dirtSoundAltSrc from "../../assets/sfx/dirt-2.mp3";
 import unloadSoundSrc from "../../assets/sfx/unload.mp3";
 import { createSoundPlayer, type SoundOption } from "../audio";
+import { TEXT } from "../i18n";
 import type {
   AnimationPresetId,
   AnimationSoundId,
@@ -34,9 +35,9 @@ export const RETRO_SOUND_SOURCES: Record<AnimationSoundId, string> = {
 };
 
 export const RETRO_SOUND_OPTIONS: SoundOption<AnimationSoundId>[] = [
-  { id: "dirt", label: "Terra 1" },
-  { id: "dirt-2", label: "Terra 2" },
-  { id: "unload", label: "Descarga" },
+  { id: "dirt", label: TEXT.retro.sounds.dirt },
+  { id: "dirt-2", label: TEXT.retro.sounds.dirt2 },
+  { id: "unload", label: TEXT.retro.sounds.unload },
 ];
 
 export function getAnimationSoundPreset(presetId: AnimationPresetId) {

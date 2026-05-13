@@ -1,4 +1,5 @@
 import { CONTROLLABLE_LAYERS, LAYER_CONFIG } from '../retro/config'
+import { TEXT } from '../i18n'
 import type { ExcavatorPose, LayerName } from '../retro/types'
 
 type PoseControlsProps = {
@@ -15,9 +16,9 @@ export function PoseControls({
   return (
     <div className="controls-group">
       <div className="controls-header">
-        <h2>Poses</h2>
+        <h2>{TEXT.editor.pose.title}</h2>
         <button type="button" className="reset-button" onClick={onReset}>
-          Resetar
+          {TEXT.common.reset}
         </button>
       </div>
 

@@ -18,17 +18,19 @@ type EventSpawnSlot = {
 };
 
 // Edite aqui apenas a ordem e o posicionamento do ciclo de spawns.
+const EVENT_SPAWN_GAP = 1300;
+
 const EVENT_SPAWN_PLAN: EventSpawnSlot[] = [
-  { type: "grease", hitboxX: 1500 },
-  { type: "pickup-load", hitboxX: 1500 * 2 },
-  // { type: "traction", hitboxX: 1500 * 3 },
-  { type: "dig-load", hitboxX: 1500 * 4 },
-  { type: "question", hitboxX: 1500 * 5 },
-  { type: "grease", hitboxX: 1500 * 6 },
-  { type: "dig-unload", hitboxX: 1500 * 7 },
-  // { type: "traction", hitboxX: 1500 * 8 },
-  { type: "pickup-unload", hitboxX: 1500 * 9 },
-  { type: "question", hitboxX: 1500 * 10 },
+  { type: "grease", hitboxX: EVENT_SPAWN_GAP },
+  { type: "pickup-load", hitboxX: EVENT_SPAWN_GAP * 2 },
+  // { type: "traction", hitboxX: EVENT_SPAWN_GAP * 3 },
+  { type: "dig-load", hitboxX: EVENT_SPAWN_GAP * 4 },
+  { type: "question", hitboxX: EVENT_SPAWN_GAP * 5 },
+  { type: "grease", hitboxX: EVENT_SPAWN_GAP * 6 },
+  { type: "dig-unload", hitboxX: EVENT_SPAWN_GAP * 7 },
+  // { type: "traction", hitboxX: EVENT_SPAWN_GAP * 8 },
+  { type: "pickup-unload", hitboxX: EVENT_SPAWN_GAP * 9 },
+  { type: "question", hitboxX: EVENT_SPAWN_GAP * 10 },
 ];
 
 const EVENT_SEQUENCE_LENGTH = EVENT_SPAWN_PLAN.length;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TEXT } from "../i18n";
 import { InputManager } from "../input";
 import { useGameLoop } from "../useGameLoop";
 import {
@@ -13,6 +14,7 @@ import {
   FIELD_TOP,
   FIELD_WIDTH,
   INITIAL_MESSAGE,
+  PLANTING_COMPLETE_MESSAGE,
   PLANTING_MESSAGE,
   PLANTER_HITBOX_HEIGHT,
   PLANTER_HITBOX_WIDTH,
@@ -340,7 +342,12 @@ export function usePhase2Game(enabled = true, paused = false) {
             ? nextTotalElapsedTime
             : current.totalElapsedTime,
           timerStarted: nextTimerStarted,
-          message: getNextMessage(current.stage, shouldFinishCane),
+          message: getNextMessage(
+            current.stage,
+            shouldFinishCane,
+            newlyChanged,
+            nextProgress,
+          ),
           isComplete: shouldFinishCane,
           tractor: {
             ...current.tractor,
@@ -421,7 +428,12 @@ function doesImplementCoverCell(
   );
 }
 
-function getNextMessage(stage: Phase2Stage, isComplete: boolean) {
+function getNextMessage(
+  stage: Phase2Stage,
+  isComplete: boolean,
+  newlyChanged: number,
+  progress: number,
+) {
   if (stage === "cane") {
     if (isComplete) {
       return CANE_COMPLETE_MESSAGE;
@@ -431,10 +443,18 @@ function getNextMessage(stage: Phase2Stage, isComplete: boolean) {
   }
 
   if (stage === "planting") {
-    return PLANTING_MESSAGE;
+    if (isComplete) {
+      return PLANTING_COMPLETE_MESSAGE;
+    }
+
+    return newlyChanged > 0
+      ? TEXT.phase2.plantingProgress(Math.round(progress * 100))
+      : PLANTING_MESSAGE;
   }
 
-  return INITIAL_MESSAGE;
+  return newlyChanged > 0
+    ? TEXT.phase2.grassCutProgress(Math.round(progress * 100))
+    : INITIAL_MESSAGE;
 }
 
 function canCellChangeInStage(cell: Phase2Cell, stage: Phase2Stage) {

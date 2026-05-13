@@ -3,6 +3,7 @@ import plowUrl from "../../assets/phase2/Arado.png.png";
 import planterUrl from "../../assets/phase2/Plantadeira,png.png";
 import sprayerUrl from "../../assets/phase2/Pulverizador.png.png";
 import tractorTopUrl from "../../assets/phase2/Trator.png.png";
+import { TEXT } from "../i18n";
 import { loadImage } from "../loadImage";
 
 export type Phase2VehicleSprites = {
@@ -42,7 +43,7 @@ export function usePhase2TractorSprite() {
         });
       })
       .catch((error) => {
-        console.error("Falha ao carregar sprites do veiculo da fase 2.", error);
+        console.error(TEXT.phase2.errors.vehicleSprites, error);
       });
 
     return () => {

@@ -515,14 +515,15 @@ h1 {
 }
 
 .phase-pre-game-card.is-phase2 .phase-pre-game-content {
-  justify-self: end;
-  max-width: min(52ch, calc(100% - 420px));
-  text-align: right;
+  justify-self: start;
+  margin-left: min(44%, 560px);
+  max-width: min(52ch, calc(100% - 560px));
+  text-align: left;
 }
 
 .phase-pre-game-card.is-phase2 .phase-pre-game-actions,
 .phase-pre-game-card.is-phase2 .phase-menu-selector {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .phase-pre-game-card.is-phase2 .phase-pre-game-hero {
@@ -721,6 +722,73 @@ h1 {
   backdrop-filter: blur(3px);
 }
 
+.phase2-stage-intro {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  width: min(620px, calc(100% - 48px));
+  min-height: 220px;
+  padding: 18px 22px;
+  border: 2px solid rgba(240, 203, 117, 0.54);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(240, 203, 117, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(29, 45, 30, 0.96), rgba(18, 26, 18, 0.96));
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.phase2-stage-intro-venezito {
+  align-self: end;
+  width: 156px;
+  max-height: 196px;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.32));
+}
+
+.phase2-stage-intro-copy {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.phase2-stage-intro-eyebrow {
+  color: #f0c34e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.phase2-stage-intro-copy h2 {
+  color: #fff3d7;
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+.phase2-stage-intro-copy p {
+  color: #d8c9a6;
+  font-size: 1rem;
+  line-height: 1.38;
+}
+
+.phase2-stage-intro-copy strong {
+  width: fit-content;
+  padding: 8px 12px;
+  border: 1px solid rgba(149, 201, 84, 0.32);
+  border-radius: 999px;
+  background: rgba(149, 201, 84, 0.14);
+  color: #f4ead0;
+  font-size: 0.95rem;
+}
+
 .phase-pause-menu {
   display: grid;
   gap: 14px;
@@ -853,6 +921,26 @@ h1 {
   .phase-pre-game-card.is-phase2 .phase-pre-game-hero {
     width: min(58%, 320px);
     opacity: 0.58;
+  }
+
+  .phase2-stage-intro {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 14px;
+    min-height: 176px;
+    padding: 16px;
+  }
+
+  .phase2-stage-intro-venezito {
+    width: 92px;
+    max-height: 142px;
+  }
+
+  .phase2-stage-intro-copy h2 {
+    font-size: 1.35rem;
+  }
+
+  .phase2-stage-intro-copy p {
+    font-size: 0.9rem;
   }
 
 }

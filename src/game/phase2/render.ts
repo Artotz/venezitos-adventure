@@ -1,6 +1,7 @@
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  CANE_MESSAGE,
   CELL_SCORE_VALUE,
   CELL_GAP,
   CELL_SIZE,
@@ -8,6 +9,7 @@ import {
   FIELD_LEFT,
   FIELD_TOP,
   FIELD_WIDTH,
+  INITIAL_MESSAGE,
   PHASE2_CANE_LABEL,
   PHASE2_CANE_TITLE,
   PHASE2_CELLS_LABEL,
@@ -17,6 +19,7 @@ import {
   PHASE2_PLOWING_TITLE,
   PHASE2_PROGRESS_LABEL,
   PHASE2_TIME_LABEL,
+  PLANTING_MESSAGE,
   PLANTER_HEIGHT,
   PLANTER_WIDTH,
   PLOW_HEIGHT,
@@ -311,6 +314,49 @@ function drawImplement(
     width,
     height,
   );
+
+  if (game.stage === "cane" && game.tractor.moving) {
+    drawSprayerMist(context, game);
+  }
+
+  context.restore();
+}
+
+function drawSprayerMist(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+) {
+  const mistSeed = Math.floor((game.totalElapsedTime + game.elapsedTime) * 24);
+  const nozzleCount = 9;
+  const boomWidth = SPRAYER_WIDTH * 0.82;
+  const boomY = -SPRAYER_HEIGHT * 0.34;
+
+  context.save();
+  context.globalCompositeOperation = "screen";
+
+  for (let index = 0; index < nozzleCount; index += 1) {
+    const t = index / (nozzleCount - 1);
+    const nozzleX = -boomWidth / 2 + boomWidth * t;
+    const drift = ((mistSeed + index * 7) % 9) - 4;
+    const mistLength = 24 + ((mistSeed + index * 5) % 12);
+    const mistX = nozzleX + drift;
+    const mistY = boomY - mistLength / 2;
+    const radiusX = 10 + ((mistSeed + index * 3) % 5);
+    const radiusY = 18 + ((mistSeed + index * 4) % 8);
+
+    context.fillStyle = "rgba(218, 247, 231, 0.18)";
+    context.beginPath();
+    context.ellipse(mistX, mistY, radiusX, radiusY, 0, 0, Math.PI * 2);
+    context.fill();
+
+    context.strokeStyle = "rgba(198, 236, 218, 0.2)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(nozzleX, boomY + 4);
+    context.lineTo(mistX, boomY - mistLength);
+    context.stroke();
+  }
+
   context.restore();
 }
 
@@ -456,8 +502,20 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
   context.fillStyle = game.isComplete ? "#f0c34e" : "#f4ead0";
   context.font = '700 18px "Segoe UI", sans-serif';
   context.textAlign = "right";
-  context.fillText(game.message, CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
+  context.fillText(getStageInstructionMessage(game), CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
   context.textAlign = "left";
+}
+
+function getStageInstructionMessage(game: Phase2GameSnapshot) {
+  if (game.stage === "cane") {
+    return CANE_MESSAGE;
+  }
+
+  if (game.stage === "planting") {
+    return PLANTING_MESSAGE;
+  }
+
+  return INITIAL_MESSAGE;
 }
 
 function getGrassColor(column: number, row: number) {

@@ -9,6 +9,7 @@ import {
   isMenuUpCode,
 } from "./gamepadInput";
 import { TEXT } from "./i18n";
+import { useMainMenuMusic } from "./menuSounds";
 import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./phase1/config";
 import {
   PHASE2_MENU_ACTION_LABEL,
@@ -61,12 +62,15 @@ export function MainMenu({
 }: MainMenuProps) {
   const selected = PHASES[selectedPhase];
   const nextPhase = selectedPhase === "phase1" ? "phase2" : "phase1";
+  const startMenuMusic = useMainMenuMusic();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) {
         return;
       }
+
+      startMenuMusic();
 
       if (
         isMenuLeftCode(event.code) ||
@@ -90,10 +94,13 @@ export function MainMenu({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [nextPhase, onPlay, onSelectPhase]);
+  }, [nextPhase, onPlay, onSelectPhase, startMenuMusic]);
 
   return (
-    <section className={`phase-pre-game-card is-${selectedPhase}`}>
+    <section
+      className={`phase-pre-game-card is-${selectedPhase}`}
+      onPointerDown={startMenuMusic}
+    >
       <div className="phase-pre-game-content">
         <p className="phase-pre-game-eyebrow">{selected.eyebrow}</p>
         <h2>{selected.title}</h2>

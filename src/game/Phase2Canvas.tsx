@@ -8,8 +8,11 @@ import { isGamepadPauseCode } from "./gamepadInput";
 import { TEXT } from "./i18n";
 import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
+import { Phase2StageIntroCard } from "./phase2/Phase2StageIntroCard";
 import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
+import { usePhase2TractorDrivingSound } from "./phase2/sounds";
+import type { Phase2Stage } from "./phase2/types";
 import { usePhase2Game } from "./phase2/usePhase2Game";
 import { usePhase2TractorSprite } from "./phase2/usePhase2TractorSprite";
 
@@ -23,9 +26,11 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const [menuScale, setMenuScale] = useState(1);
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [stageIntro, setStageIntro] = useState<Phase2Stage | null>(null);
   const isPlaying = phaseStep === "playing";
-  const game = usePhase2Game(isPlaying, isPauseMenuOpen);
+  const game = usePhase2Game(isPlaying, isPauseMenuOpen || stageIntro !== null);
   const vehicleSprites = usePhase2TractorSprite();
+  usePhase2TractorDrivingSound(isPlaying && !game.isComplete, game.stage);
 
   useEffect(() => {
     const updateCanvasScale = () => {
@@ -79,6 +84,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   useEffect(() => {
     if (!isPlaying) {
       setIsPauseMenuOpen(false);
+      setStageIntro(null);
       return;
     }
 
@@ -100,6 +106,23 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isPlaying]);
+
+  useEffect(() => {
+    if (!isPlaying || game.isComplete) {
+      setStageIntro(null);
+      return;
+    }
+
+    setStageIntro(game.stage);
+
+    const timeoutId = window.setTimeout(() => {
+      setStageIntro((current) => (current === game.stage ? null : current));
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [game.isComplete, game.stage, isPlaying]);
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);
@@ -133,6 +156,9 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
                 setPhaseStep("menu");
               }}
             />
+          ) : null}
+          {stageIntro && !isPauseMenuOpen ? (
+            <Phase2StageIntroCard stage={stageIntro} />
           ) : null}
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import type { EditorTab } from './types'
+import { TEXT } from '../i18n'
 
 type EditorTabsProps = {
   activeTab: EditorTab
@@ -7,7 +8,7 @@ type EditorTabsProps = {
 
 export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
   return (
-    <div className="tab-bar" role="tablist" aria-label="Controles da retro">
+    <div className="tab-bar" role="tablist" aria-label={TEXT.editor.tabsAria}>
       <button
         type="button"
         role="tab"
@@ -15,7 +16,7 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         className={`tab-button${activeTab === 'poses' ? ' is-active' : ''}`}
         onClick={() => onChange('poses')}
       >
-        Poses
+        {TEXT.editor.tabs.poses}
       </button>
       <button
         type="button"
@@ -24,7 +25,7 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         className={`tab-button${activeTab === 'animations' ? ' is-active' : ''}`}
         onClick={() => onChange('animations')}
       >
-        Animacoes
+        {TEXT.editor.tabs.animations}
       </button>
       <button
         type="button"
@@ -33,7 +34,7 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         className={`tab-button${activeTab === 'grease' ? ' is-active' : ''}`}
         onClick={() => onChange('grease')}
       >
-        Venezito
+        {TEXT.editor.tabs.grease}
       </button>
       <button
         type="button"
@@ -42,7 +43,7 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         className={`tab-button${activeTab === 'sounds' ? ' is-active' : ''}`}
         onClick={() => onChange('sounds')}
       >
-        Sons
+        {TEXT.editor.tabs.sounds}
       </button>
       <button
         type="button"
@@ -51,7 +52,7 @@ export function EditorTabs({ activeTab, onChange }: EditorTabsProps) {
         className={`tab-button${activeTab === 'points' ? ' is-active' : ''}`}
         onClick={() => onChange('points')}
       >
-        Pontos
+        {TEXT.editor.tabs.points}
       </button>
     </div>
   )

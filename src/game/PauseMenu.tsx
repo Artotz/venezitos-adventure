@@ -6,6 +6,7 @@ import {
   isMenuRightCode,
   isMenuUpCode,
 } from "./gamepadInput";
+import { TEXT } from "./i18n";
 import type { Phase1ControlScheme } from "./phase1/controls";
 
 type PauseMenuProps = {
@@ -80,12 +81,12 @@ export function PauseMenu({
   return (
     <div className="phase-pause-overlay" role="dialog" aria-modal="true">
       <div className="phase-pause-menu">
-        <p className="phase-pause-eyebrow">Pausado</p>
-        <h2>Menu de pausa</h2>
+        <p className="phase-pause-eyebrow">{TEXT.pauseMenu.eyebrow}</p>
+        <h2>{TEXT.pauseMenu.title}</h2>
         {controlScheme && onToggleControlScheme ? (
           <div className="phase-control-toggle">
             <div>
-              <span>Controles</span>
+              <span>{TEXT.pauseMenu.controls}</span>
               <strong>{controlScheme.name}</strong>
               <small>
                 {controlScheme.driveSummary}. {controlScheme.eventSummary}.
@@ -96,7 +97,7 @@ export function PauseMenu({
               className={`phase-secondary-button${isSelected("toggle-controls")}`}
               onClick={onToggleControlScheme}
             >
-              Alternar
+              {TEXT.pauseMenu.toggle}
             </button>
           </div>
         ) : null}
@@ -106,14 +107,14 @@ export function PauseMenu({
             className={`phase-primary-button${isSelected("resume")}`}
             onClick={onResume}
           >
-            Retomar
+            {TEXT.pauseMenu.resume}
           </button>
           <button
             type="button"
             className={`phase-secondary-button${isSelected("main-menu")}`}
             onClick={onOpenMainMenu}
           >
-            Menu principal
+            {TEXT.pauseMenu.mainMenu}
           </button>
         </div>
       </div>

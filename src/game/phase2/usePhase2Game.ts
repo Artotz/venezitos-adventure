@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { isMenuConfirmCode } from "../gamepadInput";
+import { TEXT } from "../i18n";
 import { InputManager } from "../input";
 import { useGameLoop } from "../useGameLoop";
 import {
@@ -351,7 +352,7 @@ function getNextMessage({
     }
 
     return newlyChanged > 0
-      ? `Plantio: ${Math.round(progress * 100)}%`
+      ? TEXT.phase2.plantingProgress(Math.round(progress * 100))
       : PLANTING_MESSAGE;
   }
 
@@ -360,7 +361,7 @@ function getNextMessage({
   }
 
   return newlyChanged > 0
-    ? `Grama cortada: ${Math.round(progress * 100)}%`
+    ? TEXT.phase2.grassCutProgress(Math.round(progress * 100))
     : INITIAL_MESSAGE;
 }
 

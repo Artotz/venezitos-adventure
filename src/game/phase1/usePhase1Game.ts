@@ -18,6 +18,7 @@ import {
 import { useRetroSprites } from "../retro/sprites";
 import type { ActiveAnimation, AnimationPresetId } from "../retro/types";
 import { useGameLoop } from "../useGameLoop";
+import { TEXT } from "../i18n";
 import { createPhase1SoundPlayer, type Phase1SoundPlayer } from "./sounds";
 import {
   FRONT_LOAD_SPEED,
@@ -175,10 +176,10 @@ function getRequiredDriveStateAdjustmentMessage(
   const driveStateLabel = getRequiredDriveStateLabel(requiredDriveState);
 
   if (requiredDriveState.mode === "neutral") {
-    return `${title}: ajuste para ${driveStateLabel} e pare a maquina.`;
+    return TEXT.phase1.controls.driveAdjustment.stop(title, driveStateLabel);
   }
 
-  return `${title}: ajuste para ${driveStateLabel}.`;
+  return TEXT.phase1.controls.driveAdjustment.gear(title, driveStateLabel);
 }
 
 function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
@@ -218,8 +219,9 @@ export function usePhase1Game(
   const [isEndingSequence, setIsEndingSequence] = useState(false);
   const [venezitoMood, setVenezitoMood] = useState<VenezitoMood>("neutral");
   const [animationTick, setAnimationTick] = useState(0);
-  const [activeAnimationLabel, setActiveAnimationLabel] =
-    useState("Rodagem continua");
+  const [activeAnimationLabel, setActiveAnimationLabel] = useState<string>(
+    TEXT.phase1.animation.continuousDrive,
+  );
 
   const eventsRef = useRef<MapEvent[]>(INITIAL_PHASE1_EVENTS);
   const activeEventIdRef = useRef<number | null>(null);
@@ -258,10 +260,14 @@ export function usePhase1Game(
     const labels = [
       frontAnimationRef.current?.label,
       rearAnimationRef.current?.label,
-      greaseAnimationRef.current?.hasStarted ? "Aplicando graxa" : null,
+      greaseAnimationRef.current?.hasStarted
+        ? TEXT.phase1.events.grease.animation
+        : null,
     ].filter(Boolean);
 
-    setActiveAnimationLabel(labels.join(" + ") || "Rodagem continua");
+    setActiveAnimationLabel(
+      labels.join(" + ") || TEXT.phase1.animation.continuousDrive,
+    );
   };
 
   const clearBrakeInput = () => {
@@ -314,7 +320,7 @@ export function usePhase1Game(
     setIsEndingSequence(false);
     setVenezitoMood("neutral");
     setAnimationTick((current) => current + 1);
-    setActiveAnimationLabel("Rodagem continua");
+    setActiveAnimationLabel(TEXT.phase1.animation.continuousDrive);
   };
 
   const beginEndingSequence = () => {
@@ -333,7 +339,7 @@ export function usePhase1Game(
     driveModeRef.current = "neutral";
     setDriveMode("neutral");
     setVenezitoMood("neutral");
-    setMessage("Horimetro completo. Voltando para neutro e freando.");
+    setMessage(TEXT.phase1.messages.hourmeterComplete);
   };
 
   const finishPhase = (finalHourmeterHours: number) => {
@@ -735,7 +741,7 @@ export function usePhase1Game(
         pendingQuestionModalRef.current = null;
         setSpeechModalState(null);
         setQuestionModalState(nextQuestionModal);
-        setMessage("Responda a pergunta do instrutor.");
+      setMessage(TEXT.phase1.messages.answerInstructorQuestion);
         return;
       }
       setSpeechModalState(null);
@@ -781,7 +787,7 @@ export function usePhase1Game(
       );
 
       penalizeEventAttempt(
-        `Resposta errada. A resposta certa é ${correctAnswer}.`,
+        TEXT.phase1.dialogue.shortFailureAnswer(correctAnswer),
         {
           scorePenalty: openQuestionModal.question.penalty,
         },
@@ -836,7 +842,7 @@ export function usePhase1Game(
         eventDefinition.hitboxHalfWidth;
 
       if (!isWithinHitbox) {
-        setMessage("Fora da hitbox do evento.");
+        setMessage(TEXT.phase1.messages.outsideHitbox);
         return;
       }
 
@@ -863,7 +869,9 @@ export function usePhase1Game(
         activeEvent.id,
         eventDefinition,
         question,
-        `Use ${getPhase1QuestionOptionLabel(scheme)} para responder`,
+        TEXT.phase1.animation.questionPrompt(
+          getPhase1QuestionOptionLabel(scheme),
+        ),
       );
       setSpeechModalState(createQuestionIntroModal());
       setMessage(
@@ -908,7 +916,7 @@ export function usePhase1Game(
       }
 
       penalizeEventAttempt(
-        `Comando incorreto para ${eventDefinition.title.toLowerCase()}.`,
+        TEXT.phase1.messages.wrongCommand(eventDefinition.title),
       );
       return;
     }
@@ -922,7 +930,7 @@ export function usePhase1Game(
     if (!isWithinHitbox) {
       setFails((current) => current + 1);
       setScore((current) => Math.max(0, current - 50));
-      setMessage("Fora da hitbox do evento.");
+        setMessage(TEXT.phase1.messages.outsideHitbox);
       setVenezitoMood("sad");
       return;
     }

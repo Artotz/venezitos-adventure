@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import carnaubaSrc from "../../assets/carnauba.png";
 import { loadImage } from "../loadImage";
+import { TEXT } from "../i18n";
 
 export function usePhase1CarnaubaImage() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -16,7 +17,7 @@ export function usePhase1CarnaubaImage() {
         }
       })
       .catch((error: unknown) => {
-        console.error("Falha ao carregar a carnauba da fase 1.", error);
+        console.error(TEXT.phase1.errors.carnauba, error);
       });
 
     return () => {

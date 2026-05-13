@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { TEXT } from '../i18n'
 import { createPhase1SoundPlayer, PHASE1_SOUND_OPTIONS } from '../phase1/sounds'
 import { createAnimationSoundPlayer, RETRO_SOUND_OPTIONS } from '../retro/sounds'
 
@@ -31,14 +32,14 @@ export function SoundControls() {
   return (
     <div className="controls-group sound-controls">
       <div className="controls-header">
-        <h2>Sons</h2>
+        <h2>{TEXT.editor.sounds.title}</h2>
         <button type="button" className="reset-button" onClick={resetPlayers}>
-          Parar todos
+          {TEXT.editor.sounds.stopAll}
         </button>
       </div>
 
       <label className="slider-control">
-        <span className="slider-title">Volume global</span>
+        <span className="slider-title">{TEXT.editor.sounds.globalVolume}</span>
         <span className="slider-value">{volumePercent}%</span>
         <input
           type="range"
@@ -51,7 +52,7 @@ export function SoundControls() {
       </label>
 
       <div className="sound-section">
-        <h3>Retro</h3>
+        <h3>{TEXT.editor.sounds.retro}</h3>
         <div className="sound-list">
           {RETRO_SOUND_OPTIONS.map((sound) => (
             <div key={sound.id} className="sound-card">
@@ -66,7 +67,7 @@ export function SoundControls() {
                   retroPlayerRef.current?.playSound(sound.id, volume)
                 }}
               >
-                Tocar
+                {TEXT.common.play}
               </button>
             </div>
           ))}
@@ -74,7 +75,7 @@ export function SoundControls() {
       </div>
 
       <div className="sound-section">
-        <h3>Fase 1</h3>
+        <h3>{TEXT.editor.sounds.phase1}</h3>
         <div className="sound-list">
           {PHASE1_SOUND_OPTIONS.map((sound) => (
             <div key={sound.id} className="sound-card">
@@ -89,7 +90,7 @@ export function SoundControls() {
                   phase1PlayerRef.current?.playSound(sound.id, volume)
                 }}
               >
-                Tocar
+                {TEXT.common.play}
               </button>
             </div>
           ))}

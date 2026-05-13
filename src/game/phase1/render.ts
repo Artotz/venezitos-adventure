@@ -25,6 +25,7 @@ import {
 } from "../retro/geometry";
 import type { LayerName, Matrix2D, Point } from "../retro/types";
 import { getImageSourceSize, type LoadedImageSource } from "../imageSource";
+import { TEXT } from "../i18n";
 import { DEFAULT_GREASE_ANIMATION_CONFIG } from "../venezito/greaseAnimation";
 import { drawGreaseAnimation } from "../venezito/render";
 import {
@@ -419,13 +420,16 @@ export function drawPhase1FnrIntroModal({
 
   context.fillStyle = "#e1bf75";
   context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText("FNR".toUpperCase(), titleX, layout.panelY + 30);
+  context.fillText(TEXT.phase1.render.fnrTitle.toUpperCase(), titleX, layout.panelY + 30);
 
   context.fillStyle = "#fff3d7";
   context.font = '600 22px "Segoe UI", sans-serif';
   drawWrappedText(
     context,
-    `O FNR escolhe o sentido da maquina: F para frente, N parado e R para re. Use ${controlScheme.labels.fnrUp}/${controlScheme.labels.fnrDown} para mover a alavanca entre as posicoes.`,
+    TEXT.phase1.render.fnrDescription(
+      controlScheme.labels.fnrUp,
+      controlScheme.labels.fnrDown,
+    ),
     titleX,
     layout.panelY + 68,
     layout.panelWidth - layout.panelPadding * 2,
@@ -451,21 +455,21 @@ export function drawPhase1FnrIntroModal({
     stageCenterX - 194,
     stageY + stageHeight - 70,
     "F",
-    "Frente",
+    TEXT.phase1.render.fnrForward,
   );
   drawFnrPositionLabel(
     context,
     stageCenterX - 54,
     stageY + stageHeight - 70,
     "N",
-    "Parado",
+    TEXT.phase1.render.fnrNeutral,
   );
   drawFnrPositionLabel(
     context,
     stageCenterX + 86,
     stageY + stageHeight - 70,
     "R",
-    "Re",
+    TEXT.phase1.render.fnrReverse,
   );
 
   context.fillStyle = "#d5b178";
@@ -492,12 +496,19 @@ export function drawPhase1Hud({
   const rightX = CANVAS_WIDTH - 292;
   const speechX = CANVAS_WIDTH / 2 - 260;
 
-  drawHudCard(context, leftX, hudY, "pontuação", String(score), "score");
+  drawHudCard(
+    context,
+    leftX,
+    hudY,
+    TEXT.phase1.render.hudScore,
+    String(score),
+    "score",
+  );
   drawHudCard(
     context,
     rightX,
     hudY,
-    "Horímetro",
+    TEXT.phase1.render.hudHourmeter,
     `${Math.floor(hourmeterHours)} h`,
     "hourmeter",
   );
@@ -542,17 +553,21 @@ export function drawPhase1FinalModal(
     layout.portraitX + 26,
     layout.portraitY + 100,
     layout.portraitWidth - 52,
-    modalState.isNewHighScore ? "Novo highscore!" : "Treinamento concluido!",
+    modalState.isNewHighScore
+      ? TEXT.phase1.render.finalBubbleNew
+      : TEXT.phase1.render.finalBubbleComplete,
   );
 
   context.fillStyle = "#e1bf75";
   context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText("FIM DO TREINAMENTO", titleX, layout.panelY + 30);
+  context.fillText(TEXT.phase1.render.finalTitle, titleX, layout.panelY + 30);
 
   context.fillStyle = "#fff3d7";
   context.font = '800 42px "Segoe UI", sans-serif';
   context.fillText(
-    modalState.isNewHighScore ? "Novo highscore" : "Highscore",
+    modalState.isNewHighScore
+      ? TEXT.phase1.render.finalNewHighscore
+      : TEXT.phase1.render.finalHighscore,
     bodyX,
     bodyY,
   );
@@ -561,7 +576,7 @@ export function drawPhase1FinalModal(
   context.font = '600 20px "Segoe UI", sans-serif';
   drawWrappedText(
     context,
-    "O horimetro chegou em 2000 h. Venezito registrou sua melhor pontuacao nesta maquina.",
+    TEXT.phase1.render.finalBody,
     bodyX,
     bodyY + 42,
     layout.panelWidth - layout.panelPadding * 2,
@@ -573,7 +588,7 @@ export function drawPhase1FinalModal(
     bodyX,
     statY,
     statWidth,
-    "pontuacao",
+    TEXT.phase1.render.finalScore,
     String(modalState.score),
   );
   drawFinalStatCard(
@@ -589,7 +604,7 @@ export function drawPhase1FinalModal(
     bodyX + (statWidth + statGap) * 2,
     statY,
     statWidth,
-    "horimetro",
+    TEXT.phase1.render.finalHourmeter,
     `${modalState.hourmeterHours} h`,
   );
 
@@ -597,7 +612,7 @@ export function drawPhase1FinalModal(
   context.font = '600 16px "Segoe UI", sans-serif';
   context.textAlign = "center";
   context.fillText(
-    "Highscore salvo no navegador. Pressione uma seta para voltar ao menu.",
+    TEXT.phase1.render.finalHint,
     layout.panelX + layout.panelWidth / 2,
     layout.panelY + layout.panelHeight - 22,
   );
@@ -879,9 +894,11 @@ export function drawPhase1StartModal({
     machineStageY + 10,
     START_MODAL_CENTER_CARD_WIDTH,
     92,
-    "↑",
-    "Engraxar",
-    "Use ↑ para aplicar graxa.",
+    controlScheme.labels.grease,
+    TEXT.phase1.render.instructionCards.greaseTitle,
+    TEXT.phase1.render.instructionCards.greaseDescription(
+      controlScheme.labels.grease,
+    ),
   );
   drawInstructionCard(
     context,
@@ -889,9 +906,11 @@ export function drawPhase1StartModal({
     centerY - 44,
     START_MODAL_SIDE_CARD_WIDTH,
     92,
-    "←",
-    "Carregar",
-    "Use ← para carregar.",
+    controlScheme.labels.pickup,
+    TEXT.phase1.render.instructionCards.loadTitle,
+    TEXT.phase1.render.instructionCards.loadDescription(
+      controlScheme.labels.pickup,
+    ),
   );
   drawInstructionCard(
     context,
@@ -899,9 +918,9 @@ export function drawPhase1StartModal({
     centerY - 44,
     START_MODAL_SIDE_CARD_WIDTH,
     92,
-    "→",
-    "Cavar",
-    "Use → para cavar.",
+    controlScheme.labels.dig,
+    TEXT.phase1.render.instructionCards.digTitle,
+    TEXT.phase1.render.instructionCards.digDescription(controlScheme.labels.dig),
   );
   drawInstructionCard(
     context,
@@ -909,9 +928,11 @@ export function drawPhase1StartModal({
     machineStageY + machineStageHeight - 100,
     START_MODAL_CENTER_CARD_WIDTH,
     92,
-    "↓",
-    "Freio",
-    "Use ↓ para frear a maquina.",
+    controlScheme.labels.brake,
+    TEXT.phase1.render.instructionCards.brakeTitle,
+    TEXT.phase1.render.instructionCards.brakeDescription(
+      controlScheme.labels.brake,
+    ),
   );
 
   context.fillStyle = "#d5b178";
@@ -953,24 +974,24 @@ export function drawPhase1EventShowcaseModal({
     { title: string; body: string; keyLabel: string }
   > = {
     pickup: {
-      title: "Carregar",
-      body: "Aproxime da pilha e use ← para operar a carregadeira na dianteira.",
-      keyLabel: "←",
+      title: TEXT.phase1.render.instructionCards.loadTitle,
+      body: TEXT.phase1.render.showcase.pickup(controlScheme.labels.pickup),
+      keyLabel: controlScheme.labels.pickup,
     },
     dig: {
-      title: "Cavar",
-      body: "Use → para operar a escavadeira na traseira e cavar ou preencher buracos.",
-      keyLabel: "→",
+      title: TEXT.phase1.render.instructionCards.digTitle,
+      body: TEXT.phase1.render.showcase.dig(controlScheme.labels.dig),
+      keyLabel: controlScheme.labels.dig,
     },
     grease: {
-      title: "Engraxar",
-      body: "Pare no ponto de manutenção e use ↑ para iniciar a graxa.",
-      keyLabel: "↑",
+      title: TEXT.phase1.render.instructionCards.greaseTitle,
+      body: TEXT.phase1.render.showcase.grease(controlScheme.labels.grease),
+      keyLabel: controlScheme.labels.grease,
     },
     traction: {
-      title: "Freio",
-      body: "Use ↓ para frear e controlar a aproximacao da maquina.",
-      keyLabel: "↓",
+      title: TEXT.phase1.render.instructionCards.brakeTitle,
+      body: TEXT.phase1.render.showcase.traction(controlScheme.labels.brake),
+      keyLabel: controlScheme.labels.brake,
     },
   };
 
@@ -1098,18 +1119,18 @@ function getPhase1EventShowcaseBody(
   controlScheme: Phase1ControlScheme,
 ) {
   if (kind === "pickup") {
-    return `Aproxime da pilha em F1 e use ${controlScheme.labels.pickup} para operar a carregadeira na dianteira.`;
+    return TEXT.phase1.render.showcase.pickup(controlScheme.labels.pickup);
   }
 
   if (kind === "dig") {
-    return `Use ${controlScheme.labels.dig} para operar a escavadeira na traseira e cavar ou preencher buracos.`;
+    return TEXT.phase1.render.showcase.dig(controlScheme.labels.dig);
   }
 
   if (kind === "grease") {
-    return `Pare no ponto de manutencao e use ${controlScheme.labels.grease} para iniciar a graxa.`;
+    return TEXT.phase1.render.showcase.grease(controlScheme.labels.grease);
   }
 
-  return `Use ${controlScheme.labels.brake} para frear e controlar a aproximacao da maquina.`;
+  return TEXT.phase1.render.showcase.traction(controlScheme.labels.brake);
 }
 
 function getPhase1ModalLayout(): Phase1ModalLayout {
@@ -1230,11 +1251,11 @@ function drawInstructorStage(
 
   context.fillStyle = "#e1bf75";
   context.font = '700 15px "Segoe UI", sans-serif';
-  context.fillText("INSTRUTOR", x + 26, y + 34);
+  context.fillText(TEXT.phase1.render.instructor, x + 26, y + 34);
 
   context.fillStyle = "#fff3d7";
   context.font = '700 34px "Segoe UI", sans-serif';
-  context.fillText("Venezito", x + 24, y + 72);
+  context.fillText(TEXT.common.venezito, x + 24, y + 72);
 
   if (image instanceof HTMLImageElement || image instanceof HTMLCanvasElement) {
     const { width: sourceWidth, height: sourceHeight } =
@@ -1291,7 +1312,7 @@ function drawFnrIntroAssembly(
     context.fillText("F  N  R", centerX, centerY - 2);
     context.fillStyle = "#fff3d7";
     context.font = '600 18px "Segoe UI", sans-serif';
-    context.fillText("Alavanca FNR", centerX, centerY + 42);
+    context.fillText(TEXT.phase1.render.fnrLever, centerX, centerY + 42);
     context.textAlign = "start";
     context.restore();
     return;
@@ -1841,7 +1862,7 @@ function drawVenezitoSpeechHud(
 
   context.fillStyle = "#e1bf75";
   context.font = '700 14px "Segoe UI", sans-serif';
-  context.fillText("VENEZITO", textX, y + 24);
+  context.fillText(TEXT.common.venezito.toUpperCase(), textX, y + 24);
 
   context.fillStyle = "#fff3d7";
   context.font = '600 18px "Segoe UI", sans-serif';
@@ -2177,31 +2198,39 @@ function getInstructionCardControlText(
     };
   }
 
-  if (title === "Engraxar") {
+  if (title === TEXT.phase1.render.instructionCards.greaseTitle) {
     return {
       keyLabel: scheme.labels.grease,
-      description: `Use ${scheme.labels.grease} para aplicar graxa.`,
+      description: TEXT.phase1.render.instructionCards.greaseDescription(
+        scheme.labels.grease,
+      ),
     };
   }
 
-  if (title === "Carregar") {
+  if (title === TEXT.phase1.render.instructionCards.loadTitle) {
     return {
       keyLabel: scheme.labels.pickup,
-      description: `Use ${scheme.labels.pickup} para carregar.`,
+      description: TEXT.phase1.render.instructionCards.loadDescription(
+        scheme.labels.pickup,
+      ),
     };
   }
 
-  if (title === "Cavar") {
+  if (title === TEXT.phase1.render.instructionCards.digTitle) {
     return {
       keyLabel: scheme.labels.dig,
-      description: `Use ${scheme.labels.dig} para cavar.`,
+      description: TEXT.phase1.render.instructionCards.digDescription(
+        scheme.labels.dig,
+      ),
     };
   }
 
-  if (title === "Freio") {
+  if (title === TEXT.phase1.render.instructionCards.brakeTitle) {
     return {
       keyLabel: scheme.labels.brake,
-      description: `Use ${scheme.labels.brake} para frear a maquina.`,
+      description: TEXT.phase1.render.instructionCards.brakeDescription(
+        scheme.labels.brake,
+      ),
     };
   }
 
@@ -2672,7 +2701,7 @@ function drawGreaseMarker(
   context.fill();
   context.fillStyle = "#fff3d7";
   context.font = '700 22px "Segoe UI", sans-serif';
-  context.fillText("GRAXA", visualX - 40, GROUND_Y - 149);
+  context.fillText(TEXT.phase1.render.greaseSign, visualX - 40, GROUND_Y - 149);
   context.strokeStyle = isActive ? "#fff2a8" : "rgba(255,255,255,0.35)";
   context.lineWidth = 2;
   drawEventHitboxOutline(

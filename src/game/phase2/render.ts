@@ -7,6 +7,13 @@ import {
   FIELD_LEFT,
   FIELD_TOP,
   FIELD_WIDTH,
+  PHASE2_CELLS_LABEL,
+  PHASE2_MOVEMENT_HINT,
+  PHASE2_PLANTED_LABEL,
+  PHASE2_PLANTING_TITLE,
+  PHASE2_PLOWING_TITLE,
+  PHASE2_PROGRESS_LABEL,
+  PHASE2_TIME_LABEL,
   PLOW_HEIGHT,
   PLOW_WIDTH,
 } from "./config";
@@ -275,22 +282,22 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
   context.fillStyle = "#f4ead0";
   context.font = '700 22px "Segoe UI", sans-serif';
   context.fillText(
-    game.stage === "planting" ? "Fase 2 - Plantio" : "Fase 2 - Corte de grama",
+    game.stage === "planting" ? PHASE2_PLANTING_TITLE : PHASE2_PLOWING_TITLE,
     52,
     66,
   );
 
   context.fillStyle = "#d8c9a6";
   context.font = '16px "Segoe UI", sans-serif';
-  context.fillText("WASD / setas movem o trator", 52, 94);
+  context.fillText(PHASE2_MOVEMENT_HINT, 52, 94);
   context.fillText(
     game.stage === "planting"
-      ? `Plantadas: ${game.plantedCells}/${game.totalCells}`
-      : `Celulas: ${game.cutCells}/${game.totalCells}`,
+      ? `${PHASE2_PLANTED_LABEL}: ${game.plantedCells}/${game.totalCells}`
+      : `${PHASE2_CELLS_LABEL}: ${game.cutCells}/${game.totalCells}`,
     52,
     120,
   );
-  context.fillText(`Tempo: ${game.elapsedTime.toFixed(1)}s`, 52, 146);
+  context.fillText(`${PHASE2_TIME_LABEL}: ${game.elapsedTime.toFixed(1)}s`, 52, 146);
 
   const barX = CANVAS_WIDTH - 390;
   const barY = 38;
@@ -304,7 +311,11 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
 
   context.fillStyle = "#f4ead0";
   context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText(`Progresso ${Math.round(game.progress * 100)}%`, barX, 58);
+  context.fillText(
+    `${PHASE2_PROGRESS_LABEL} ${Math.round(game.progress * 100)}%`,
+    barX,
+    58,
+  );
 
   context.fillStyle = "#3a4b31";
   context.fillRect(barX, barY + 34, barWidth, barHeight);

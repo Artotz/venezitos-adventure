@@ -8,6 +8,7 @@ import {
   GAMEPAD_BUTTON_CODES,
   getPressedGamepadCodes,
 } from "../gamepadInput";
+import { TEXT } from "../i18n";
 
 export type Phase1ControlSchemeId = "keyboard" | "playstation" | "xbox";
 
@@ -69,9 +70,9 @@ const GAMEPAD_DRIVE_CODES = {
 export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   {
     id: "keyboard",
-    name: "WASD + setas",
-    driveSummary: "FNR em A/D, marchas em W/S",
-    eventSummary: "Eventos nas setas",
+    name: TEXT.phase1.controls.keyboardName,
+    driveSummary: TEXT.phase1.controls.keyboardDriveSummary,
+    eventSummary: TEXT.phase1.controls.keyboardEventSummary,
     labels: {
       fnrUp: "A",
       fnrDown: "D",
@@ -107,9 +108,9 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   },
   {
     id: "playstation",
-    name: "Setas + PlayStation",
-    driveSummary: "FNR e marchas no D-pad ou analogico",
-    eventSummary: "Eventos nos face buttons",
+    name: TEXT.phase1.controls.playstationName,
+    driveSummary: TEXT.phase1.controls.gamepadDriveSummary,
+    eventSummary: TEXT.phase1.controls.faceButtons,
     labels: {
       fnrUp: "←",
       fnrDown: "→",
@@ -145,9 +146,9 @@ export const PHASE1_CONTROL_SCHEMES: Phase1ControlScheme[] = [
   },
   {
     id: "xbox",
-    name: "Setas + Xbox",
-    driveSummary: "FNR e marchas no D-pad ou analogico",
-    eventSummary: "Eventos nos face buttons",
+    name: TEXT.phase1.controls.xboxName,
+    driveSummary: TEXT.phase1.controls.gamepadDriveSummary,
+    eventSummary: TEXT.phase1.controls.faceButtons,
     labels: {
       fnrUp: "←",
       fnrDown: "→",
@@ -255,12 +256,23 @@ export function getPhase1UniversalInputScheme(
 }
 
 export function getPhase1InitialMessage(scheme: Phase1ControlScheme) {
-  return `Use ${scheme.labels.fnrUp}/${scheme.labels.fnrDown} no FNR, ${scheme.labels.gearUp}/${scheme.labels.gearDown} para marcha e ${scheme.labels.brake} para frear.`;
+  return TEXT.phase1.controls.initialMessage(
+    scheme.labels.fnrUp,
+    scheme.labels.fnrDown,
+    scheme.labels.gearUp,
+    scheme.labels.gearDown,
+    scheme.labels.brake,
+  );
 }
 
 export function getPhase1StartModalDescription(scheme: Phase1ControlScheme) {
-  return `Use ${scheme.labels.fnrUp}/${scheme.labels.fnrDown} para alternar F, N e R.
-Use ${scheme.labels.gearUp}/${scheme.labels.gearDown} para trocar marcha e ${scheme.eventSummary.toLowerCase()}.`;
+  return TEXT.phase1.controls.startDescription(
+    scheme.labels.fnrUp,
+    scheme.labels.fnrDown,
+    scheme.labels.gearUp,
+    scheme.labels.gearDown,
+    scheme.eventSummary,
+  );
 }
 
 export function getPhase1QuestionOptionLabel(scheme: Phase1ControlScheme) {
@@ -342,10 +354,18 @@ export function getPhase1EventActivationMessage(
   const actionLabel = getPhase1EventActionLabel(definition, scheme);
 
   if (definition.interaction === "traction-zone") {
-    return `${definition.title}: use ${driveStateLabel} e ${actionLabel} no trecho.`;
+    return TEXT.phase1.controls.eventAction.traction(
+      definition.title,
+      driveStateLabel,
+      actionLabel,
+    );
   }
 
-  return `${definition.title}: use ${driveStateLabel} e pressione ${actionLabel}.`;
+  return TEXT.phase1.controls.eventAction.manual(
+    definition.title,
+    driveStateLabel,
+    actionLabel,
+  );
 }
 
 export function getPressedPhase1GamepadCodes() {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import pickupUnloadTruckSrc from "../../assets/410.png";
 import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
+import { TEXT } from "../i18n";
 
 export function usePhase1PickupUnloadTruckImage() {
   const [image, setImage] = useState<LoadedImageSource | null>(null);
@@ -20,7 +21,7 @@ export function usePhase1PickupUnloadTruckImage() {
       })
       .catch((error: unknown) => {
         console.error(
-          "Falha ao carregar o caminhao de descarregamento da fase 1.",
+          TEXT.phase1.errors.pickupUnloadTruck,
           error,
         );
       });

@@ -8,6 +8,7 @@ import {
 
 import { buildPhase1Pose } from "./retro/animations";
 import { isGamepadPauseCode } from "./gamepadInput";
+import { TEXT } from "./i18n";
 import { MainMenu } from "./MainMenu";
 import { PauseMenu } from "./PauseMenu";
 import {
@@ -423,7 +424,7 @@ export function Phase1Canvas({
   ]);
 
   if (isPlaying && (!game.excavatorScene || !images)) {
-    return <p className="canvas-status">Carregando fase 1...</p>;
+    return <p className="canvas-status">{TEXT.phase1.messages.loading}</p>;
   }
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
@@ -445,7 +446,7 @@ export function Phase1Canvas({
             <canvas
               ref={canvasRef}
               className="phase-canvas"
-              aria-label="Fase 1 com a retroescavadeira controlada por FNR e marchas"
+              aria-label={TEXT.phase1.aria.canvas}
             />
           </div>
           {isPauseMenuOpen ? (

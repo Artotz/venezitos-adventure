@@ -5,6 +5,7 @@ import {
   type CSSProperties,
 } from "react";
 import { isGamepadPauseCode } from "./gamepadInput";
+import { TEXT } from "./i18n";
 import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { PauseMenu } from "./PauseMenu";
@@ -121,7 +122,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
             <canvas
               ref={canvasRef}
               className="phase-canvas"
-              aria-label="Fase 2 com um trator em visao de cima cortando grama"
+              aria-label={TEXT.phase2.aria.canvas}
             />
           </div>
           {isPauseMenuOpen ? (

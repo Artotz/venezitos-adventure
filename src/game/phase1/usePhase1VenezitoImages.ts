@@ -7,6 +7,7 @@ import venezitoHappySrc from "../../assets/venezito/venezito-happy.png";
 import venezitoNeutralSrc from "../../assets/venezito/venezito-neutral.png";
 import venezitoSadSrc from "../../assets/venezito/venezito-sad.png";
 import { loadImage } from "../loadImage";
+import { TEXT } from "../i18n";
 import type { Phase1VenezitoImageSet } from "./venezito";
 
 export function usePhase1VenezitoImages() {
@@ -51,7 +52,7 @@ export function usePhase1VenezitoImages() {
         },
       )
       .catch((error: unknown) => {
-        console.error("Falha ao carregar as imagens do Venezito.", error);
+        console.error(TEXT.phase1.errors.venezitoImages, error);
       });
 
     return () => {

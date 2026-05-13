@@ -1,4 +1,5 @@
 import type { EditorPoint } from './types'
+import { TEXT } from '../i18n'
 
 type PointsControlsProps = {
   points: EditorPoint[]
@@ -18,24 +19,28 @@ export function PointsControls({
   return (
     <div className="controls-group points-controls">
       <div className="controls-header">
-        <h2>Pontos</h2>
+        <h2>{TEXT.editor.points.title}</h2>
         <button
           type="button"
           className="reset-button"
           onClick={onClear}
           disabled={points.length === 0}
         >
-          Limpar
+          {TEXT.editor.points.clear}
         </button>
       </div>
 
       <p className="points-help">
-        Clique no desenho da retro para salvar coordenadas relativas a maquina.
+        {TEXT.editor.points.help}
       </p>
 
       <div className="points-summary">
         <strong>{points.length}</strong>
-        <span>{points.length === 1 ? 'ponto salvo' : 'pontos salvos'}</span>
+        <span>
+          {points.length === 1
+            ? TEXT.editor.points.savedSingular
+            : TEXT.editor.points.savedPlural}
+        </span>
       </div>
 
       {points.length > 0 ? (
@@ -52,20 +57,20 @@ export function PointsControls({
                   className="reset-button"
                   onClick={() => onRemove(point.id)}
                 >
-                  Remover
+                  {TEXT.common.remove}
                 </button>
               </div>
             ))}
           </div>
 
           <div className="point-export">
-            <span>Formato para copiar</span>
+            <span>{TEXT.editor.points.copyFormat}</span>
             <code>{pointsCode}</code>
           </div>
         </>
       ) : (
         <div className="empty-state">
-          Nenhum ponto salvo ainda.
+          {TEXT.editor.points.empty}
         </div>
       )}
     </div>

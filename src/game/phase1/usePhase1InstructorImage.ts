@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import instructorSrc from "../../assets/venezito/venezito.png";
 import { loadOptimizedImage, type LoadedImageSource } from "../imageSource";
+import { TEXT } from "../i18n";
 
 export function usePhase1InstructorImage() {
   const [image, setImage] = useState<LoadedImageSource | null>(null);
@@ -19,7 +20,7 @@ export function usePhase1InstructorImage() {
         }
       })
       .catch((error: unknown) => {
-        console.error("Falha ao carregar o instrutor da fase 1.", error);
+        console.error(TEXT.phase1.errors.instructor, error);
       });
 
     return () => {

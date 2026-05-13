@@ -27,6 +27,7 @@ import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadT
 import { drawGreaseAnimation } from "./venezito/render";
 import { useVenezitoGreaseImage } from "./venezito/useVenezitoGreaseImage";
 import { ModeTabs } from "./ModeTabs";
+import { TEXT } from "./i18n";
 import { RetroEditorSidebar } from "./editor/RetroEditorSidebar";
 import { useRetroEditor } from "./editor/useRetroEditor";
 
@@ -214,7 +215,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
   };
 
   if (!excavatorScene || !images) {
-    return <p className="canvas-status">Carregando camadas retro...</p>;
+    return <p className="canvas-status">{TEXT.editor.loadingCanvas}</p>;
   }
 
   return (
@@ -234,7 +235,7 @@ export function GameCanvas({ activeView, onChangeView }: GameCanvasProps) {
           <canvas
             ref={canvasRef}
             className="game-canvas"
-            aria-label="Editor da retroescavadeira usando as mesmas poses e animacoes da fase 1"
+            aria-label={TEXT.editor.aria.canvas}
             onClick={handleCanvasClick}
           />
         </div>

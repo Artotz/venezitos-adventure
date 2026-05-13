@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import heroPhase1Src from "../assets/hero-menu.jpg";
 import heroPhase2Src from "../assets/hero2-menu.jpg";
+import {
+  isMenuConfirmCode,
+  isMenuDownCode,
+  isMenuLeftCode,
+  isMenuRightCode,
+  isMenuUpCode,
+} from "./gamepadInput";
 import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./phase1/config";
 
 export type MainMenuPhase = "phase1" | "phase2";
@@ -54,13 +61,18 @@ export function MainMenu({
         return;
       }
 
-      if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+      if (
+        isMenuLeftCode(event.code) ||
+        isMenuRightCode(event.code) ||
+        isMenuUpCode(event.code) ||
+        isMenuDownCode(event.code)
+      ) {
         event.preventDefault();
         onSelectPhase(nextPhase);
         return;
       }
 
-      if (event.code === "Enter" || event.code === "NumpadEnter") {
+      if (isMenuConfirmCode(event.code)) {
         event.preventDefault();
         onPlay();
       }

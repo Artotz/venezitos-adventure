@@ -6,19 +6,41 @@ const movementKeys = {
 }
 
 export class InputManager {
-  private pressedKeys = new Set<string>()
+  private pressedCodes = new Set<string>()
+  private keyPressCounts = new Map<string, number>()
+  private keyByCode = new Map<string, string>()
   private listening = false
 
   private handleKeyDown = (event: KeyboardEvent) => {
-    this.pressedKeys.add(event.key)
+    if (!this.pressedCodes.has(event.code)) {
+      this.keyPressCounts.set(
+        event.key,
+        (this.keyPressCounts.get(event.key) ?? 0) + 1,
+      )
+      this.keyByCode.set(event.code, event.key)
+    }
+
+    this.pressedCodes.add(event.code)
   }
 
   private handleKeyUp = (event: KeyboardEvent) => {
-    this.pressedKeys.delete(event.key)
+    const key = this.keyByCode.get(event.code) ?? event.key
+    const keyPressCount = this.keyPressCounts.get(key) ?? 0
+
+    if (keyPressCount <= 1) {
+      this.keyPressCounts.delete(key)
+    } else {
+      this.keyPressCounts.set(key, keyPressCount - 1)
+    }
+
+    this.keyByCode.delete(event.code)
+    this.pressedCodes.delete(event.code)
   }
 
   private handleBlur = () => {
-    this.pressedKeys.clear()
+    this.pressedCodes.clear()
+    this.keyPressCounts.clear()
+    this.keyByCode.clear()
   }
 
   attach() {
@@ -40,7 +62,9 @@ export class InputManager {
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
     window.removeEventListener('blur', this.handleBlur)
-    this.pressedKeys.clear()
+    this.pressedCodes.clear()
+    this.keyPressCounts.clear()
+    this.keyByCode.clear()
     this.listening = false
   }
 
@@ -56,6 +80,8 @@ export class InputManager {
   }
 
   private isAnyPressed(keys: string[]) {
-    return keys.some((key) => this.pressedKeys.has(key))
+    return keys.some(
+      (key) => this.keyPressCounts.has(key) || this.pressedCodes.has(key),
+    )
   }
 }

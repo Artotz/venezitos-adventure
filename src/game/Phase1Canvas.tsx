@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { buildPhase1Pose } from "./retro/animations";
+import { isGamepadPauseCode } from "./gamepadInput";
 import { MainMenu } from "./MainMenu";
 import { PauseMenu } from "./PauseMenu";
 import {
@@ -14,6 +15,7 @@ import {
   getPhase1ContinueCodes,
   getNextPhase1ControlSchemeId,
   getPhase1ControlScheme,
+  getPhase1UniversalInputScheme,
 } from "./phase1/controls";
 import {
   applyToPoint,
@@ -36,6 +38,7 @@ import {
   drawPhase1FinalModal,
   drawPhase1Foreground,
   drawPhase1FnrControl,
+  drawPhase1FnrIntroModal,
   drawPhase1GreaseAnimation,
   drawPhase1Hud,
   drawPhase1StartModal,
@@ -56,6 +59,7 @@ import { resolvePhase1VenezitoImage } from "./phase1/venezito";
 const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
 const START_OVERLAY_SEQUENCE = [
   "manifesto",
+  "fnr",
   "controls",
   "pickup",
   "dig",
@@ -81,11 +85,15 @@ export function Phase1Canvas({
     DEFAULT_PHASE1_CONTROL_SCHEME_ID,
   );
   const controlScheme = getPhase1ControlScheme(controlSchemeId);
+  const inputControlScheme = useMemo(
+    () => getPhase1UniversalInputScheme(controlScheme),
+    [controlScheme],
+  );
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(
     isPlaying,
     overlayStep !== null || isPauseMenuOpen,
-    controlScheme,
+    inputControlScheme,
   );
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();
@@ -162,7 +170,7 @@ export function Phase1Canvas({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const continueCodes = getPhase1ContinueCodes(controlScheme);
+      const continueCodes = getPhase1ContinueCodes(inputControlScheme);
 
       if (!START_MODAL_CONTINUE_KEYS.has(event.code) && !continueCodes.includes(event.code)) {
         return;
@@ -186,7 +194,7 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [controlScheme, isPauseMenuOpen, overlayStep]);
+  }, [inputControlScheme, isPauseMenuOpen, overlayStep]);
 
   useEffect(() => {
     if (!game.finalModal || isPauseMenuOpen) {
@@ -194,7 +202,7 @@ export function Phase1Canvas({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const continueCodes = getPhase1ContinueCodes(controlScheme);
+      const continueCodes = getPhase1ContinueCodes(inputControlScheme);
 
       if (
         (!START_MODAL_CONTINUE_KEYS.has(event.code) &&
@@ -214,7 +222,7 @@ export function Phase1Canvas({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [controlScheme, game.finalModal, isPauseMenuOpen]);
+  }, [inputControlScheme, game.finalModal, isPauseMenuOpen]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -223,7 +231,11 @@ export function Phase1Canvas({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Escape" || event.repeat || game.isEndingSequence) {
+      if (
+        (event.code !== "Escape" && !isGamepadPauseCode(event.code)) ||
+        event.repeat ||
+        game.isEndingSequence
+      ) {
         return;
       }
 
@@ -323,6 +335,14 @@ export function Phase1Canvas({
     });
     if (overlayStep === "manifesto") {
       drawPhase1SpeechModal(context, PHASE1_MANIFESTO_MODAL, instructorImage);
+    } else if (overlayStep === "fnr") {
+      drawPhase1FnrIntroModal({
+        context,
+        instructorImage,
+        fnrImage: fnrImages.fnrImage,
+        leverImage: selectedLeverImage,
+        controlScheme,
+      });
     } else if (overlayStep === "controls") {
       drawPhase1StartModal({
         context,

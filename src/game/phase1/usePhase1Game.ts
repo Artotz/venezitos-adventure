@@ -35,7 +35,6 @@ import {
   getPhase1InitialMessage,
   getPhase1QuestionOptionLabel,
   getPhase1QuestionDirectionFromCode,
-  getPressedPhase1GamepadCodes,
   type Phase1ControlScheme,
 } from "./controls";
 import {
@@ -96,6 +95,7 @@ const BRAKE_RESPONSE = 10;
 const DRIVE_RESPONSE = 2.4;
 const NEUTRAL_RESPONSE = 0.9;
 const FINAL_STOP_SPEED_THRESHOLD = 2;
+const EVENT_STOP_SPEED_THRESHOLD = 2;
 const FINAL_MODAL_DELAY_SECONDS = 2;
 
 function readPhase1HighScore() {
@@ -149,31 +149,36 @@ function getDriveSpeed(mode: Phase1DriveMode, gear: number) {
   return PHASE1_FORWARD_GEAR_SPEEDS[clampSelectedGear(gear) - 1];
 }
 
-function getDriveModeLabel(mode: Phase1DriveMode) {
-  if (mode === "forward") {
-    return "F";
-  }
-
-  if (mode === "reverse") {
-    return "R";
-  }
-
-  return "N";
-}
-
 function isRequiredDriveStateActive(
   requiredDriveState: Phase1RequiredDriveState,
   currentMode: Phase1DriveMode,
   currentGear: number,
+  currentSpeed: number,
 ) {
   if (requiredDriveState.mode === "neutral") {
-    return currentMode === "neutral";
+    return (
+      currentMode === "neutral" &&
+      Math.abs(currentSpeed) <= EVENT_STOP_SPEED_THRESHOLD
+    );
   }
 
   return (
     currentMode === requiredDriveState.mode &&
     clampSelectedGear(currentGear) === requiredDriveState.gear
   );
+}
+
+function getRequiredDriveStateAdjustmentMessage(
+  title: string,
+  requiredDriveState: Phase1RequiredDriveState,
+) {
+  const driveStateLabel = getRequiredDriveStateLabel(requiredDriveState);
+
+  if (requiredDriveState.mode === "neutral") {
+    return `${title}: ajuste para ${driveStateLabel} e pare a maquina.`;
+  }
+
+  return `${title}: ajuste para ${driveStateLabel}.`;
 }
 
 function capTargetSpeed(targetSpeed: number, maxAbsSpeed: number) {
@@ -243,7 +248,6 @@ export function usePhase1Game(
   const finalModalRef = useRef<Phase1FinalModalState | null>(null);
   const wasEnabledRef = useRef(false);
   const controlSchemeRef = useRef(controlScheme);
-  const previousGamepadCodesRef = useRef<Set<string>>(new Set());
 
   const excavatorScene = useMemo(
     () => (sprites ? measureBaseExcavator(sprites) : null),
@@ -364,17 +368,6 @@ export function usePhase1Game(
     syncAnimationLabel();
   };
 
-  const syncDriveMessage = (
-    nextMode = driveModeRef.current,
-    nextGear = selectedGearRef.current,
-  ) => {
-    setMessage(
-      `FNR em ${getDriveModeLabel(nextMode)}. Marcha ${clampSelectedGear(
-        nextGear,
-      )}.`,
-    );
-  };
-
   const setQuestionModalState = (nextModal: QuestionModalState | null) => {
     if (nextModal) {
       clearBrakeInput();
@@ -407,16 +400,13 @@ export function usePhase1Game(
 
     driveModeRef.current = nextMode;
     setDriveMode(nextMode);
-    syncDriveMessage(nextMode);
   };
 
   const shiftSelectedGear = (delta: 1 | -1) => {
-    const currentMode = driveModeRef.current;
     const nextGear = clampSelectedGear(selectedGearRef.current + delta);
 
     selectedGearRef.current = nextGear;
     setSelectedGear(nextGear);
-    syncDriveMessage(currentMode, nextGear);
   };
 
   const clearActiveEvent = () => {
@@ -573,7 +563,6 @@ export function usePhase1Game(
 
   useEffect(() => {
     controlSchemeRef.current = controlScheme;
-    previousGamepadCodesRef.current = new Set();
 
     if (!activeEventIdRef.current && !questionModalRef.current) {
       setMessage(getPhase1InitialMessage(controlScheme));
@@ -680,6 +669,38 @@ export function usePhase1Game(
       ...scheme.codes.brake,
       ...manualEventCodes,
     ]);
+    const handleDriveOrBrakeInput = () => {
+      if (scheme.codes.brake.includes(inputCode)) {
+        event.preventDefault();
+        if (frontAnimationRef.current?.presetId === "idle") {
+          return true;
+        }
+        brakePressedRef.current = true;
+        return true;
+      }
+
+      if (!driveControlCodes.has(inputCode)) {
+        return false;
+      }
+
+      event.preventDefault();
+
+      if (event.repeat) {
+        return true;
+      }
+
+      if (scheme.codes.fnrUp.includes(inputCode)) {
+        shiftDriveMode("up");
+      } else if (scheme.codes.fnrDown.includes(inputCode)) {
+        shiftDriveMode("down");
+      } else if (scheme.codes.gearUp.includes(inputCode)) {
+        shiftSelectedGear(1);
+      } else if (scheme.codes.gearDown.includes(inputCode)) {
+        shiftSelectedGear(-1);
+      }
+
+      return true;
+    };
 
     if (startupLockedRef.current) {
       if (startupBlockedCodes.has(inputCode)) {
@@ -771,52 +792,39 @@ export function usePhase1Game(
       return;
     }
 
-    if (driveControlCodes.has(inputCode)) {
-      event.preventDefault();
-
-      if (event.repeat) {
-        return;
-      }
-
-      if (scheme.codes.fnrUp.includes(inputCode)) {
-        shiftDriveMode("up");
-      } else if (scheme.codes.fnrDown.includes(inputCode)) {
-        shiftDriveMode("down");
-      } else if (scheme.codes.gearUp.includes(inputCode)) {
-        shiftSelectedGear(1);
-      } else if (scheme.codes.gearDown.includes(inputCode)) {
-        shiftSelectedGear(-1);
-      }
-
-      return;
-    }
-
-    if (scheme.codes.brake.includes(inputCode)) {
-      event.preventDefault();
-      brakePressedRef.current = true;
-      return;
-    }
-
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
     );
 
     if (!activeEvent) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     if (!activeEvent.type) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     const eventDefinition = getEventDefinition(activeEvent.type);
 
     if (isQuestionEventDefinition(eventDefinition)) {
-      if (
-        !getPhase1EventActionCodes(eventDefinition.type, scheme).includes(
-          inputCode,
-        )
-      ) {
+      const acceptedCodes = getPhase1EventActionCodes(
+        eventDefinition.type,
+        scheme,
+      );
+
+      if (!acceptedCodes.includes(inputCode)) {
+        if (handleDriveOrBrakeInput()) {
+          return;
+        }
+
+        if (
+          !driveControlCodes.has(inputCode) &&
+          !scheme.codes.brake.includes(inputCode)
+        ) {
+          event.preventDefault();
+        }
         return;
       }
 
@@ -837,12 +845,14 @@ export function usePhase1Game(
           eventDefinition.requiredDriveState,
           driveModeRef.current,
           selectedGearRef.current,
+          currentSpeedRef.current,
         )
       ) {
         setMessage(
-          `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+          getRequiredDriveStateAdjustmentMessage(
+            eventDefinition.title,
             eventDefinition.requiredDriveState,
-          )}.`,
+          ),
         );
         return;
       }
@@ -867,22 +877,32 @@ export function usePhase1Game(
     }
 
     if (!isManualEventDefinition(eventDefinition)) {
+      handleDriveOrBrakeInput();
       return;
     }
 
     const acceptedCodes = getPhase1EventActionCodes(eventDefinition.type, scheme);
 
     if (!manualEventCodes.has(inputCode)) {
-      return;
+      if (
+        !driveControlCodes.has(inputCode) &&
+        !scheme.codes.brake.includes(inputCode)
+      ) {
+        return;
+      }
     }
 
-    event.preventDefault();
-
-    const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
-    const isWithinHitbox =
-      Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
-
     if (!acceptedCodes.includes(inputCode)) {
+      if (handleDriveOrBrakeInput()) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+      const isWithinHitbox =
+        Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
+
       if (!isWithinHitbox) {
         return;
       }
@@ -892,6 +912,12 @@ export function usePhase1Game(
       );
       return;
     }
+
+    event.preventDefault();
+
+    const screenX = getEventHitboxScreenX(activeEvent, distanceRef.current);
+    const isWithinHitbox =
+      Math.abs(screenX - PLAYER_HIT_LINE_X) <= eventDefinition.hitboxHalfWidth;
 
     if (!isWithinHitbox) {
       setFails((current) => current + 1);
@@ -906,12 +932,14 @@ export function usePhase1Game(
         eventDefinition.requiredDriveState,
         driveModeRef.current,
         selectedGearRef.current,
+        currentSpeedRef.current,
       )
     ) {
       setMessage(
-        `${eventDefinition.title}: ajuste para ${getRequiredDriveStateLabel(
+        getRequiredDriveStateAdjustmentMessage(
+          eventDefinition.title,
           eventDefinition.requiredDriveState,
-        )}.`,
+        ),
       );
       return;
     }
@@ -943,6 +971,10 @@ export function usePhase1Game(
       retroAnimation.target === "front" ? frontAnimationRef : rearAnimationRef;
 
     let hasSwappedDigSprite = false;
+
+    if (activeEvent.type === "pickup-load") {
+      clearBrakeInput();
+    }
 
     startAnimation(
       animationTarget,
@@ -1022,23 +1054,6 @@ export function usePhase1Game(
     if (finalModalRef.current) {
       return;
     }
-
-    const currentGamepadCodes = new Set(getPressedPhase1GamepadCodes());
-    const previousGamepadCodes = previousGamepadCodesRef.current;
-
-    for (const code of currentGamepadCodes) {
-      if (!previousGamepadCodes.has(code)) {
-        window.dispatchEvent(new KeyboardEvent("keydown", { code }));
-      }
-    }
-
-    for (const code of previousGamepadCodes) {
-      if (!currentGamepadCodes.has(code)) {
-        window.dispatchEvent(new KeyboardEvent("keyup", { code }));
-      }
-    }
-
-    previousGamepadCodesRef.current = currentGamepadCodes;
 
     const activeEvent = eventsRef.current.find(
       (item) => item.id === activeEventIdRef.current,
@@ -1126,7 +1141,9 @@ export function usePhase1Game(
       );
     }
 
-    if (frontAnimationRef.current?.presetId === "idle") {
+    const isPickupLoadAnimation = frontAnimationRef.current?.presetId === "idle";
+
+    if (isPickupLoadAnimation) {
       targetSpeed = capTargetSpeed(targetSpeed, FRONT_LOAD_SPEED);
     }
 
@@ -1146,12 +1163,16 @@ export function usePhase1Game(
       targetSpeed = 0;
     }
 
-    if (brakePressedRef.current || endingSequenceRef.current) {
+    if (
+      (brakePressedRef.current && !isPickupLoadAnimation) ||
+      endingSequenceRef.current
+    ) {
       targetSpeed = 0;
     }
 
     const speedResponse =
-      brakePressedRef.current || endingSequenceRef.current
+      (brakePressedRef.current && !isPickupLoadAnimation) ||
+      endingSequenceRef.current
         ? BRAKE_RESPONSE
         : driveModeRef.current === "neutral"
           ? NEUTRAL_RESPONSE

@@ -4,6 +4,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { isGamepadPauseCode } from "./gamepadInput";
 import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { PauseMenu } from "./PauseMenu";
@@ -81,7 +82,10 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Escape" || event.repeat) {
+      if (
+        (event.code !== "Escape" && !isGamepadPauseCode(event.code)) ||
+        event.repeat
+      ) {
         return;
       }
 

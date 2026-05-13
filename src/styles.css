@@ -685,6 +685,13 @@ h1 {
   transform: translateY(-1px);
 }
 
+.phase-primary-button.is-selected,
+.phase-secondary-button.is-selected {
+  border-color: rgba(240, 203, 117, 0.72);
+  box-shadow: 0 0 0 3px rgba(240, 203, 117, 0.18);
+  color: #fff3d7;
+}
+
 .phase-canvas-frame {
   display: flex;
   align-items: center;

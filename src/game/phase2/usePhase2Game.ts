@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isMenuConfirmCode } from "../gamepadInput";
 import { InputManager } from "../input";
 import { useGameLoop } from "../useGameLoop";
 import {
@@ -107,7 +108,7 @@ export function usePhase2Game(enabled = true, paused = false) {
     window.addEventListener("keydown", preventPageScroll);
 
     const handlePlantingConfirmation = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat) {
+      if ((event.code !== "Space" && !isMenuConfirmCode(event.code)) || event.repeat) {
         return;
       }
 

@@ -97,6 +97,14 @@ type Phase1FnrControlParams = {
   leverImage?: LoadedImageSource | null;
 };
 
+type Phase1FnrIntroModalParams = {
+  context: CanvasRenderingContext2D;
+  instructorImage?: CanvasImageSource | null;
+  fnrImage?: LoadedImageSource | null;
+  leverImage?: LoadedImageSource | null;
+  controlScheme: Phase1ControlScheme;
+};
+
 type Phase1ModalLayout = {
   frameX: number;
   frameY: number;
@@ -378,6 +386,97 @@ export function drawPhase1FnrControl({
     FNR_LEVER_DRAW_WIDTH,
     leverHeight,
   );
+  context.restore();
+}
+
+export function drawPhase1FnrIntroModal({
+  context,
+  instructorImage,
+  fnrImage,
+  leverImage,
+  controlScheme,
+}: Phase1FnrIntroModalParams) {
+  const layout = getPhase1ModalLayout();
+  const titleX = layout.panelX + layout.panelPadding;
+  const stageX = layout.panelX + 42;
+  const stageY = layout.panelY + 118;
+  const stageWidth = layout.panelWidth - 84;
+  const stageHeight = layout.panelHeight - 188;
+  const stageCenterX = stageX + stageWidth / 2;
+  const stageCenterY = stageY + stageHeight / 2 - 8;
+
+  context.save();
+  drawModalFrame(context, layout);
+  drawInstructorStage(
+    context,
+    instructorImage ?? null,
+    layout.portraitX,
+    layout.portraitY,
+    layout.portraitWidth,
+    layout.portraitHeight,
+  );
+  drawModalPanel(context, layout);
+
+  context.fillStyle = "#e1bf75";
+  context.font = '700 18px "Segoe UI", sans-serif';
+  context.fillText("FNR".toUpperCase(), titleX, layout.panelY + 30);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 22px "Segoe UI", sans-serif';
+  drawWrappedText(
+    context,
+    `O FNR escolhe o sentido da maquina: F para frente, N parado e R para re. Use ${controlScheme.labels.fnrUp}/${controlScheme.labels.fnrDown} para mover a alavanca entre as posicoes.`,
+    titleX,
+    layout.panelY + 68,
+    layout.panelWidth - layout.panelPadding * 2,
+    30,
+  );
+
+  context.fillStyle = "rgba(255, 245, 220, 0.05)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.16)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(stageX, stageY, stageWidth, stageHeight, 28);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "rgba(255, 214, 133, 0.09)";
+  context.beginPath();
+  context.ellipse(stageCenterX, stageCenterY + 24, 222, 132, 0, 0, Math.PI * 2);
+  context.fill();
+
+  drawFnrIntroAssembly(context, fnrImage, leverImage, stageCenterX, stageCenterY);
+  drawFnrPositionLabel(
+    context,
+    stageCenterX - 194,
+    stageY + stageHeight - 70,
+    "F",
+    "Frente",
+  );
+  drawFnrPositionLabel(
+    context,
+    stageCenterX - 54,
+    stageY + stageHeight - 70,
+    "N",
+    "Parado",
+  );
+  drawFnrPositionLabel(
+    context,
+    stageCenterX + 86,
+    stageY + stageHeight - 70,
+    "R",
+    "Re",
+  );
+
+  context.fillStyle = "#d5b178";
+  context.font = '600 16px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(
+    PHASE1_START_MODAL_HINT,
+    layout.panelX + layout.panelWidth / 2,
+    layout.panelY + layout.panelHeight - 22,
+  );
+  context.textAlign = "start";
   context.restore();
 }
 
@@ -999,7 +1098,7 @@ function getPhase1EventShowcaseBody(
   controlScheme: Phase1ControlScheme,
 ) {
   if (kind === "pickup") {
-    return `Aproxime da pilha e use ${controlScheme.labels.pickup} para operar a carregadeira na dianteira.`;
+    return `Aproxime da pilha em F1 e use ${controlScheme.labels.pickup} para operar a carregadeira na dianteira.`;
   }
 
   if (kind === "dig") {
@@ -1166,6 +1265,92 @@ function drawInstructorStage(
     context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
   }
 
+  context.restore();
+}
+
+function drawFnrIntroAssembly(
+  context: CanvasRenderingContext2D,
+  fnrImage: LoadedImageSource | null | undefined,
+  leverImage: LoadedImageSource | null | undefined,
+  centerX: number,
+  centerY: number,
+) {
+  if (!fnrImage || !leverImage) {
+    context.save();
+    context.fillStyle = "rgba(26, 19, 13, 0.96)";
+    context.strokeStyle = "rgba(255, 229, 178, 0.28)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.roundRect(centerX - 150, centerY - 78, 300, 156, 22);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "#f0cb75";
+    context.font = '700 46px "Segoe UI", sans-serif';
+    context.textAlign = "center";
+    context.fillText("F  N  R", centerX, centerY - 2);
+    context.fillStyle = "#fff3d7";
+    context.font = '600 18px "Segoe UI", sans-serif';
+    context.fillText("Alavanca FNR", centerX, centerY + 42);
+    context.textAlign = "start";
+    context.restore();
+    return;
+  }
+
+  const panelSize = getImageSourceSize(fnrImage);
+  const panelWidth = 286;
+  const panelHeight = panelWidth * (panelSize.height / panelSize.width);
+  const panelX = centerX - panelWidth / 2 + 16;
+  const panelY = centerY - panelHeight / 2 - 4;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(fnrImage, panelX, panelY, panelWidth, panelHeight);
+
+  const leverSize = getImageSourceSize(leverImage);
+  const leverWidth = 316;
+  const leverHeight = leverWidth * (leverSize.height / leverSize.width);
+  const pivotX = panelX + panelWidth - 34;
+  const pivotY = centerY + 8;
+
+  context.translate(pivotX, pivotY);
+  context.rotate((-8 * Math.PI) / 180);
+  context.drawImage(
+    leverImage,
+    -leverWidth + 10,
+    -leverHeight / 2,
+    leverWidth,
+    leverHeight,
+  );
+  context.restore();
+}
+
+function drawFnrPositionLabel(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  keyLabel: string,
+  label: string,
+) {
+  context.save();
+  context.fillStyle = "rgba(26, 19, 13, 0.88)";
+  context.strokeStyle = "rgba(255, 229, 178, 0.2)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.roundRect(x, y, 108, 50, 16);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#f0cb75";
+  context.font = '700 19px "Segoe UI", sans-serif';
+  context.textAlign = "center";
+  context.fillText(keyLabel, x + 28, y + 31);
+
+  context.fillStyle = "#fff3d7";
+  context.font = '600 15px "Segoe UI", sans-serif';
+  context.fillText(label, x + 70, y + 31);
+  context.textAlign = "start";
   context.restore();
 }
 

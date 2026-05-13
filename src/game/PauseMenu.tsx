@@ -1,3 +1,11 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  isMenuConfirmCode,
+  isMenuDownCode,
+  isMenuLeftCode,
+  isMenuRightCode,
+  isMenuUpCode,
+} from "./gamepadInput";
 import type { Phase1ControlScheme } from "./phase1/controls";
 
 type PauseMenuProps = {
@@ -13,6 +21,62 @@ export function PauseMenu({
   controlScheme,
   onToggleControlScheme,
 }: PauseMenuProps) {
+  const actions = useMemo(
+    () =>
+      [
+        controlScheme && onToggleControlScheme
+          ? { id: "toggle-controls", handler: onToggleControlScheme }
+          : null,
+        { id: "resume", handler: onResume },
+        { id: "main-menu", handler: onOpenMainMenu },
+      ].filter(Boolean) as Array<{ id: string; handler: () => void }>,
+    [controlScheme, onOpenMainMenu, onResume, onToggleControlScheme],
+  );
+  const [selectedActionIndex, setSelectedActionIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedActionIndex((current) =>
+      Math.min(current, Math.max(0, actions.length - 1)),
+    );
+  }, [actions.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) {
+        return;
+      }
+
+      if (
+        isMenuUpCode(event.code) ||
+        isMenuLeftCode(event.code) ||
+        isMenuDownCode(event.code) ||
+        isMenuRightCode(event.code)
+      ) {
+        event.preventDefault();
+        const direction =
+          isMenuUpCode(event.code) || isMenuLeftCode(event.code) ? -1 : 1;
+        setSelectedActionIndex((current) =>
+          (current + direction + actions.length) % actions.length,
+        );
+        return;
+      }
+
+      if (isMenuConfirmCode(event.code)) {
+        event.preventDefault();
+        actions[selectedActionIndex]?.handler();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [actions, selectedActionIndex]);
+
+  const isSelected = (id: string) =>
+    actions[selectedActionIndex]?.id === id ? " is-selected" : "";
+
   return (
     <div className="phase-pause-overlay" role="dialog" aria-modal="true">
       <div className="phase-pause-menu">
@@ -29,7 +93,7 @@ export function PauseMenu({
             </div>
             <button
               type="button"
-              className="phase-secondary-button"
+              className={`phase-secondary-button${isSelected("toggle-controls")}`}
               onClick={onToggleControlScheme}
             >
               Alternar
@@ -39,14 +103,14 @@ export function PauseMenu({
         <div className="phase-pause-actions">
           <button
             type="button"
-            className="phase-primary-button"
+            className={`phase-primary-button${isSelected("resume")}`}
             onClick={onResume}
           >
             Retomar
           </button>
           <button
             type="button"
-            className="phase-secondary-button"
+            className={`phase-secondary-button${isSelected("main-menu")}`}
             onClick={onOpenMainMenu}
           >
             Menu principal

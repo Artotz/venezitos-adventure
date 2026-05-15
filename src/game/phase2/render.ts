@@ -325,6 +325,11 @@ function drawImplement(
   context.save();
   context.translate(game.plow.x, game.plow.y);
   context.rotate(game.plow.angle);
+
+  if (game.stage === "cane") {
+    context.rotate(Math.PI);
+  }
+
   context.drawImage(implementSprite, -width / 2, -height / 2, width, height);
 
   if (game.stage === "cane" && game.tractor.moving) {

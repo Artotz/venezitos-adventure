@@ -61,8 +61,7 @@ export const TEXT = {
     points: {
       title: "Pontos",
       clear: "Limpar",
-      help:
-        "Clique no desenho da retro para salvar coordenadas relativas à máquina.",
+      help: "Clique no desenho da retro para salvar coordenadas relativas à máquina.",
       savedSingular: "ponto salvo",
       savedPlural: "pontos salvos",
       copyFormat: "Formato para copiar",
@@ -79,7 +78,8 @@ export const TEXT = {
       phase1: "Fase 1",
     },
     aria: {
-      canvas: "Editor da retroescavadeira usando as mesmas poses e animações da fase 1",
+      canvas:
+        "Editor da retroescavadeira usando as mesmas poses e animações da fase 1",
     },
     loadingCanvas: "Carregando camadas retro...",
   },
@@ -345,42 +345,48 @@ export const TEXT = {
   },
   phase2: {
     menuEyebrow: "Veneza Máquinas",
-    menuTitle: "Cortando a grama",
+    menuTitle: "Preparo do plantio",
     menuDescription:
-      "Controle o trator por cima, limpe o campo inteiro e mantenha o ritmo.",
+      "No campo, siga as etapas do preparo: grade, plantadeira e pulverizadora.",
     menuAction: "Jogar fase 2",
-    preGameTitle: "Fase 2 - Corte de grama",
+    preGameTitle: "Fase 2 - Preparo do plantio",
     preGameDescription:
-      "Controle o trator com as setas ou WASD e corte toda a grama do campo.",
+      "Controle o trator com as setas ou WASD e prepare o campo com grade, plantadeira e pulverizadora.",
     preGameAction: "Começar (Enter)",
     preGameBack: "Voltar ao Menu",
-    plowingTitle: "Fase 2 - Corte de grama",
-    plantingTitle: "Fase 2 - Plantio",
-    caneTitle: "Fase 2 - Cana",
+    plowingTitle: "Fase 2 - Etapa da grade",
+    plantingTitle: "Fase 2 - Plantadeira",
+    caneTitle: "Fase 2 - Pulverizadora",
     movementHint: "WASD / setas movem o trator",
     plantedLabel: "Plantadas",
     caneLabel: "Cana",
     cellsLabel: "Células",
     timeLabel: "Tempo",
     progressLabel: "Progresso",
-    initialMessage: "Corte toda a grama passando por cima das células.",
-    completeMessage: "Campo limpo. Todas as células foram cortadas.",
-    readyToPlantMessage: "Campo limpo! Volte ao início para plantar.",
+    initialMessage:
+      "Passe a grade em todo o terreno passando por cima das células.",
+    completeMessage: "Etapa da grade concluída em todo o campo.",
+    readyToPlantMessage:
+      "Grade concluída! Volte ao início para seguir para a plantadeira.",
     confirmPlantingMessage:
       "A segunda etapa vai começar. Pressione Space para confirmar.",
-    plantingMessage: "Plante o campo passando o arado pelo solo.",
-    plantingCompleteMessage: "Plantio completo. Campo preparado!",
+    plantingMessage: "Faça o preparo com a plantadeira em todo o campo.",
+    plantingCompleteMessage:
+      "Plantadeira concluída! Volte ao início para seguir para a pulverizadora.",
     readyToCaneMessage:
-      "Plantio completo! Volte ao início para iniciar a cana.",
+      "Plantadeira concluída! Volte ao início para iniciar a pulverização.",
     confirmCaneMessage:
       "A terceira etapa vai começar. Pressione Space para confirmar.",
-    caneMessage: "Passe pelo campo para formar o plantio de cana.",
-    caneCompleteMessage: "Plantio de cana completo!",
-    readyToRestartMessage: "Campo limpo! Pressione espaço para reiniciar.",
-    plantingProgress: (progress: number) => `Plantio: ${progress}%`,
-    grassCutProgress: (progress: number) => `Grama cortada: ${progress}%`,
+    caneMessage: "Passe com a pulverizadora por todo o campo.",
+    caneCompleteMessage:
+      "Preparo concluído! Grade, plantadeira e pulverizadora finalizadas.",
+    readyToRestartMessage:
+      "Preparo concluído! Pressione espaço para reiniciar.",
+    plantingProgress: (progress: number) => `Plantadeira: ${progress}%`,
+    grassCutProgress: (progress: number) => `Grade: ${progress}%`,
     aria: {
-      canvas: "Fase 2 com um trator em visão de cima cortando grama",
+      canvas:
+        "Fase 2 com um trator em visão de cima no preparo do plantio com grade, plantadeira e pulverizadora",
     },
     errors: {
       vehicleSprites: "Falha ao carregar sprites do veículo da fase 2.",

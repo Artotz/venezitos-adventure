@@ -39,6 +39,12 @@ export type Phase2GameSnapshot = {
   timerStarted: boolean;
   message: string;
   isComplete: boolean;
+  finalModal: {
+    score: number;
+    highScore: number;
+    isNewHighScore: boolean;
+    hourmeterHours: number;
+  } | null;
   tractor: Phase2Tractor;
   plow: Phase2Plow;
   cells: Phase2Cell[];

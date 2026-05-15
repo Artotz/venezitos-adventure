@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -7,6 +8,14 @@ import {
 import { isGamepadPauseCode } from "./gamepadInput";
 import { TEXT } from "./i18n";
 import { MainMenu, MAIN_MENU_HEIGHT, MAIN_MENU_WIDTH } from "./MainMenu";
+import { readPhase1ControlSchemeId, writePhase1ControlSchemeId } from "./options";
+import {
+  getNextPhase1ControlSchemeId,
+  getPhase1ControlScheme,
+  getPhase1ContinueCodes,
+  getPhase1UniversalInputScheme,
+} from "./phase1/controls";
+import { drawPhase1FinalModal } from "./phase1/render";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { Phase2StageIntroCard } from "./phase2/Phase2StageIntroCard";
 import { PauseMenu } from "./PauseMenu";
@@ -27,10 +36,22 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [stageIntro, setStageIntro] = useState<Phase2Stage | null>(null);
+  const [controlSchemeId, setControlSchemeId] = useState(() =>
+    readPhase1ControlSchemeId(),
+  );
+  const controlScheme = getPhase1ControlScheme(controlSchemeId);
+  const inputControlScheme = useMemo(
+    () => getPhase1UniversalInputScheme(controlScheme),
+    [controlScheme],
+  );
   const isPlaying = phaseStep === "playing";
   const game = usePhase2Game(isPlaying, isPauseMenuOpen || stageIntro !== null);
   const vehicleSprites = usePhase2TractorSprite();
   usePhase2TractorDrivingSound(isPlaying && !game.isComplete, game.stage);
+
+  useEffect(() => {
+    writePhase1ControlSchemeId(controlSchemeId);
+  }, [controlSchemeId]);
 
   useEffect(() => {
     const updateCanvasScale = () => {
@@ -79,7 +100,35 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     }
 
     drawPhase2Scene(context, game, vehicleSprites);
-  }, [game, vehicleSprites]);
+
+    if (game.finalModal) {
+      drawPhase1FinalModal(context, game.finalModal);
+    }
+  }, [game, isPlaying, vehicleSprites]);
+
+  useEffect(() => {
+    if (!isPlaying || !game.finalModal || isPauseMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const continueCodes = getPhase1ContinueCodes(inputControlScheme);
+
+      if (!continueCodes.includes(event.code) || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      setPhaseStep("menu");
+      setIsPauseMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [game.finalModal, inputControlScheme, isPauseMenuOpen, isPlaying]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -91,7 +140,8 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         (event.code !== "Escape" && !isGamepadPauseCode(event.code)) ||
-        event.repeat
+        event.repeat ||
+        game.finalModal
       ) {
         return;
       }
@@ -105,7 +155,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isPlaying]);
+  }, [game.finalModal, isPlaying]);
 
   useEffect(() => {
     if (!isPlaying || game.isComplete) {
@@ -155,6 +205,12 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
                 setIsPauseMenuOpen(false);
                 setPhaseStep("menu");
               }}
+              controlScheme={controlScheme}
+              onToggleControlScheme={() =>
+                setControlSchemeId((current) =>
+                  getNextPhase1ControlSchemeId(current),
+                )
+              }
             />
           ) : null}
           {stageIntro && !isPauseMenuOpen ? (

@@ -72,3 +72,5 @@ export const CONFIRM_CANE_MESSAGE = TEXT.phase2.confirmCaneMessage;
 export const CANE_MESSAGE = TEXT.phase2.caneMessage;
 export const CANE_COMPLETE_MESSAGE = TEXT.phase2.caneCompleteMessage;
 export const READY_TO_RESTART_MESSAGE = TEXT.phase2.readyToRestartMessage;
+export const PHASE2_HIGHSCORE_STORAGE_KEY =
+  "venezitos-adventure:phase2-highscore";

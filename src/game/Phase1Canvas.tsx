@@ -10,9 +10,9 @@ import { buildPhase1Pose } from "./retro/animations";
 import { isGamepadPauseCode } from "./gamepadInput";
 import { TEXT } from "./i18n";
 import { MainMenu } from "./MainMenu";
+import { readPhase1ControlSchemeId, writePhase1ControlSchemeId } from "./options";
 import { PauseMenu } from "./PauseMenu";
 import {
-  DEFAULT_PHASE1_CONTROL_SCHEME_ID,
   getPhase1ContinueCodes,
   getNextPhase1ControlSchemeId,
   getPhase1ControlScheme,
@@ -82,14 +82,17 @@ export function Phase1Canvas({
   const [phaseStep, setPhaseStep] = useState<"menu" | "playing">("menu");
   const [overlayStep, setOverlayStep] = useState<StartOverlayStep | null>(null);
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
-  const [controlSchemeId, setControlSchemeId] = useState(
-    DEFAULT_PHASE1_CONTROL_SCHEME_ID,
+  const [controlSchemeId, setControlSchemeId] = useState(() =>
+    readPhase1ControlSchemeId(),
   );
   const controlScheme = getPhase1ControlScheme(controlSchemeId);
   const inputControlScheme = useMemo(
     () => getPhase1UniversalInputScheme(controlScheme),
     [controlScheme],
   );
+  useEffect(() => {
+    writePhase1ControlSchemeId(controlSchemeId);
+  }, [controlSchemeId]);
   const isPlaying = phaseStep === "playing";
   const game = usePhase1Game(
     isPlaying,

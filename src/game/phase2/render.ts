@@ -291,23 +291,22 @@ function drawTractor(
   game: Phase2GameSnapshot,
   tractorSprite: CanvasImageSource | null,
 ) {
+  if (!tractorSprite) {
+    return;
+  }
+
   const { tractor } = game;
 
   context.save();
   context.translate(tractor.x, tractor.y);
   context.rotate(tractor.angle);
-
-  if (tractorSprite) {
-    context.drawImage(
-      tractorSprite,
-      -tractor.width / 2,
-      -tractor.height / 2,
-      tractor.width,
-      tractor.height,
-    );
-  } else {
-    drawFallbackTractor(context, game);
-  }
+  context.drawImage(
+    tractorSprite,
+    -tractor.width / 2,
+    -tractor.height / 2,
+    tractor.width,
+    tractor.height,
+  );
 
   context.restore();
 }
@@ -422,52 +421,6 @@ function projectLocalPoint(
     x: originX + localX * cos - localY * sin,
     y: originY + localX * sin + localY * cos,
   };
-}
-
-function drawFallbackTractor(
-  context: CanvasRenderingContext2D,
-  game: Phase2GameSnapshot,
-) {
-  const { tractor } = game;
-
-  context.fillStyle = "#1b1f1a";
-  context.fillRect(-tractor.width / 2 - 12, -tractor.height / 2 + 8, 16, 30);
-  context.fillRect(tractor.width / 2 - 4, -tractor.height / 2 + 8, 16, 30);
-  context.fillRect(-tractor.width / 2 - 12, tractor.height / 2 - 40, 18, 34);
-  context.fillRect(tractor.width / 2 - 6, tractor.height / 2 - 40, 18, 34);
-
-  context.fillStyle = "#216d35";
-  context.fillRect(
-    -tractor.width / 2,
-    -tractor.height / 2,
-    tractor.width,
-    tractor.height,
-  );
-
-  context.fillStyle = "#e0b747";
-  context.fillRect(
-    -tractor.width / 2 + 10,
-    -tractor.height / 2 + 10,
-    tractor.width - 20,
-    28,
-  );
-  context.fillRect(
-    -tractor.width / 2 + 14,
-    tractor.height / 2 - 32,
-    tractor.width - 28,
-    18,
-  );
-
-  context.fillStyle = "#23352f";
-  context.fillRect(-tractor.width / 2 + 12, -6, tractor.width - 24, 24);
-
-  context.fillStyle = tractor.moving ? "#f4e18d" : "#d8cb8d";
-  context.beginPath();
-  context.moveTo(0, -tractor.height / 2 - 12);
-  context.lineTo(-12, -tractor.height / 2 + 8);
-  context.lineTo(12, -tractor.height / 2 + 8);
-  context.closePath();
-  context.fill();
 }
 
 function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {

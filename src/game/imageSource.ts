@@ -7,13 +7,25 @@ type OptimizeImageOptions = {
   maxHeight?: number;
 };
 
+const optimizedImageCache = new Map<string, Promise<LoadedImageSource>>();
+
 export async function loadOptimizedImage(
   src: string,
   options?: OptimizeImageOptions,
 ) {
-  const image = await loadImage(src);
+  const cacheKey = `${src}|${options?.maxWidth ?? "auto"}|${
+    options?.maxHeight ?? "auto"
+  }`;
+  const cached = optimizedImageCache.get(cacheKey);
 
-  return optimizeImageSource(image, options);
+  if (cached) {
+    return cached;
+  }
+
+  const loading = loadImage(src).then((image) => optimizeImageSource(image, options));
+  optimizedImageCache.set(cacheKey, loading);
+
+  return loading;
 }
 
 export function optimizeImageSource(

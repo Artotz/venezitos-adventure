@@ -10,6 +10,7 @@ import {
 } from "./gamepadInput";
 import { TEXT } from "./i18n";
 import { useMainMenuMusic } from "./menuSounds";
+import { preloadAllPhaseAssets } from "./preloadAssets";
 import { PHASE1_MENU_DESCRIPTION, PHASE1_MENU_TITLE } from "./phase1/config";
 import {
   PHASE2_MENU_ACTION_LABEL,
@@ -63,6 +64,10 @@ export function MainMenu({
   const selected = PHASES[selectedPhase];
   const nextPhase = selectedPhase === "phase1" ? "phase2" : "phase1";
   const startMenuMusic = useMainMenuMusic();
+
+  useEffect(() => {
+    void preloadAllPhaseAssets();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

@@ -391,5 +391,8 @@ export const TEXT = {
     errors: {
       vehicleSprites: "Falha ao carregar sprites do veículo da fase 2.",
     },
+    messages: {
+      loading: "Carregando fase 2...",
+    },
   },
 } as const;

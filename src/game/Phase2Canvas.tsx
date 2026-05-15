@@ -49,6 +49,11 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const isPlaying = phaseStep === "playing";
   const game = usePhase2Game(isPlaying, isPauseMenuOpen || stageIntro !== null);
   const vehicleSprites = usePhase2TractorSprite();
+  const isVehicleSpritesReady =
+    vehicleSprites.tractor !== null &&
+    vehicleSprites.plow !== null &&
+    vehicleSprites.planter !== null &&
+    vehicleSprites.sprayer !== null;
   const venezitoImages = usePhase1VenezitoImages();
   const finalModalImage = resolvePhase1VenezitoImage(
     venezitoImages,
@@ -96,7 +101,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
 
-    if (!isPlaying || !canvas) {
+    if (!isPlaying || !isVehicleSpritesReady || !canvas) {
       return;
     }
 
@@ -117,7 +122,7 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
         height: CANVAS_HEIGHT,
       });
     }
-  }, [finalModalImage, game, isPlaying, vehicleSprites]);
+  }, [finalModalImage, game, isPlaying, isVehicleSpritesReady, vehicleSprites]);
 
   useEffect(() => {
     if (!isPlaying || !game.finalModal || isPauseMenuOpen) {
@@ -186,6 +191,10 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
       window.clearTimeout(timeoutId);
     };
   }, [game.isComplete, game.stage, isPlaying]);
+
+  if (isPlaying && !isVehicleSpritesReady) {
+    return <p className="canvas-status">{TEXT.phase2.messages.loading}</p>;
+  }
 
   const scaledCanvasWidth = Math.round(CANVAS_WIDTH * canvasScale);
   const scaledCanvasHeight = Math.round(CANVAS_HEIGHT * canvasScale);

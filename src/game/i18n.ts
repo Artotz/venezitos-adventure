@@ -283,7 +283,7 @@ export const TEXT = {
       finalNewHighscore: "Novo highscore",
       finalHighscore: "Highscore",
       finalBody:
-        "O horímetro chegou em 2000 h. Venezito registrou sua melhor pontuação nesta máquina.",
+        "O treinamento chegou ao fim. Venezito registrou sua pontuação.",
       finalScore: "pontuação",
       finalHourmeter: "horímetro",
       finalHint:
@@ -300,7 +300,7 @@ export const TEXT = {
       },
       showcase: {
         pickup: (key: string) =>
-          `Aproxime da pilha em F1 e use ${key} para operar a carregadeira na dianteira.`,
+          `Aproxime da pilha em 1ª marcha e use ${key} para operar a carregadeira na dianteira.`,
         dig: (key: string) =>
           `Use ${key} para operar a escavadeira na traseira e cavar ou preencher buracos.`,
         grease: (key: string) =>

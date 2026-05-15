@@ -34,11 +34,12 @@ export const PLOW_MAX_ARTICULATION = Math.PI / 2.5;
 export const PLOW_TURN_SWING = Math.PI / 4.5;
 export const PLOW_TONGUE_LENGTH = 24;
 export const TRACTOR_START_X = FIELD_LEFT + CELL_SIZE * 1.5;
-export const TRACTOR_START_Y = FIELD_TOP + FIELD_HEIGHT - TRACTOR_HITBOX_HEIGHT / 2;
+export const TRACTOR_START_Y =
+  FIELD_TOP + FIELD_HEIGHT - TRACTOR_HITBOX_HEIGHT / 2;
 export const TRACTOR_SPEED = 235;
 export const TRACTOR_TURN_RESPONSE = 3.2;
 export const RESTART_DISTANCE = 50;
-export const STAGE_DURATION_SECONDS = 40;
+export const STAGE_DURATION_SECONDS = 4;
 export const CELL_SCORE_VALUE = 1.35;
 
 export const PHASE2_MENU_EYEBROW = TEXT.phase2.menuEyebrow;

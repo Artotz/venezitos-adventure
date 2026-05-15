@@ -35,7 +35,9 @@ export const PHASE1_CONTINUE_CODES = [
 export const QUESTION_APPROACH_SLOWDOWN_DISTANCE = 320;
 export const QUESTION_APPROACH_TARGET_SPEED = 42;
 export const QUESTION_MODAL_OPEN_SPEED_THRESHOLD = 6;
-export const INITIAL_MESSAGE = TEXT.phase1.initialMessage(TRACTION_TOGGLE_KEY_LABEL);
+export const INITIAL_MESSAGE = TEXT.phase1.initialMessage(
+  TRACTION_TOGGLE_KEY_LABEL,
+);
 export const PHASE1_MENU_TITLE = TEXT.phase1.menuTitle;
 export const PHASE1_MENU_DESCRIPTION = TEXT.phase1.menuDescription;
 export const PHASE1_START_MODAL_TITLE = TEXT.phase1.startModalTitle;

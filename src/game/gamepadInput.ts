@@ -35,10 +35,6 @@ const KEY_BY_GAMEPAD_CODE: Record<string, string> = {
   [GAMEPAD_AXIS_CODES.leftStickDown]: "ArrowDown",
   [GAMEPAD_AXIS_CODES.leftStickLeft]: "ArrowLeft",
   [GAMEPAD_AXIS_CODES.leftStickRight]: "ArrowRight",
-  [GAMEPAD_AXIS_CODES.rightStickUp]: "ArrowUp",
-  [GAMEPAD_AXIS_CODES.rightStickDown]: "ArrowDown",
-  [GAMEPAD_AXIS_CODES.rightStickLeft]: "ArrowLeft",
-  [GAMEPAD_AXIS_CODES.rightStickRight]: "ArrowRight",
   [GAMEPAD_BUTTON_CODES.faceBottom]: "Enter",
   [GAMEPAD_BUTTON_CODES.faceRight]: "Enter",
   [GAMEPAD_BUTTON_CODES.faceLeft]: "Enter",
@@ -61,25 +57,21 @@ export const GAMEPAD_PAUSE_CODES = [
 export const GAMEPAD_UP_CODES = [
   GAMEPAD_BUTTON_CODES.dpadUp,
   GAMEPAD_AXIS_CODES.leftStickUp,
-  GAMEPAD_AXIS_CODES.rightStickUp,
 ] as const;
 
 export const GAMEPAD_DOWN_CODES = [
   GAMEPAD_BUTTON_CODES.dpadDown,
   GAMEPAD_AXIS_CODES.leftStickDown,
-  GAMEPAD_AXIS_CODES.rightStickDown,
 ] as const;
 
 export const GAMEPAD_LEFT_CODES = [
   GAMEPAD_BUTTON_CODES.dpadLeft,
   GAMEPAD_AXIS_CODES.leftStickLeft,
-  GAMEPAD_AXIS_CODES.rightStickLeft,
 ] as const;
 
 export const GAMEPAD_RIGHT_CODES = [
   GAMEPAD_BUTTON_CODES.dpadRight,
   GAMEPAD_AXIS_CODES.leftStickRight,
-  GAMEPAD_AXIS_CODES.rightStickRight,
 ] as const;
 
 export function isGamepadConfirmCode(code: string) {
@@ -133,12 +125,6 @@ export function getPressedGamepadCodes() {
       right: GAMEPAD_AXIS_CODES.leftStickRight,
       up: GAMEPAD_AXIS_CODES.leftStickUp,
       down: GAMEPAD_AXIS_CODES.leftStickDown,
-    });
-    addAxisCodes(pressedCodes, gamepad.axes[2] ?? 0, gamepad.axes[3] ?? 0, {
-      left: GAMEPAD_AXIS_CODES.rightStickLeft,
-      right: GAMEPAD_AXIS_CODES.rightStickRight,
-      up: GAMEPAD_AXIS_CODES.rightStickUp,
-      down: GAMEPAD_AXIS_CODES.rightStickDown,
     });
   }
 

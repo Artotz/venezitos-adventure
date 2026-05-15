@@ -16,6 +16,8 @@ import {
   getPhase1UniversalInputScheme,
 } from "./phase1/controls";
 import { drawPhase1FinalModal } from "./phase1/render";
+import { resolvePhase1VenezitoImage } from "./phase1/venezito";
+import { usePhase1VenezitoImages } from "./phase1/usePhase1VenezitoImages";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { Phase2StageIntroCard } from "./phase2/Phase2StageIntroCard";
 import { PauseMenu } from "./PauseMenu";
@@ -47,6 +49,12 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
   const isPlaying = phaseStep === "playing";
   const game = usePhase2Game(isPlaying, isPauseMenuOpen || stageIntro !== null);
   const vehicleSprites = usePhase2TractorSprite();
+  const venezitoImages = usePhase1VenezitoImages();
+  const finalModalImage = resolvePhase1VenezitoImage(
+    venezitoImages,
+    "full",
+    game.finalModal?.isNewHighScore ? "happy" : "neutral",
+  );
   usePhase2TractorDrivingSound(isPlaying && !game.isComplete, game.stage);
 
   useEffect(() => {
@@ -102,9 +110,12 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     drawPhase2Scene(context, game, vehicleSprites);
 
     if (game.finalModal) {
-      drawPhase1FinalModal(context, game.finalModal);
+      drawPhase1FinalModal(context, game.finalModal, finalModalImage, {
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+      });
     }
-  }, [game, isPlaying, vehicleSprites]);
+  }, [finalModalImage, game, isPlaying, vehicleSprites]);
 
   useEffect(() => {
     if (!isPlaying || !game.finalModal || isPauseMenuOpen) {

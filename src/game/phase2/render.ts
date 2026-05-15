@@ -57,20 +57,32 @@ function drawBackdrop(context: CanvasRenderingContext2D) {
   }
 
   context.fillStyle = "#4e6b39";
-  context.fillRect(FIELD_LEFT - 18, FIELD_TOP - 18, FIELD_WIDTH + 36, FIELD_HEIGHT + 36);
+  context.fillRect(
+    FIELD_LEFT - 18,
+    FIELD_TOP - 18,
+    FIELD_WIDTH + 36,
+    FIELD_HEIGHT + 36,
+  );
 
   context.strokeStyle = "rgba(29, 43, 26, 0.42)";
   context.lineWidth = 8;
-  context.strokeRect(FIELD_LEFT - 18, FIELD_TOP - 18, FIELD_WIDTH + 36, FIELD_HEIGHT + 36);
+  context.strokeRect(
+    FIELD_LEFT - 18,
+    FIELD_TOP - 18,
+    FIELD_WIDTH + 36,
+    FIELD_HEIGHT + 36,
+  );
 }
 
-function drawField(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+function drawField(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+) {
   for (const cell of game.cells) {
-    const x = FIELD_LEFT + cell.column * CELL_SIZE + CELL_GAP / 2;
-    const y = FIELD_TOP + cell.row * CELL_SIZE + CELL_GAP / 2;
-    const size = CELL_SIZE - CELL_GAP;
-
     const isSoil = cell.cut;
+    const x = FIELD_LEFT + cell.column * CELL_SIZE + (isSoil ? CELL_GAP / 2 : 0);
+    const y = FIELD_TOP + cell.row * CELL_SIZE + (isSoil ? CELL_GAP / 2 : 0);
+    const size = isSoil ? CELL_SIZE - CELL_GAP : CELL_SIZE;
 
     context.fillStyle = isSoil
       ? getSoilColor(cell.column, cell.row)
@@ -99,7 +111,7 @@ function drawGrassTexture(
   seed: number,
 ) {
   context.strokeStyle = "rgba(218, 236, 148, 0.24)";
-  context.lineWidth = 2;
+  context.lineWidth = 0;
 
   for (let index = 0; index < 4; index += 1) {
     const bladeX = x + 8 + ((seed * 17 + index * 11) % Math.max(1, size - 16));
@@ -259,7 +271,7 @@ function drawCompletionMessage(
   context.fillStyle = "#f0c34e";
   context.font = '700 26px "Segoe UI", sans-serif';
   context.fillText(
-    `Pontuacao final: ${game.score.toFixed(1)}`,
+    `Pontuacao final: ${game.score}`,
     CANVAS_WIDTH / 2,
     boxY + 136,
   );
@@ -307,13 +319,7 @@ function drawImplement(
   context.save();
   context.translate(game.plow.x, game.plow.y);
   context.rotate(game.plow.angle);
-  context.drawImage(
-    implementSprite,
-    -width / 2,
-    -height / 2,
-    width,
-    height,
-  );
+  context.drawImage(implementSprite, -width / 2, -height / 2, width, height);
 
   if (game.stage === "cane" && game.tractor.moving) {
     drawSprayerMist(context, game);
@@ -360,7 +366,10 @@ function drawSprayerMist(
   context.restore();
 }
 
-function drawHitch(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+function drawHitch(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+) {
   const tractorRear = projectLocalPoint(
     game.tractor.x,
     game.tractor.y,
@@ -408,7 +417,10 @@ function projectLocalPoint(
   };
 }
 
-function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
+function drawFallbackTractor(
+  context: CanvasRenderingContext2D,
+  game: Phase2GameSnapshot,
+) {
   const { tractor } = game;
 
   context.fillStyle = "#1b1f1a";
@@ -418,11 +430,26 @@ function drawFallbackTractor(context: CanvasRenderingContext2D, game: Phase2Game
   context.fillRect(tractor.width / 2 - 6, tractor.height / 2 - 40, 18, 34);
 
   context.fillStyle = "#216d35";
-  context.fillRect(-tractor.width / 2, -tractor.height / 2, tractor.width, tractor.height);
+  context.fillRect(
+    -tractor.width / 2,
+    -tractor.height / 2,
+    tractor.width,
+    tractor.height,
+  );
 
   context.fillStyle = "#e0b747";
-  context.fillRect(-tractor.width / 2 + 10, -tractor.height / 2 + 10, tractor.width - 20, 28);
-  context.fillRect(-tractor.width / 2 + 14, tractor.height / 2 - 32, tractor.width - 28, 18);
+  context.fillRect(
+    -tractor.width / 2 + 10,
+    -tractor.height / 2 + 10,
+    tractor.width - 20,
+    28,
+  );
+  context.fillRect(
+    -tractor.width / 2 + 14,
+    tractor.height / 2 - 32,
+    tractor.width - 28,
+    18,
+  );
 
   context.fillStyle = "#23352f";
   context.fillRect(-tractor.width / 2 + 12, -6, tractor.width - 24, 24);
@@ -502,7 +529,11 @@ function drawHud(context: CanvasRenderingContext2D, game: Phase2GameSnapshot) {
   context.fillStyle = game.isComplete ? "#f0c34e" : "#f4ead0";
   context.font = '700 18px "Segoe UI", sans-serif';
   context.textAlign = "right";
-  context.fillText(getStageInstructionMessage(game), CANVAS_WIDTH - 52, CANVAS_HEIGHT - 34);
+  context.fillText(
+    getStageInstructionMessage(game),
+    CANVAS_WIDTH - 52,
+    CANVAS_HEIGHT - 34,
+  );
   context.textAlign = "left";
 }
 

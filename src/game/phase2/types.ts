@@ -28,6 +28,7 @@ export type Phase2GameSnapshot = {
   stage: Phase2Stage;
   awaitingPlantConfirmation: boolean;
   awaitingCaneConfirmation: boolean;
+  awaitingInputRelease: boolean;
   score: number;
   cutCells: number;
   plantedCells: number;
@@ -43,7 +44,6 @@ export type Phase2GameSnapshot = {
     score: number;
     highScore: number;
     isNewHighScore: boolean;
-    hourmeterHours: number;
   } | null;
   tractor: Phase2Tractor;
   plow: Phase2Plow;

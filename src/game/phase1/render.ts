@@ -107,6 +107,8 @@ type Phase1FnrIntroModalParams = {
 };
 
 type Phase1ModalLayout = {
+  canvasWidth: number;
+  canvasHeight: number;
   frameX: number;
   frameY: number;
   frameWidth: number;
@@ -525,17 +527,23 @@ export function drawPhase1Hud({
 
 export function drawPhase1FinalModal(
   context: CanvasRenderingContext2D,
-  modalState: Phase1FinalModalState,
+  modalState: Pick<
+    Phase1FinalModalState,
+    "score" | "highScore" | "isNewHighScore"
+  >,
   instructorImage?: CanvasImageSource | null,
+  canvasSize?: { width: number; height: number },
 ) {
-  const layout = getPhase1ModalLayout();
+  const layout = getPhase1ModalLayout(
+    canvasSize?.width,
+    canvasSize?.height,
+  );
   const titleX = layout.panelX + layout.panelPadding;
   const bodyX = titleX;
   const bodyY = layout.panelY + 96;
   const statY = layout.panelY + 270;
-  const statGap = 18;
-  const statWidth =
-    (layout.panelWidth - layout.panelPadding * 2 - statGap * 2) / 3;
+  const statGap = 20;
+  const statWidth = (layout.panelWidth - layout.panelPadding * 2 - statGap) / 2;
 
   context.save();
   drawModalFrame(context, layout);
@@ -598,14 +606,6 @@ export function drawPhase1FinalModal(
     statWidth,
     "highscore",
     String(modalState.highScore),
-  );
-  drawFinalStatCard(
-    context,
-    bodyX + (statWidth + statGap) * 2,
-    statY,
-    statWidth,
-    TEXT.phase1.render.finalHourmeter,
-    `${modalState.hourmeterHours} h`,
   );
 
   context.fillStyle = "#d5b178";
@@ -1133,11 +1133,14 @@ function getPhase1EventShowcaseBody(
   return TEXT.phase1.render.showcase.traction(controlScheme.labels.brake);
 }
 
-function getPhase1ModalLayout(): Phase1ModalLayout {
+function getPhase1ModalLayout(
+  canvasWidth = CANVAS_WIDTH,
+  canvasHeight = CANVAS_HEIGHT,
+): Phase1ModalLayout {
   const frameX = MODAL_FRAME_MARGIN_X;
   const frameY = MODAL_FRAME_MARGIN_Y;
-  const frameWidth = CANVAS_WIDTH - MODAL_FRAME_MARGIN_X * 2;
-  const frameHeight = CANVAS_HEIGHT - MODAL_FRAME_MARGIN_Y * 2;
+  const frameWidth = canvasWidth - MODAL_FRAME_MARGIN_X * 2;
+  const frameHeight = canvasHeight - MODAL_FRAME_MARGIN_Y * 2;
   const portraitWidth = MODAL_PORTRAIT_WIDTH;
   const panelGap = MODAL_PANEL_GAP;
   const panelX = frameX + portraitWidth + panelGap;
@@ -1146,6 +1149,8 @@ function getPhase1ModalLayout(): Phase1ModalLayout {
   const panelHeight = frameHeight - 40;
 
   return {
+    canvasWidth,
+    canvasHeight,
     frameX,
     frameY,
     frameWidth,
@@ -1167,7 +1172,7 @@ function drawModalFrame(
   layout: Phase1ModalLayout,
 ) {
   context.fillStyle = "rgba(6, 8, 12, 0.72)";
-  context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight);
 
   const frameGradient = context.createLinearGradient(
     layout.frameX,

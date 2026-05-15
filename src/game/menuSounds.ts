@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import menuMusicSrc from "../assets/sfx/menu-music.mp3";
 
-const MENU_MUSIC_VOLUME = 0.22;
+const MENU_MUSIC_VOLUME = 0.2;
 const MENU_MUSIC_STOP_DELAY_MS = 180;
 
 let menuMusicAudio: HTMLAudioElement | null = null;

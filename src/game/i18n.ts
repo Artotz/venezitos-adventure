@@ -113,7 +113,7 @@ export const TEXT = {
     startModalTitle: "Controles da fase",
     startModalDefaultDescription:
       "Use A/D para alternar F, N e R.\nUse W/S para trocar marcha e as setas para operar.",
-    startModalHint: "Pressione uma seta para continuar",
+    startModalHint: "Pressione um botão de ação para continuar",
     initialMessage: (brakeLabel: string) =>
       `Use A/D no FNR, W/S para marcha e ${brakeLabel} para frear.`,
     controls: {
@@ -287,7 +287,7 @@ export const TEXT = {
       finalScore: "pontuação",
       finalHourmeter: "horímetro",
       finalHint:
-        "Highscore salvo no navegador. Pressione uma seta para voltar ao menu.",
+        "Highscore salvo no navegador. Pressione um botão de ação para voltar ao menu.",
       instructionCards: {
         loadTitle: "Carregar",
         digTitle: "Cavar",

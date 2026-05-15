@@ -55,6 +55,7 @@ import { usePhase1GroundImage } from "./phase1/usePhase1GroundImage";
 import { usePhase1PickupUnloadTruckImage } from "./phase1/usePhase1PickupUnloadTruckImage";
 import { usePhase1VenezitoImages } from "./phase1/usePhase1VenezitoImages";
 import { usePhase1Game } from "./phase1/usePhase1Game";
+import { usePhase1BackgroundMusic } from "./phase1/music";
 import { resolvePhase1VenezitoImage } from "./phase1/venezito";
 
 const START_MODAL_CONTINUE_KEYS = new Set<string>(PHASE1_CONTINUE_CODES);
@@ -98,6 +99,9 @@ export function Phase1Canvas({
     isPlaying,
     overlayStep !== null || isPauseMenuOpen,
     inputControlScheme,
+  );
+  usePhase1BackgroundMusic(
+    isPlaying && !isPauseMenuOpen && game.finalModal === null,
   );
   const carnaubaImage = usePhase1CarnaubaImage();
   const foregroundImage = usePhase1ForegroundImage();

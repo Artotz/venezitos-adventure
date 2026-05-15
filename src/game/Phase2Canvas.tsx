@@ -22,7 +22,7 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./phase2/config";
 import { Phase2StageIntroCard } from "./phase2/Phase2StageIntroCard";
 import { PauseMenu } from "./PauseMenu";
 import { drawPhase2Scene } from "./phase2/render";
-import { usePhase2TractorDrivingSound } from "./phase2/sounds";
+import { usePhase2BackgroundMusic } from "./phase2/sounds";
 import type { Phase2Stage } from "./phase2/types";
 import { usePhase2Game } from "./phase2/usePhase2Game";
 import { usePhase2TractorSprite } from "./phase2/usePhase2TractorSprite";
@@ -55,7 +55,9 @@ export function Phase2Canvas({ onChangeView }: Phase2CanvasProps) {
     "full",
     game.finalModal?.isNewHighScore ? "happy" : "neutral",
   );
-  usePhase2TractorDrivingSound(isPlaying && !game.isComplete, game.stage);
+  usePhase2BackgroundMusic(
+    isPlaying && !isPauseMenuOpen && game.finalModal === null,
+  );
 
   useEffect(() => {
     writePhase1ControlSchemeId(controlSchemeId);

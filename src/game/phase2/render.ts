@@ -79,6 +79,11 @@ function drawField(
   game: Phase2GameSnapshot,
 ) {
   for (const cell of game.cells) {
+    context.save();
+    context.globalCompositeOperation = "source-over";
+    context.globalAlpha = 1;
+
+    const rowSeed = cell.row;
     const isSoil = cell.cut;
     const x = FIELD_LEFT + cell.column * CELL_SIZE + (isSoil ? CELL_GAP / 2 : 0);
     const y = FIELD_TOP + cell.row * CELL_SIZE + (isSoil ? CELL_GAP / 2 : 0);
@@ -90,16 +95,18 @@ function drawField(
     context.fillRect(x, y, size, size);
 
     if (isSoil) {
-      drawDirtTexture(context, x, y, size, cell.id);
+      drawDirtTexture(context, x, y, size, rowSeed);
       if (cell.planted) {
-        drawPlantingTexture(context, x, y, size, cell.id);
+        drawPlantingTexture(context, x, y, size, rowSeed);
       }
       if (cell.cane) {
-        drawCaneTexture(context, x, y, size, cell.id, game.isComplete);
+        drawCaneTexture(context, x, y, size, rowSeed, game.isComplete);
       }
     } else {
-      drawGrassTexture(context, x, y, size, cell.id);
+      drawGrassTexture(context, x, y, size, rowSeed);
     }
+
+    context.restore();
   }
 }
 
@@ -549,8 +556,8 @@ function getStageInstructionMessage(game: Phase2GameSnapshot) {
   return INITIAL_MESSAGE;
 }
 
-function getGrassColor(column: number, row: number) {
-  return (column + row) % 2 === 0 ? "#4f9b3f" : "#5daa46";
+function getGrassColor(_column: number, row: number) {
+  return row % 2 === 0 ? "#4f9b3f" : "#5daa46";
 }
 
 function getCellProgress(game: Phase2GameSnapshot) {
@@ -565,6 +572,6 @@ function getCellProgress(game: Phase2GameSnapshot) {
   return game.totalCells > 0 ? game.cutCells / game.totalCells : 0;
 }
 
-function getSoilColor(column: number, row: number) {
-  return (column + row) % 2 === 0 ? "#8a6137" : "#76512f";
+function getSoilColor(_column: number, row: number) {
+  return row % 2 === 0 ? "#8a6137" : "#76512f";
 }

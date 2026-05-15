@@ -1,16 +1,16 @@
 import { useEffect, useRef } from "react";
-import phase2MusicSrc from "../../assets/sfx/tunetank-modern-country-rock-349719.mp3";
+import phase1MusicSrc from "../../assets/sfx/audiodollar-big-rock-production-rock-508503.mp3";
 
-const PHASE2_MUSIC_VOLUME = 0.1;
+const PHASE1_MUSIC_VOLUME = 0.1;
 
-export function usePhase2BackgroundMusic(active: boolean) {
+export function usePhase1BackgroundMusic(active: boolean) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio(phase2MusicSrc);
+    const audio = new Audio(phase1MusicSrc);
     audio.loop = true;
     audio.preload = "auto";
-    audio.volume = PHASE2_MUSIC_VOLUME;
+    audio.volume = PHASE1_MUSIC_VOLUME;
     audio.load();
     audioRef.current = audio;
 

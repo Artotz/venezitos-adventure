@@ -39,7 +39,7 @@ export const TRACTOR_START_Y =
 export const TRACTOR_SPEED = 235;
 export const TRACTOR_TURN_RESPONSE = 3.2;
 export const RESTART_DISTANCE = 50;
-export const STAGE_DURATION_SECONDS = 4;
+export const STAGE_DURATION_SECONDS = 40;
 export const CELL_SCORE_VALUE = 1.35;
 
 export const PHASE2_MENU_EYEBROW = TEXT.phase2.menuEyebrow;

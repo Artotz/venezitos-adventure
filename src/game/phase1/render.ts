@@ -132,6 +132,7 @@ const MODAL_PANEL_INSET = 20;
 const MODAL_PANEL_PADDING = 30;
 const START_MODAL_SIDE_CARD_WIDTH = 210;
 const START_MODAL_CENTER_CARD_WIDTH = 240;
+const START_MODAL_MACHINE_MAX_SCALE = 0.45;
 let activeInstructionControlScheme: Phase1ControlScheme | null = null;
 
 type Phase1StartModalParams = {
@@ -198,6 +199,9 @@ const FNR_PANEL_RIGHT_OVERFLOW = 45;
 const FNR_LEVER_DRAW_WIDTH = 330;
 const FNR_LEVER_PIVOT_X = CANVAS_WIDTH + 8;
 const FNR_LEVER_PIVOT_INSET = 10;
+const FNR_LEVER_PIVOT_OFFSET_FROM_PANEL =
+  FNR_LEVER_PIVOT_X -
+  (CANVAS_WIDTH - FNR_PANEL_DRAW_WIDTH + FNR_PANEL_RIGHT_OVERFLOW);
 const FNR_LEVER_ANGLE_BY_MODE: Record<Phase1DriveMode, number> = {
   forward: 24,
   neutral: 0,
@@ -422,7 +426,11 @@ export function drawPhase1FnrIntroModal({
 
   context.fillStyle = "#e1bf75";
   context.font = '700 18px "Segoe UI", sans-serif';
-  context.fillText(TEXT.phase1.render.fnrTitle.toUpperCase(), titleX, layout.panelY + 30);
+  context.fillText(
+    TEXT.phase1.render.fnrTitle.toUpperCase(),
+    titleX,
+    layout.panelY + 30,
+  );
 
   context.fillStyle = "#fff3d7";
   context.font = '600 22px "Segoe UI", sans-serif';
@@ -451,7 +459,13 @@ export function drawPhase1FnrIntroModal({
   context.ellipse(stageCenterX, stageCenterY + 24, 222, 132, 0, 0, Math.PI * 2);
   context.fill();
 
-  drawFnrIntroAssembly(context, fnrImage, leverImage, stageCenterX, stageCenterY);
+  drawFnrIntroAssembly(
+    context,
+    fnrImage,
+    leverImage,
+    stageCenterX,
+    stageCenterY,
+  );
   drawFnrPositionLabel(
     context,
     stageCenterX - 194,
@@ -534,10 +548,7 @@ export function drawPhase1FinalModal(
   instructorImage?: CanvasImageSource | null,
   canvasSize?: { width: number; height: number },
 ) {
-  const layout = getPhase1ModalLayout(
-    canvasSize?.width,
-    canvasSize?.height,
-  );
+  const layout = getPhase1ModalLayout(canvasSize?.width, canvasSize?.height);
   const titleX = layout.panelX + layout.panelPadding;
   const bodyX = titleX;
   const bodyY = layout.panelY + 96;
@@ -818,7 +829,7 @@ export function drawPhase1StartModal({
   const maxMachineWidth = machineStageWidth * 0.56;
   const maxMachineHeight = machineStageHeight - 210;
   const machineScale = Math.min(
-    0.72,
+    START_MODAL_MACHINE_MAX_SCALE,
     maxMachineWidth / machineContentWidth,
     maxMachineHeight / machineContentHeight,
   );
@@ -828,7 +839,7 @@ export function drawPhase1StartModal({
     machineAngles,
     multiplyMatrices(
       createTranslationMatrix(
-        centerX + 120 - scaledMachineWidth / 2,
+        centerX + 83 - scaledMachineWidth / 2,
         centerY + 20 - scaledMachineHeight / 2,
       ),
       createScaleMatrix(machineScale, machineScale),
@@ -920,7 +931,9 @@ export function drawPhase1StartModal({
     92,
     controlScheme.labels.dig,
     TEXT.phase1.render.instructionCards.digTitle,
-    TEXT.phase1.render.instructionCards.digDescription(controlScheme.labels.dig),
+    TEXT.phase1.render.instructionCards.digDescription(
+      controlScheme.labels.dig,
+    ),
   );
   drawInstructionCard(
     context,
@@ -1324,9 +1337,9 @@ function drawFnrIntroAssembly(
   }
 
   const panelSize = getImageSourceSize(fnrImage);
-  const panelWidth = 286;
+  const panelWidth = FNR_PANEL_DRAW_WIDTH;
   const panelHeight = panelWidth * (panelSize.height / panelSize.width);
-  const panelX = centerX - panelWidth / 2 + 16;
+  const panelX = centerX - panelWidth / 2 + 18;
   const panelY = centerY - panelHeight / 2 - 4;
 
   context.save();
@@ -1335,16 +1348,16 @@ function drawFnrIntroAssembly(
   context.drawImage(fnrImage, panelX, panelY, panelWidth, panelHeight);
 
   const leverSize = getImageSourceSize(leverImage);
-  const leverWidth = 316;
+  const leverWidth = FNR_LEVER_DRAW_WIDTH;
   const leverHeight = leverWidth * (leverSize.height / leverSize.width);
-  const pivotX = panelX + panelWidth - 34;
+  const pivotX = panelX + FNR_LEVER_PIVOT_OFFSET_FROM_PANEL;
   const pivotY = centerY + 8;
 
   context.translate(pivotX, pivotY);
-  context.rotate((-8 * Math.PI) / 180);
+  context.rotate((FNR_LEVER_ANGLE_BY_MODE.neutral * Math.PI) / 180);
   context.drawImage(
     leverImage,
-    -leverWidth + 10,
+    -leverWidth + FNR_LEVER_PIVOT_INSET,
     -leverHeight / 2,
     leverWidth,
     leverHeight,
@@ -2185,7 +2198,14 @@ function drawInstructionCard(
 
   context.fillStyle = "#fff3d7";
   context.font = '600 15px "Segoe UI", sans-serif';
-  drawWrappedText(context, controlText.description, x + 74, y + 56, width - 92, 20);
+  drawWrappedText(
+    context,
+    controlText.description,
+    x + 74,
+    y + 56,
+    width - 92,
+    20,
+  );
   context.restore();
 }
 
